@@ -7,14 +7,225 @@
   "targets": {
     ".NETCoreApp,Version=v10.0": {
       "RuteaYa.Tests/1.0.0": {
+        "dependencies": {
+          "FluentAssertions": "8.11.0",
+          "Microsoft.AspNetCore.Mvc.Core": "2.3.13",
+          "Moq": "4.21.0",
+          "RuteaYa": "1.0.0",
+          "RuteaYa.Entidades": "1.0.0",
+          "RuteaYa.Repositorios": "1.0.0",
+          "RuteaYa.Servicios": "1.0.0",
+          "xunit.extensibility.core": "2.9.3"
+        },
         "runtime": {
           "RuteaYa.Tests.dll": {}
+        }
+      },
+      "Castle.Core/5.2.1": {
+        "runtime": {
+          "lib/net6.0/Castle.Core.dll": {
+            "assemblyVersion": "5.0.0.0",
+            "fileVersion": "5.2.1.0"
+          }
+        }
+      },
+      "FluentAssertions/8.11.0": {
+        "runtime": {
+          "lib/net6.0/FluentAssertions.dll": {
+            "assemblyVersion": "8.11.0.0",
+            "fileVersion": "8.11.0.0"
+          }
+        }
+      },
+      "Microsoft.AspNetCore.Mvc.Core/2.3.13": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyModel": "8.0.2"
+        }
+      },
+      "Microsoft.AspNetCore.OpenApi/10.0.13": {
+        "dependencies": {
+          "Microsoft.OpenApi": "2.12.2"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.AspNetCore.OpenApi.dll": {
+            "assemblyVersion": "10.0.13.0",
+            "fileVersion": "10.0.1326.50504"
+          }
+        }
+      },
+      "Microsoft.Extensions.DependencyModel/8.0.2": {
+        "runtime": {
+          "lib/net8.0/Microsoft.Extensions.DependencyModel.dll": {
+            "assemblyVersion": "8.0.0.2",
+            "fileVersion": "8.0.1024.46610"
+          }
+        }
+      },
+      "Microsoft.OpenApi/2.12.2": {
+        "runtime": {
+          "lib/net8.0/Microsoft.OpenApi.dll": {
+            "assemblyVersion": "2.12.2.0",
+            "fileVersion": "2.12.2.0"
+          }
+        }
+      },
+      "Moq/4.21.0": {
+        "dependencies": {
+          "Castle.Core": "5.2.1"
+        },
+        "runtime": {
+          "lib/net6.0/Moq.dll": {
+            "assemblyVersion": "4.21.0.0",
+            "fileVersion": "4.21.0.0"
+          }
+        }
+      },
+      "xunit.abstractions/2.0.3": {
+        "runtime": {
+          "lib/netstandard2.0/xunit.abstractions.dll": {
+            "assemblyVersion": "2.0.0.0",
+            "fileVersion": "2.0.0.0"
+          }
+        }
+      },
+      "xunit.extensibility.core/2.9.3": {
+        "dependencies": {
+          "xunit.abstractions": "2.0.3"
+        },
+        "runtime": {
+          "lib/netstandard1.1/xunit.core.dll": {
+            "assemblyVersion": "2.9.3.0",
+            "fileVersion": "2.9.3.0"
+          }
+        }
+      },
+      "RuteaYa/1.0.0": {
+        "dependencies": {
+          "RuteaYa.Entidades": "1.0.0",
+          "RuteaYa.Repositorios": "1.0.0",
+          "RuteaYa.Servicios": "1.0.0"
+        },
+        "runtime": {
+          "RuteaYa.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "RuteaYa.Entidades/1.0.0": {
+        "runtime": {
+          "RuteaYa.Entidades.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "RuteaYa.Repositorios/1.0.0": {
+        "runtime": {
+          "RuteaYa.Repositorios.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "RuteaYa.Servicios/1.0.0": {
+        "dependencies": {
+          "Microsoft.AspNetCore.OpenApi": "10.0.13"
+        },
+        "runtime": {
+          "RuteaYa.Servicios.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
         }
       }
     }
   },
   "libraries": {
     "RuteaYa.Tests/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Castle.Core/5.2.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-wHARzQA695jwwKreOzNsq54KiGqKP38tv8hi8e2FXDEC/sA6BtrX90tVPDkOfVu13PbEzr00TCV8coikl+D1Iw==",
+      "path": "castle.core/5.2.1",
+      "hashPath": "castle.core.5.2.1.nupkg.sha512"
+    },
+    "FluentAssertions/8.11.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-dZqOxys9uY/0vO5BAwFtDECkFNSr9vWGwHa1fwZyuM1xAMbI4wiPTUBR2nH5e6R2/bQkXegxFY1B/oU1yqNNOw==",
+      "path": "fluentassertions/8.11.0",
+      "hashPath": "fluentassertions.8.11.0.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.Mvc.Core/2.3.13": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-21uSJQenG9nX93jCdYO743Io1EXLkdFYn9ZhDuk153iTVt2DPZYZstfJRgujrthwfzcR2GyAKbwVutrau1SG6Q==",
+      "path": "microsoft.aspnetcore.mvc.core/2.3.13",
+      "hashPath": "microsoft.aspnetcore.mvc.core.2.3.13.nupkg.sha512"
+    },
+    "Microsoft.AspNetCore.OpenApi/10.0.13": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-XVuqUBGjVUVyb4DXR5BrSkrW0Br7sYKq39f723ILhQLlFHCyhAgWe1PkJBc42R/5mKBIgHiKVSY+PN5/4XtcQw==",
+      "path": "microsoft.aspnetcore.openapi/10.0.13",
+      "hashPath": "microsoft.aspnetcore.openapi.10.0.13.nupkg.sha512"
+    },
+    "Microsoft.Extensions.DependencyModel/8.0.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-mUBDZZRgZrSyFOsJ2qJJ9fXfqd/kXJwf3AiDoqLD9m6TjY5OO/vLNOb9fb4juC0487eq4hcGN/M2Rh/CKS7QYw==",
+      "path": "microsoft.extensions.dependencymodel/8.0.2",
+      "hashPath": "microsoft.extensions.dependencymodel.8.0.2.nupkg.sha512"
+    },
+    "Microsoft.OpenApi/2.12.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-ZkT7qiJe0Kj0+DTZOZo+xrDy1kNmdsWFQVPIQLNx9ZJ0T9cB2LG7r+Bi60so8/+yg1nkS7QCPadrzsTG4VPKrA==",
+      "path": "microsoft.openapi/2.12.2",
+      "hashPath": "microsoft.openapi.2.12.2.nupkg.sha512"
+    },
+    "Moq/4.21.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-HUjrhhzEJ/AfbSBCnR8lPkpveVGpV/dNuOlnpfqBNTME93izly1CRV4N5zBySqz4m2yCRlHLPy/PnPzYokbwIg==",
+      "path": "moq/4.21.0",
+      "hashPath": "moq.4.21.0.nupkg.sha512"
+    },
+    "xunit.abstractions/2.0.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-pot1I4YOxlWjIb5jmwvvQNbTrZ3lJQ+jUGkGjWE3hEFM0l5gOnBWS+H3qsex68s5cO52g+44vpGzhAt+42vwKg==",
+      "path": "xunit.abstractions/2.0.3",
+      "hashPath": "xunit.abstractions.2.0.3.nupkg.sha512"
+    },
+    "xunit.extensibility.core/2.9.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-kf3si0YTn2a8J8eZNb+zFpwfoyvIrQ7ivNk5ZYA5yuYk1bEtMe4DxJ2CF/qsRgmEnDr7MnW1mxylBaHTZ4qErA==",
+      "path": "xunit.extensibility.core/2.9.3",
+      "hashPath": "xunit.extensibility.core.2.9.3.nupkg.sha512"
+    },
+    "RuteaYa/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "RuteaYa.Entidades/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "RuteaYa.Repositorios/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "RuteaYa.Servicios/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

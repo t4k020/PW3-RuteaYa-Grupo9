@@ -10,8 +10,7 @@
         "dependencies": {
           "RuteaYa.Entidades": "1.0.0",
           "RuteaYa.Repositorios": "1.0.0",
-          "RuteaYa.Servicios": "1.0.0",
-          "RuteaYa.Tests": "1.0.0"
+          "RuteaYa.Servicios": "1.0.0"
         },
         "runtime": {
           "RuteaYa.dll": {}
@@ -62,14 +61,6 @@
             "fileVersion": "1.0.0.0"
           }
         }
-      },
-      "RuteaYa.Tests/1.0.0": {
-        "runtime": {
-          "RuteaYa.Tests.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
-          }
-        }
       }
     }
   },
@@ -104,11 +95,6 @@
       "sha512": ""
     },
     "RuteaYa.Servicios/1.0.0": {
-      "type": "project",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "RuteaYa.Tests/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

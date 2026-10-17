@@ -10,7 +10,11 @@
     <ProjectReference Include="..\RuteaYa.Entidades\RuteaYa.Entidades.csproj" />
     <ProjectReference Include="..\RuteaYa.Repositorios\RuteaYa.Repositorios.csproj" />
     <ProjectReference Include="..\RuteaYa.Servicios\RuteaYa.Servicios.csproj" />
-    <ProjectReference Include="..\RuteaYa.Tests\RuteaYa.Tests.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Pages\Envio\" />
+    <Folder Include="Pages\Viaje\" />
   </ItemGroup>
 
 </Project>

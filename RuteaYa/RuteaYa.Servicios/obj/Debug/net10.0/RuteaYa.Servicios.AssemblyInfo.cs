@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RuteaYa.Servicios")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+102bfc9fcdb55e406dfa7d2eebba3814e5002e55")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+21d8894be97cb650438432cd245cc1aef59d5714")]
 [assembly: System.Reflection.AssemblyProductAttribute("RuteaYa.Servicios")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RuteaYa.Servicios")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

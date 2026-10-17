@@ -72,16 +72,6 @@
         "frameworkReferences": [
           "Microsoft.AspNetCore.App"
         ]
-      },
-      "RuteaYa.Tests/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v10.0",
-        "compile": {
-          "bin/placeholder/RuteaYa.Tests.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/RuteaYa.Tests.dll": {}
-        }
       }
     }
   },
@@ -136,19 +126,13 @@
       "type": "project",
       "path": "../RuteaYa.Servicios/RuteaYa.Servicios.csproj",
       "msbuildProject": "../RuteaYa.Servicios/RuteaYa.Servicios.csproj"
-    },
-    "RuteaYa.Tests/1.0.0": {
-      "type": "project",
-      "path": "../RuteaYa.Tests/RuteaYa.Tests.csproj",
-      "msbuildProject": "../RuteaYa.Tests/RuteaYa.Tests.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net10.0": [
       "RuteaYa.Entidades >= 1.0.0",
       "RuteaYa.Repositorios >= 1.0.0",
-      "RuteaYa.Servicios >= 1.0.0",
-      "RuteaYa.Tests >= 1.0.0"
+      "RuteaYa.Servicios >= 1.0.0"
     ]
   },
   "packageFolders": {
@@ -192,9 +176,6 @@
             },
             "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Servicios\\RuteaYa.Servicios.csproj": {
               "projectPath": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Servicios\\RuteaYa.Servicios.csproj"
-            },
-            "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Tests\\RuteaYa.Tests.csproj": {
-              "projectPath": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Tests\\RuteaYa.Tests.csproj"
             }
           }
         }

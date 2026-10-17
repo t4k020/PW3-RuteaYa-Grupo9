@@ -1,2 +1,6 @@
 C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Servicios\obj\Debug\net10.0\staticwebassets.build.json
 C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Servicios\obj\Debug\net10.0\staticwebassets.build.json
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Servicios\obj\Debug\net10.0\staticwebassets.build.json
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Servicios\obj\Debug\net10.0\staticwebassets.build.json
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Servicios\obj\Debug\net10.0\staticwebassets.build.json
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Servicios\obj\Debug\net10.0\staticwebassets.build.json

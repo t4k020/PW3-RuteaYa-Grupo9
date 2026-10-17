@@ -16,11 +16,9 @@ C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\Ru
 C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa\bin\Debug\net10.0\RuteaYa.Entidades.dll
 C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa\bin\Debug\net10.0\RuteaYa.Repositorios.dll
 C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa\bin\Debug\net10.0\RuteaYa.Servicios.dll
-C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa\bin\Debug\net10.0\RuteaYa.Tests.dll
 C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa\bin\Debug\net10.0\RuteaYa.Entidades.pdb
 C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa\bin\Debug\net10.0\RuteaYa.Repositorios.pdb
 C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa\bin\Debug\net10.0\RuteaYa.Servicios.pdb
-C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa\bin\Debug\net10.0\RuteaYa.Tests.pdb
 C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa\obj\Debug\net10.0\RuteaYa.csproj.AssemblyReference.cache
 C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa\obj\Debug\net10.0\rpswa.dswa.cache.json
 C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa\obj\Debug\net10.0\RuteaYa.GeneratedMSBuildEditorConfig.editorconfig
