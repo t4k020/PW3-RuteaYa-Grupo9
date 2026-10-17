@@ -40,7 +40,7 @@ namespace RuteaYa.Tests
         }
 
         [Fact]
-        public async Task Index_DeberiaRetornarVistaMainpage_CuandoUsuarioEstaAutenticado()
+        public async Task DeberiaRetornarVistaMainpageCuandoUsuarioEstaAutenticado()
         {
             // Arrange
             var controller = new HomeController(_viajeServiceMock.Object, _envioServiceMock.Object);
@@ -72,7 +72,7 @@ namespace RuteaYa.Tests
         }
 
         [Fact]
-        public async Task Index_DeberiaRedirigirALogin_CuandoUsuarioNoEstaAutenticado()
+        public async Task DeberiaRedirigirALoginCuandoUsuarioNoEstaAutenticado()
         {
             // Arrange
             var controller = new HomeController(_viajeServiceMock.Object, _envioServiceMock.Object);

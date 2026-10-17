@@ -1,6 +1,11 @@
-﻿namespace RuteaYa.Servicios.Servicios
+﻿namespace RuteaYa.Servicios
 {
-    public class Class
+    public interface IViajeService
     {
+    }
+
+    public class ViajeService : IViajeService
+    {
+
     }
 }

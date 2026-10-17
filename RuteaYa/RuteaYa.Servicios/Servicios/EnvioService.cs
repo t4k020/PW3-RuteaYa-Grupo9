@@ -1,6 +1,9 @@
-﻿namespace RuteaYa.Servicios.Servicios
+﻿namespace RuteaYa.Servicios
 {
-    public class Class
+    public interface IEnvioService
     {
+    }
+    public class EnvioService : IEnvioService { 
+    
     }
 }

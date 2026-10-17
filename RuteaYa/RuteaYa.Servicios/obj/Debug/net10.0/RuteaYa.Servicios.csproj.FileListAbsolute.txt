@@ -32,3 +32,4 @@ C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\Ru
 C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Servicios\obj\Debug\net10.0\RuteaYa.Servicios.pdb
 C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Servicios\obj\Debug\net10.0\RuteaYa.Servicios.genruntimeconfig.cache
 C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Servicios\obj\Debug\net10.0\ref\RuteaYa.Servicios.dll
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Servicios\obj\Debug\net10.0\RuteaYa.Servicios.sourcelink.json
