@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RuteaYa.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d9d1144898c22ea5b8087360ee8fe0f9faccf4bf")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4c70b2d280ecdd11bddc377fbdbf71845bb485c3")]
 [assembly: System.Reflection.AssemblyProductAttribute("RuteaYa.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RuteaYa.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
