@@ -1,0 +1,126 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{FDBA099C-D63A-4CF6-9A8A-CEADAB5AD52C}|RuteaYa\\RuteaYa.csproj|c:\\users\\t4k02\\documents\\github\\forked tw2 project\\pw3-ruteaya-grupo9\\ruteaya\\ruteaya\\ruteaya.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{FDBA099C-D63A-4CF6-9A8A-CEADAB5AD52C}|RuteaYa\\RuteaYa.csproj|solutionrelative:ruteaya\\ruteaya.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{940ECA01-B58C-4BEC-AAAF-4627F514FD5C}|RuteaYa.Tests\\RuteaYa.Tests.csproj|c:\\users\\t4k02\\documents\\github\\forked tw2 project\\pw3-ruteaya-grupo9\\ruteaya\\ruteaya.tests\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{940ECA01-B58C-4BEC-AAAF-4627F514FD5C}|RuteaYa.Tests\\RuteaYa.Tests.csproj|solutionrelative:ruteaya.tests\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{DABD164F-4B79-4734-B1BF-3F5B5DD10161}|RuteaYa.Entidades\\RuteaYa.Entidades.csproj|c:\\users\\t4k02\\documents\\github\\forked tw2 project\\pw3-ruteaya-grupo9\\ruteaya\\ruteaya.entidades\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{DABD164F-4B79-4734-B1BF-3F5B5DD10161}|RuteaYa.Entidades\\RuteaYa.Entidades.csproj|solutionrelative:ruteaya.entidades\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{59B8623F-5725-430E-B4FA-409842F4E101}|RuteaYa.Repositorios\\RuteaYa.Repositorios.csproj|c:\\users\\t4k02\\documents\\github\\forked tw2 project\\pw3-ruteaya-grupo9\\ruteaya\\ruteaya.repositorios\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{59B8623F-5725-430E-B4FA-409842F4E101}|RuteaYa.Repositorios\\RuteaYa.Repositorios.csproj|solutionrelative:ruteaya.repositorios\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 6,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:1:0:{fabf9319-47eb-497e-b8f6-d9f73fba5f55}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{116d2292-e37d-41cd-a077-ebacac4c8cc4}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:129:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "RuteaYa",
+              "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa\\RuteaYa.csproj",
+              "RelativeDocumentMoniker": "RuteaYa\\RuteaYa.csproj",
+              "ToolTip": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa\\RuteaYa.csproj",
+              "RelativeToolTip": "RuteaYa\\RuteaYa.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2026-10-17T00:30:22.342Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Tests\\Class1.cs",
+              "RelativeDocumentMoniker": "RuteaYa.Tests\\Class1.cs",
+              "ToolTip": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Tests\\Class1.cs",
+              "RelativeToolTip": "RuteaYa.Tests\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-17T00:30:17.126Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Entidades\\Class1.cs",
+              "RelativeDocumentMoniker": "RuteaYa.Entidades\\Class1.cs",
+              "ToolTip": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Entidades\\Class1.cs",
+              "RelativeToolTip": "RuteaYa.Entidades\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-17T00:30:05.741Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Class1.cs",
+              "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Repositorios\\Class1.cs",
+              "RelativeDocumentMoniker": "RuteaYa.Repositorios\\Class1.cs",
+              "ToolTip": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Repositorios\\Class1.cs",
+              "RelativeToolTip": "RuteaYa.Repositorios\\Class1.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-10-17T00:29:53.543Z",
+              "EditorCaption": ""
+            }
+          ]
+        },
+        {
+          "DockedWidth": 96,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{eefa5220-e298-11d0-8f78-00a0c9110057}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

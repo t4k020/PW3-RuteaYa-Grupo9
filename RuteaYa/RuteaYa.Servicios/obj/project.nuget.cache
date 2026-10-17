@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "k8P2nb+dpNw=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Servicios\\RuteaYa.Servicios.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\t4k02\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.13\\microsoft.aspnetcore.openapi.10.0.13.nupkg.sha512",
+    "C:\\Users\\t4k02\\.nuget\\packages\\microsoft.openapi\\2.12.2\\microsoft.openapi.2.12.2.nupkg.sha512"
+  ],
+  "logs": []
+}

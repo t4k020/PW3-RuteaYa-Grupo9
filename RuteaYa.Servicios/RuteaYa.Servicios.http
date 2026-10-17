@@ -1,6 +1,0 @@
-@RuteaYa.Servicios_HostAddress = http://localhost:5194
-
-GET {{RuteaYa.Servicios_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

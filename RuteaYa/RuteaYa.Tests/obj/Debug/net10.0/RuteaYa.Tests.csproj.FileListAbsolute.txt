@@ -1,0 +1,12 @@
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Tests\bin\Debug\net10.0\RuteaYa.Tests.deps.json
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Tests\bin\Debug\net10.0\RuteaYa.Tests.dll
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Tests\bin\Debug\net10.0\RuteaYa.Tests.pdb
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Tests\obj\Debug\net10.0\RuteaYa.Tests.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Tests\obj\Debug\net10.0\RuteaYa.Tests.AssemblyInfoInputs.cache
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Tests\obj\Debug\net10.0\RuteaYa.Tests.AssemblyInfo.cs
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Tests\obj\Debug\net10.0\RuteaYa.Tests.csproj.CoreCompileInputs.cache
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Tests\obj\Debug\net10.0\RuteaYa.Tests.dll
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Tests\obj\Debug\net10.0\refint\RuteaYa.Tests.dll
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Tests\obj\Debug\net10.0\RuteaYa.Tests.pdb
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Tests\obj\Debug\net10.0\ref\RuteaYa.Tests.dll
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Tests\obj\Debug\net10.0\RuteaYa..3FAC34D9.Up2Date

@@ -1,18 +1,18 @@
 {
   "Version": 1,
-  "WorkspaceRootPath": "C:\\Users\\t4k02\\source\\repos\\RuteaYa\\",
+  "WorkspaceRootPath": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{3AFDB975-C970-49A7-8253-F08E22429B1E}|RuteaYa.Entidades\\RuteaYa.Entidades.csproj|c:\\users\\t4k02\\source\\repos\\ruteaya\\ruteaya.entidades\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{3AFDB975-C970-49A7-8253-F08E22429B1E}|RuteaYa.Entidades\\RuteaYa.Entidades.csproj|solutionrelative:ruteaya.entidades\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{776B1333-265D-664C-3904-C3AC5D10CD77}|RuteaYa.Entidades\\RuteaYa.Entidades.csproj|c:\\users\\t4k02\\documents\\github\\forked tw2 project\\pw3-ruteaya-grupo9\\ruteaya.entidades\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{776B1333-265D-664C-3904-C3AC5D10CD77}|RuteaYa.Entidades\\RuteaYa.Entidades.csproj|solutionrelative:ruteaya.entidades\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{577AEA46-0F48-4728-A1D4-6F8A1FAA8F7C}|RuteaYa.Tests\\RuteaYa.Tests.csproj|c:\\users\\t4k02\\source\\repos\\ruteaya\\ruteaya.tests\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{577AEA46-0F48-4728-A1D4-6F8A1FAA8F7C}|RuteaYa.Tests\\RuteaYa.Tests.csproj|solutionrelative:ruteaya.tests\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{09FC28A6-AD8C-7E33-366E-A980ABAD438C}|RuteaYa.Tests\\RuteaYa.Tests.csproj|c:\\users\\t4k02\\documents\\github\\forked tw2 project\\pw3-ruteaya-grupo9\\ruteaya.tests\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{09FC28A6-AD8C-7E33-366E-A980ABAD438C}|RuteaYa.Tests\\RuteaYa.Tests.csproj|solutionrelative:ruteaya.tests\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{B168C5AE-E2D6-4588-9468-64E2C319BDEC}|RuteaYa.repositorios\\RuteaYa.repositorios.csproj|c:\\users\\t4k02\\source\\repos\\ruteaya\\ruteaya.repositorios\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B168C5AE-E2D6-4588-9468-64E2C319BDEC}|RuteaYa.repositorios\\RuteaYa.repositorios.csproj|solutionrelative:ruteaya.repositorios\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{6DF678EF-0057-BFF2-46AD-B865D16353FD}|RuteaYa.repositorios\\RuteaYa.Repositorios.csproj|c:\\users\\t4k02\\documents\\github\\forked tw2 project\\pw3-ruteaya-grupo9\\ruteaya.repositorios\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{6DF678EF-0057-BFF2-46AD-B865D16353FD}|RuteaYa.repositorios\\RuteaYa.Repositorios.csproj|solutionrelative:ruteaya.repositorios\\class1.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -52,11 +52,11 @@
               "$type": "Document",
               "DocumentIndex": 0,
               "Title": "Class1.cs",
-              "DocumentMoniker": "C:\\Users\\t4k02\\source\\repos\\RuteaYa\\RuteaYa.Entidades\\Class1.cs",
+              "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa.Entidades\\Class1.cs",
               "RelativeDocumentMoniker": "RuteaYa.Entidades\\Class1.cs",
-              "ToolTip": "C:\\Users\\t4k02\\source\\repos\\RuteaYa\\RuteaYa.Entidades\\Class1.cs",
+              "ToolTip": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa.Entidades\\Class1.cs",
               "RelativeToolTip": "RuteaYa.Entidades\\Class1.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-10-15T23:43:39.838Z",
               "EditorCaption": ""
@@ -65,27 +65,25 @@
               "$type": "Document",
               "DocumentIndex": 1,
               "Title": "Class1.cs",
-              "DocumentMoniker": "C:\\Users\\t4k02\\source\\repos\\RuteaYa\\RuteaYa.Tests\\Class1.cs",
+              "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa.Tests\\Class1.cs",
               "RelativeDocumentMoniker": "RuteaYa.Tests\\Class1.cs",
-              "ToolTip": "C:\\Users\\t4k02\\source\\repos\\RuteaYa\\RuteaYa.Tests\\Class1.cs",
+              "ToolTip": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa.Tests\\Class1.cs",
               "RelativeToolTip": "RuteaYa.Tests\\Class1.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-15T23:40:20.761Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-15T23:40:20.761Z"
             },
             {
               "$type": "Document",
               "DocumentIndex": 2,
               "Title": "Class1.cs",
-              "DocumentMoniker": "C:\\Users\\t4k02\\source\\repos\\RuteaYa\\RuteaYa.repositorios\\Class1.cs",
+              "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa.repositorios\\Class1.cs",
               "RelativeDocumentMoniker": "RuteaYa.repositorios\\Class1.cs",
-              "ToolTip": "C:\\Users\\t4k02\\source\\repos\\RuteaYa\\RuteaYa.repositorios\\Class1.cs",
+              "ToolTip": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa.repositorios\\Class1.cs",
               "RelativeToolTip": "RuteaYa.repositorios\\Class1.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-15T23:39:40.182Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-10-15T23:39:40.182Z"
             }
           ]
         },

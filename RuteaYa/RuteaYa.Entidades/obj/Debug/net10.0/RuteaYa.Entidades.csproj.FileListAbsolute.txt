@@ -1,0 +1,12 @@
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Entidades\bin\Debug\net10.0\RuteaYa.Entidades.deps.json
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Entidades\bin\Debug\net10.0\RuteaYa.Entidades.dll
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Entidades\bin\Debug\net10.0\RuteaYa.Entidades.pdb
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Entidades\obj\Debug\net10.0\RuteaYa.Entidades.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Entidades\obj\Debug\net10.0\RuteaYa.Entidades.AssemblyInfoInputs.cache
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Entidades\obj\Debug\net10.0\RuteaYa.Entidades.AssemblyInfo.cs
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Entidades\obj\Debug\net10.0\RuteaYa.Entidades.csproj.CoreCompileInputs.cache
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Entidades\obj\Debug\net10.0\RuteaYa.Entidades.dll
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Entidades\obj\Debug\net10.0\refint\RuteaYa.Entidades.dll
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Entidades\obj\Debug\net10.0\RuteaYa.Entidades.pdb
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Entidades\obj\Debug\net10.0\ref\RuteaYa.Entidades.dll
+C:\Users\t4k02\Documents\GitHub\forked TW2 project\PW3-RuteaYa-Grupo9\RuteaYa\RuteaYa.Entidades\obj\Debug\net10.0\RuteaYa..564E4EC8.Up2Date
