@@ -1,4 +1,6 @@
 ## Visual Studio
+[Oo]bj/
+[Bb]in/
 .vs/
 *.suo
 *.user
@@ -22,22 +24,4 @@ x86/
 *.trx
 RuteaYa/RuteaYa.Tests/obj/Debug/net10.0/RuteaYa.Tests.AssemblyInfo.cs
 RuteaYa/RuteaYa.Tests/obj/Debug/net10.0/RuteaYa.Tests.AssemblyInfoInputs.cache
-RuteaYa/.vs/RuteaYa.slnx/v18/.suo
 RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfo.cs
-RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfoInputs.cache
-RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfo.cs
-RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfoInputs.cache
-RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfo.cs
-RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfoInputs.cache
-RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfo.cs
-RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfoInputs.cache
-RuteaYa/.vs/RuteaYa.slnx/v18/.suo
-/RuteaYa/.vs
-RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfo.cs
-RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfoInputs.cache
-RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfo.cs
-RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfoInputs.cache
-RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfoInputs.cache
-RuteaYa/.vs/RuteaYa.slnx/v18/DocumentLayout.backup.json
-RuteaYa/.vs/RuteaYa.slnx/v18/DocumentLayout.json
-RuteaYa/.vs/ProjectEvaluation/ruteaya.metadata.v10.bin
