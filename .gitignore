@@ -1,4 +1,6 @@
 ## Visual Studio
+[Oo]bj/
+[Bb]in/
 .vs/
 *.suo
 *.user
@@ -22,3 +24,4 @@ x86/
 *.trx
 RuteaYa/RuteaYa.Tests/obj/Debug/net10.0/RuteaYa.Tests.AssemblyInfo.cs
 RuteaYa/RuteaYa.Tests/obj/Debug/net10.0/RuteaYa.Tests.AssemblyInfoInputs.cache
+RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfo.cs
