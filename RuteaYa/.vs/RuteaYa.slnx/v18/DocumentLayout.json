@@ -11,10 +11,6 @@
       "RelativeMoniker": "D:0:0:{09FC28A6-AD8C-7E33-366E-A980ABAD438C}|RuteaYa.Tests\\RuteaYa.Tests.csproj|solutionrelative:ruteaya.tests\\homecontrollertest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{09FC28A6-AD8C-7E33-366E-A980ABAD438C}|RuteaYa.Tests\\RuteaYa.Tests.csproj|c:\\users\\t4k02\\documents\\github\\forked tw2 project\\pw3-ruteaya-grupo9\\ruteaya\\ruteaya.tests\\enviocontrollertest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{09FC28A6-AD8C-7E33-366E-A980ABAD438C}|RuteaYa.Tests\\RuteaYa.Tests.csproj|solutionrelative:ruteaya.tests\\enviocontrollertest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{26FFAC4D-1843-FC04-E782-41E9E34ADF8B}|RuteaYa.Servicios\\RuteaYa.Servicios.csproj|c:\\users\\t4k02\\documents\\github\\forked tw2 project\\pw3-ruteaya-grupo9\\ruteaya\\ruteaya.servicios\\servicios\\envioservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{26FFAC4D-1843-FC04-E782-41E9E34ADF8B}|RuteaYa.Servicios\\RuteaYa.Servicios.csproj|solutionrelative:ruteaya.servicios\\servicios\\envioservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -33,14 +29,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{23B76843-08A0-DA2B-D513-10B10AA57345}|RuteaYa\\RuteaYa.csproj|c:\\users\\t4k02\\documents\\github\\forked tw2 project\\pw3-ruteaya-grupo9\\ruteaya\\ruteaya\\controllers\\enviocontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{23B76843-08A0-DA2B-D513-10B10AA57345}|RuteaYa\\RuteaYa.csproj|solutionrelative:ruteaya\\controllers\\enviocontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{09FC28A6-AD8C-7E33-366E-A980ABAD438C}|RuteaYa.Tests\\RuteaYa.Tests.csproj|c:\\users\\t4k02\\documents\\github\\forked tw2 project\\pw3-ruteaya-grupo9\\ruteaya\\ruteaya.tests\\viajeservicetest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{09FC28A6-AD8C-7E33-366E-A980ABAD438C}|RuteaYa.Tests\\RuteaYa.Tests.csproj|solutionrelative:ruteaya.tests\\viajeservicetest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{09FC28A6-AD8C-7E33-366E-A980ABAD438C}|RuteaYa.Tests\\RuteaYa.Tests.csproj|c:\\users\\t4k02\\documents\\github\\forked tw2 project\\pw3-ruteaya-grupo9\\ruteaya\\ruteaya.tests\\envioservicetest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{09FC28A6-AD8C-7E33-366E-A980ABAD438C}|RuteaYa.Tests\\RuteaYa.Tests.csproj|solutionrelative:ruteaya.tests\\envioservicetest.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{23B76843-08A0-DA2B-D513-10B10AA57345}|RuteaYa\\RuteaYa.csproj|c:\\users\\t4k02\\documents\\github\\forked tw2 project\\pw3-ruteaya-grupo9\\ruteaya\\ruteaya\\pages\\viaje\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
@@ -82,7 +70,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 7,
+          "SelectedChildIndex": 6,
           "Children": [
             {
               "$type": "Bookmark",
@@ -110,51 +98,25 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
-              "Title": "ViajeServiceTest.cs",
-              "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Tests\\ViajeServiceTest.cs",
-              "RelativeDocumentMoniker": "RuteaYa.Tests\\ViajeServiceTest.cs",
-              "ToolTip": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Tests\\ViajeServiceTest.cs",
-              "RelativeToolTip": "RuteaYa.Tests\\ViajeServiceTest.cs",
-              "ViewState": "AgIAAAYAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-17T17:18:37.492Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 0,
               "Title": "ViajeControllerTest.cs",
               "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Tests\\ViajeControllerTest.cs",
               "RelativeDocumentMoniker": "RuteaYa.Tests\\ViajeControllerTest.cs",
               "ToolTip": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Tests\\ViajeControllerTest.cs",
               "RelativeToolTip": "RuteaYa.Tests\\ViajeControllerTest.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAAaAAAAAAAAAA==",
+              "ViewState": "AgIAACYAAAAAAAAAAAAwwAAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-17T17:17:50.795Z",
+              "WhenOpened": "2026-10-17T18:24:35.022Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "EnvioControllerTest.cs",
-              "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Tests\\EnvioControllerTest.cs",
-              "RelativeDocumentMoniker": "RuteaYa.Tests\\EnvioControllerTest.cs",
-              "ToolTip": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Tests\\EnvioControllerTest.cs*",
-              "RelativeToolTip": "RuteaYa.Tests\\EnvioControllerTest.cs*",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAAaAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-17T17:17:10.861Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 4,
               "Title": "ViajeController.cs",
               "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa\\Controllers\\ViajeController.cs",
               "RelativeDocumentMoniker": "RuteaYa\\Controllers\\ViajeController.cs",
-              "ToolTip": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa\\Controllers\\ViajeController.cs*",
-              "RelativeToolTip": "RuteaYa\\Controllers\\ViajeController.cs*",
+              "ToolTip": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa\\Controllers\\ViajeController.cs",
+              "RelativeToolTip": "RuteaYa\\Controllers\\ViajeController.cs",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAkAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-10-17T01:37:59.334Z",
@@ -162,7 +124,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 6,
               "Title": "EnvioController.cs",
               "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa\\Controllers\\EnvioController.cs",
               "RelativeDocumentMoniker": "RuteaYa\\Controllers\\EnvioController.cs",
@@ -175,7 +137,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 5,
               "Title": "HomeController.cs",
               "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa\\Controllers\\HomeController.cs",
               "RelativeDocumentMoniker": "RuteaYa\\Controllers\\HomeController.cs",
@@ -192,16 +154,16 @@
               "Title": "HomeControllerTest.cs",
               "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Tests\\HomeControllerTest.cs",
               "RelativeDocumentMoniker": "RuteaYa.Tests\\HomeControllerTest.cs",
-              "ToolTip": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Tests\\HomeControllerTest.cs*",
-              "RelativeToolTip": "RuteaYa.Tests\\HomeControllerTest.cs*",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEoAAABQAAAAAAAAAA==",
+              "ToolTip": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Tests\\HomeControllerTest.cs",
+              "RelativeToolTip": "RuteaYa.Tests\\HomeControllerTest.cs",
+              "ViewState": "AgIAAFAAAAAAAAAAAAAmwDQAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-10-17T00:30:17.126Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 2,
               "Title": "EnvioService.cs",
               "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Servicios\\Servicios\\EnvioService.cs",
               "RelativeDocumentMoniker": "RuteaYa.Servicios\\Servicios\\EnvioService.cs",
@@ -214,13 +176,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 3,
               "Title": "ViajeService.cs",
               "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Servicios\\Servicios\\ViajeService.cs",
               "RelativeDocumentMoniker": "RuteaYa.Servicios\\Servicios\\ViajeService.cs",
               "ToolTip": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Servicios\\Servicios\\ViajeService.cs",
               "RelativeToolTip": "RuteaYa.Servicios\\Servicios\\ViajeService.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2026-10-17T01:21:24.061Z",
               "EditorCaption": ""
@@ -228,19 +190,6 @@
             {
               "$type": "Document",
               "DocumentIndex": 9,
-              "Title": "EnvioServiceTest.cs",
-              "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Tests\\EnvioServiceTest.cs",
-              "RelativeDocumentMoniker": "RuteaYa.Tests\\EnvioServiceTest.cs",
-              "ToolTip": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Tests\\EnvioServiceTest.cs",
-              "RelativeToolTip": "RuteaYa.Tests\\EnvioServiceTest.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-10-17T17:18:26.186Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 12,
               "Title": "Mainpage.cshtml",
               "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa\\Pages\\Home\\Mainpage.cshtml",
               "RelativeDocumentMoniker": "RuteaYa\\Pages\\Home\\Mainpage.cshtml",
@@ -252,7 +201,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
+              "DocumentIndex": 10,
               "Title": "Index.cshtml",
               "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa\\Pages\\Index.cshtml",
               "RelativeDocumentMoniker": "RuteaYa\\Pages\\Index.cshtml",
@@ -264,7 +213,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 11,
               "Title": "Index.cshtml",
               "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa\\Pages\\Home\\Index.cshtml",
               "RelativeDocumentMoniker": "RuteaYa\\Pages\\Home\\Index.cshtml",
@@ -276,7 +225,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 8,
               "Title": "Index.cshtml",
               "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa\\Pages\\Envio\\Index.cshtml",
               "RelativeDocumentMoniker": "RuteaYa\\Pages\\Envio\\Index.cshtml",
@@ -288,7 +237,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 7,
               "Title": "Index.cshtml",
               "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa\\Pages\\Viaje\\Index.cshtml",
               "RelativeDocumentMoniker": "RuteaYa\\Pages\\Viaje\\Index.cshtml",
@@ -300,7 +249,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 15,
+              "DocumentIndex": 12,
               "Title": "RuteaYa.csproj",
               "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa\\RuteaYa.csproj",
               "RelativeDocumentMoniker": "RuteaYa\\RuteaYa.csproj",
@@ -312,7 +261,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
+              "DocumentIndex": 13,
               "Title": "Class1.cs",
               "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Entidades\\Class1.cs",
               "RelativeDocumentMoniker": "RuteaYa.Entidades\\Class1.cs",
@@ -324,7 +273,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 17,
+              "DocumentIndex": 14,
               "Title": "Class1.cs",
               "DocumentMoniker": "C:\\Users\\t4k02\\Documents\\GitHub\\forked TW2 project\\PW3-RuteaYa-Grupo9\\RuteaYa\\RuteaYa.Repositorios\\Class1.cs",
               "RelativeDocumentMoniker": "RuteaYa.Repositorios\\Class1.cs",
