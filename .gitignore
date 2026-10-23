@@ -1,11 +1,18 @@
 ## Visual Studio
 [Oo]bj/
 [Bb]in/
+
+# Metadatos de Visual Studio y del IDE
 .vs/
 *.suo
 *.user
 *.userosscache
 *.sln.docstates
+
+# Metadatos de dependencias y caché
+project.lock.json
+project.fragment.lock.json
+artifacts/
 
 ## Build results / Compilación
 [Dd]ebug/
@@ -27,3 +34,4 @@ RuteaYa/RuteaYa.Tests/obj/Debug/net10.0/RuteaYa.Tests.AssemblyInfoInputs.cache
 RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfo.cs
 RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfoInputs.cache
 RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfoInputs.cache
+RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfo.cs
