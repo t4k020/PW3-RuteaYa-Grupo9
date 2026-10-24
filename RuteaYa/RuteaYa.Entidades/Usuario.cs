@@ -36,5 +36,8 @@ namespace RuteaYa.Entidades
         [Display(Name = "Fecha de Creación")]
         public DateTime CreadoEn { get; set; } = DateTime.Now;
 
+        public ICollection<Viaje> Viajes { get; set; } = new List<Viaje>();
+        public ICollection<Envio> Envios { get; set; } = new List<Envio>();
+
     }
 }
