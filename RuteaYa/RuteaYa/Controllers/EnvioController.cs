@@ -1,21 +1,73 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Servicios;
+using RuteaYa.Entidades;
 
 namespace RuteaYa.Controllers
 {
     public class EnvioController : Controller
     {
 
-        
-        private readonly IEnvioService _envioService;
-        public EnvioController( IEnvioService envioService)
-        {
-            
-            _envioService = envioService;
-        }
+    
         public IActionResult Index()
         {
             return View();
+        }
+
+        private readonly IHttpClientFactory _httpClientFactory;
+
+        // Inyectamos IHttpClientFactory 
+        public EnvioController(IHttpClientFactory httpClientFactory)
+        {
+            _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+        }
+
+        [HttpGet]
+        public IActionResult Crear()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Crear(Envio modelo)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(modelo);
+            }
+
+            // Creamos el cliente utilizando el nombre que configuramos en Program.cs
+            var client = _httpClientFactory.CreateClient("ApiEnvio");
+
+            try
+            {
+                // petición POST h
+                HttpResponseMessage respuesta = await client.PostAsJsonAsync("api/ApiEnvio", modelo);
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    TempData["Mensaje"] = "¡Envío creado con éxito!";
+                    return RedirectToAction("Index");
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    ModelState.AddModelError(string.Empty, "No tienes autorización para realizar esta acción.");
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    ModelState.AddModelError(string.Empty, "Error en los datos enviados a la API.");
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, "Ocurrió un error inesperado al comunicarse con el servidor.");
+                }
+            }
+            catch (HttpRequestException)
+            {
+                ModelState.AddModelError(string.Empty, "No se pudo conectar con el servidor de la API.");
+            }
+
+            return View(modelo);
         }
     }
 }

@@ -1,0 +1,51 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using RuteaYa.Entidades;
+using RuteaYa.Servicios;
+
+namespace RuteaYa.Servicios.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ApiEnvioController : Controller
+    {
+        private readonly IEnvioService _envioService;
+
+        public ApiEnvioController(IEnvioService envioService)
+        {
+            _envioService = envioService;
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CrearEnvio([FromBody] Envio envio)
+        {
+            if (!User.Identity?.IsAuthenticated ?? true)
+            {
+                return Unauthorized();
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState); // Devuelve código 400 Bad Request
+            }
+
+            try
+            {
+                
+                var nuevoEnvio = await _envioService.CrearEnvioAsync(envio);
+
+                // Respuesta exitosa código 201 
+                return CreatedAtAction(nameof(CrearEnvio), new { id = nuevoEnvio.Id }, nuevoEnvio);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Código 400 
+                return BadRequest(new { mensaje = ex.Message });
+            }
+            catch (Exception)
+            {
+                // Error interno del servidor  Código 500
+                return StatusCode(500, "Ocurrió un error interno al procesar el envío.");
+            }
+        }
+    }
+}
