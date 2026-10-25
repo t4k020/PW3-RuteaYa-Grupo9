@@ -6,10 +6,18 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 
+
 builder.Services.AddDbContext<RuteaYaDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddHttpClient("ApiEnvio", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7187/"); // Reemplaza con tu puerto de la API
+});
+
+
 var app = builder.Build();
+
 
 // Carga del seed
 using (var scope = app.Services.CreateScope())
