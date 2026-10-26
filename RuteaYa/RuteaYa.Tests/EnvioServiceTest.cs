@@ -54,11 +54,58 @@ namespace RuteaYa.Tests
             Assert.True(resultado.Id > 0, "El ID del envío debería generarse correctamente.");
 
             // 2. Verificamos que realmente se haya guardado en la base de datos en memoria
-            var envioEnDb = await context.Envios.FindAsync(resultado.Id);
+            var envioEnDb = await context.Envios.FindAsync(new object[] { resultado.Id }, TestContext.Current.CancellationToken);
             Assert.NotNull(envioEnDb);
             Assert.Equal("Av. Corrientes 1234, CABA", envioEnDb.OrigenDir);
             Assert.Equal(2500.00m, envioEnDb.Monto);
             Assert.Equal(1, envioEnDb.UsuarioId);
+        }
+        [Fact]
+        public async Task ObtenerPorIdAsync_DeberiaRetornarEnvio_CuandoElIdExiste()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<RuteaYaDbContext>()
+                .UseInMemoryDatabase(databaseName: "TestDb_ObtenerPorId_Success")
+                .Options;
+
+            // Insertamos datos de prueba en la base de datos en memoria
+            using (var context = new RuteaYaDbContext(options))
+            {
+                context.Envios.Add(new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" });
+                await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            }
+
+            // Act
+            using (var context = new RuteaYaDbContext(options))
+            {
+                var service = new EnvioService(context);
+                var resultado = await service.ObtenerPorIdAsync(1);
+
+                // Assert
+                Assert.NotNull(resultado);
+                Assert.Equal(1, resultado.Id);
+                Assert.Equal("Mitre 1000", resultado.OrigenDir);
+            }
+        }
+
+        [Fact]
+        public async Task ObtenerPorIdAsync_DeberiaRetornarNull_CuandoElIdNoExiste()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<RuteaYaDbContext>()
+                .UseInMemoryDatabase(databaseName: "TestDb_ObtenerPorId_NotFound")
+                .Options;
+
+            using (var context = new RuteaYaDbContext(options))
+            {
+                var service = new EnvioService(context);
+
+                // Act
+                var resultado = await service.ObtenerPorIdAsync(999);
+
+                // Assert
+                Assert.Null(resultado);
+            }
         }
     }
 }

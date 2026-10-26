@@ -34,7 +34,7 @@ namespace RuteaYa.Tests
 
 
 
-    [Fact]
+        [Fact]
         public async Task CuandoSeCreaUnEnvioCorrectamentePeroElUsuarioNoTieneCredencialesSeRecibeUn401()
         {
             // Preparacion
@@ -58,15 +58,10 @@ namespace RuteaYa.Tests
         public async Task CuandoSeCreaUnEnvioYSuModelStateEsInvalidoSeRecibeUn400()
         {
             // Preparacion
-            var envio = new Envio(); //objeto vacio
-            //  Simulamos un usuario autenticado para que pase la primera validación del controlador
-            var user = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "UsuarioTest") }, "TestAuth"));
-            _controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { User = user }
-            };
+            var envio = new Envio(); // objeto vacio
+            ConfigurarUsuarioAutenticado(); 
 
-            // se fuerza un error en el modelState
+            // Se fuerza un error en el modelState
             _controller.ModelState.AddModelError("OrigenDir", "La dirección de origen es obligatoria.");
 
             // Procedimiento
@@ -82,13 +77,7 @@ namespace RuteaYa.Tests
         {
             // Preparacion
             var envio = new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" };
-
-            //  Simulamos un usuario autenticado para que pase la primera validación del controlador
-            var user = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "UsuarioTest") }, "TestAuth"));
-            _controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { User = user }
-            };
+            ConfigurarUsuarioAutenticado(); 
 
             // Configuramos el mock para que lance la excepción de regla de negocio
             _envioServiceMock.Setup(s => s.CrearEnvioAsync(It.IsAny<Envio>()))
@@ -106,12 +95,7 @@ namespace RuteaYa.Tests
         {
             // Preparacion
             var envio = new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" };
-            //  Simulamos un usuario autenticado para que pase la primera validación del controlador
-            var user = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "UsuarioTest") }, "TestAuth"));
-            _controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext { User = user }
-            };
+            ConfigurarUsuarioAutenticado(); // Reutilizamos el método auxiliar
 
             // Simulamos un error inesperado de base de datos o sistema
             _envioServiceMock.Setup(s => s.CrearEnvioAsync(It.IsAny<Envio>()))
@@ -123,6 +107,84 @@ namespace RuteaYa.Tests
             // Verificacion
             var statusCodeResult = Assert.IsType<ObjectResult>(resultado);
             Assert.Equal(500, statusCodeResult.StatusCode);
+        }
+
+        //tests para get por id 
+
+        [Fact]
+        public async Task ObtenerPorId_DeberiaRetornarUnauthorized_CuandoUsuarioNoEstaAutenticado()
+        {
+            // Act (El HttpContext por defecto no tiene un usuario autenticado, por lo que IsAuthenticated será falso)
+            var resultado = await _controller.ObtenerPorId(1);
+
+            // Assert
+            Assert.IsType<UnauthorizedResult>(resultado);
+        }
+
+        [Fact]
+        public async Task ObtenerPorId_DeberiaRetornarOkConEnvio_CuandoElEnvioExiste()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+            var envioMock = new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" };
+
+            _envioServiceMock
+                .Setup(s => s.ObtenerPorIdAsync(1))
+                .ReturnsAsync(envioMock);
+
+            // Act
+            var resultado = await _controller.ObtenerPorId(1);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(resultado);
+            var envioRetornado = Assert.IsType<Envio>(okResult.Value);
+            Assert.Equal(1, envioRetornado.Id);
+            Assert.Equal("Mitre 1000", envioRetornado.OrigenDir);
+        }
+
+        [Fact]
+        public async Task ObtenerPorId_DeberiaRetornarNotFound_CuandoElEnvioNoExiste()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+
+            _envioServiceMock
+                .Setup(s => s.ObtenerPorIdAsync(999))
+                .ReturnsAsync((Envio?)null);
+
+            // Act
+            var resultado = await _controller.ObtenerPorId(999);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(resultado);
+        }
+
+        [Fact]
+        public async Task ObtenerPorId_DeberiaRetornarStatusCode500_CuandoOcurreUnaExcepcion()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+
+            _envioServiceMock
+                .Setup(s => s.ObtenerPorIdAsync(It.IsAny<int>()))
+                .ThrowsAsync(new Exception("Error de base de datos"));
+
+            // Act
+            var resultado = await _controller.ObtenerPorId(1);
+
+            // Assert
+            var statusCodeResult = Assert.IsType<ObjectResult>(resultado);
+            Assert.Equal(500, statusCodeResult.StatusCode);
+        }
+
+        private void ConfigurarUsuarioAutenticado()
+        {
+            var user = new ClaimsPrincipal(new ClaimsIdentity(new[]
+            {
+            new Claim(ClaimTypes.Name, "usuario_test")
+        }, "mock"));
+
+            _controller.ControllerContext.HttpContext.User = user;
         }
     }
 }

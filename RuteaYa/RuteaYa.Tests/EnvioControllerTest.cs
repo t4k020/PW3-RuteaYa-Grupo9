@@ -121,17 +121,7 @@ namespace RuteaYa.Tests
             // Arrange
             var envio = new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" };
 
-            _httpMessageHandlerMock
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    ItExpr.IsAny<CancellationToken>()
-                )
-                .ReturnsAsync(new HttpResponseMessage
-                {
-                    StatusCode = HttpStatusCode.Unauthorized
-                });
+            ConfigurarRespuestaHttp(new HttpResponseMessage { StatusCode = HttpStatusCode.Unauthorized });
 
             // Act
             var resultado = await _controller.Crear(envio);
@@ -148,17 +138,7 @@ namespace RuteaYa.Tests
             // Arrange
             var envio = new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" };
 
-            _httpMessageHandlerMock
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    ItExpr.IsAny<CancellationToken>()
-                )
-                .ReturnsAsync(new HttpResponseMessage
-                {
-                    StatusCode = HttpStatusCode.BadRequest
-                });
+            ConfigurarRespuestaHttp(new HttpResponseMessage { StatusCode = HttpStatusCode.BadRequest });
 
             // Act
             var resultado = await _controller.Crear(envio);
@@ -175,17 +155,7 @@ namespace RuteaYa.Tests
             // Arrange
             var envio = new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" };
 
-            _httpMessageHandlerMock
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    ItExpr.IsAny<CancellationToken>()
-                )
-                .ReturnsAsync(new HttpResponseMessage
-                {
-                    StatusCode = HttpStatusCode.InternalServerError
-                });
+            ConfigurarRespuestaHttp(new HttpResponseMessage { StatusCode = HttpStatusCode.InternalServerError });
 
             // Act
             var resultado = await _controller.Crear(envio);
@@ -202,15 +172,7 @@ namespace RuteaYa.Tests
             // Arrange
             var envio = new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" };
 
-            // Simulamos que la llamada HTTP lanza una excepción de red
-            _httpMessageHandlerMock
-                .Protected()
-                .Setup<Task<HttpResponseMessage>>(
-                    "SendAsync",
-                    ItExpr.IsAny<HttpRequestMessage>(),
-                    ItExpr.IsAny<CancellationToken>()
-                )
-                .ThrowsAsync(new HttpRequestException("Fallo de red"));
+            SetHttpServerError(new HttpRequestException("Fallo de red"));
 
             // Act
             var resultado = await _controller.Crear(envio);
@@ -219,6 +181,98 @@ namespace RuteaYa.Tests
             var viewResult = Assert.IsType<ViewResult>(resultado);
             Assert.False(_controller.ModelState.IsValid);
             Assert.Contains(_controller.ModelState[string.Empty]!.Errors, e => e.ErrorMessage.Contains("No se pudo conectar"));
+        }
+
+        //testeo para getporid 
+        [Fact]
+        public async Task Detalles_DeberiaRetornarViewConEnvio_CuandoLaApiRespondeOk()
+        {
+            // Arrange
+            var envioMock = new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" };
+            var respuesta = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(envioMock)
+            };
+            ConfigurarRespuestaHttp(respuesta);
+
+            // Act
+            var resultado = await _controller.Detalles(1);
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(resultado);
+            var modeloRetornado = Assert.IsType<Envio>(viewResult.Model);
+            Assert.Equal(1, modeloRetornado.Id);
+            Assert.Equal("Mitre 1000", modeloRetornado.OrigenDir);
+        }
+
+        [Fact]
+        public async Task Detalles_DeberiaRedireccionarAIndex_CuandoLaApiRetornaNotFound()
+        {
+            // Arrange
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            // Act
+            var resultado = await _controller.Detalles(999);
+
+            // Assert
+            var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirectToActionResult.ActionName);
+            Assert.Equal("No se encontro este envio.", _controller.TempData["Error"]);
+        }
+
+        [Fact]
+        public async Task Detalles_DeberiaRedireccionarAIndex_CuandoLaApiRetornaUnauthorized()
+        {
+            // Arrange
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.Unauthorized));
+
+            // Act
+            var resultado = await _controller.Detalles(1);
+
+            // Assert
+            var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirectToActionResult.ActionName);
+            Assert.Equal("No tienes autorización para realizar esta acción.", _controller.TempData["Error"]);
+        }
+
+        [Fact]
+        public async Task Detalles_DeberiaRetornarViewIndexConModelStateError_CuandoOcurreHttpRequestException()
+        {
+            // Arrange
+            SetHttpServerError(new HttpRequestException("Fallo de red"));
+
+            // Act
+            var resultado = await _controller.Detalles(1);
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(resultado);
+            Assert.Equal("Index", viewResult.ViewName);
+            Assert.False(_controller.ModelState.IsValid);
+            Assert.Contains(_controller.ModelState[string.Empty]!.Errors, e => e.ErrorMessage.Contains("No se pudo conectar con el servidor de la API."));
+        }
+
+        private void ConfigurarRespuestaHttp(HttpResponseMessage respuesta)
+        {
+            _httpMessageHandlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(respuesta);
+        }
+
+        private void SetHttpServerError(Exception exception)
+        {
+            _httpMessageHandlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ThrowsAsync(exception);
         }
     }
 }

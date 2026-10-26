@@ -69,5 +69,45 @@ namespace RuteaYa.Controllers
 
             return View(modelo);
         }
+
+        [HttpGet]
+        public async Task<IActionResult> Detalles(int id)
+        {
+            // Creamos el cliente utilizando el nombre configurado en Program.cs
+            var client = _httpClientFactory.CreateClient("ApiEnvio");
+
+            try
+            {
+                // Petición GET a la API incluyendo el ID en la ruta
+                HttpResponseMessage respuesta = await client.GetAsync($"api/ApiEnvio/{id}");
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    // Deserializamos el JSON recibido al modelo Envio
+                    var envio = await respuesta.Content.ReadFromJsonAsync<Envio>();
+                    return View(envio);
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    TempData["Error"] = "No se encontro este envio.";
+                    return RedirectToAction("Index");
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    TempData["Error"] = "No tienes autorización para realizar esta acción.";
+                    return RedirectToAction("Index");
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, "Ocurrió un error inesperado al comunicarse con el servidor.");
+                }
+            }
+            catch (HttpRequestException)
+            {
+                ModelState.AddModelError(string.Empty, "No se pudo conectar con el servidor de la API.");
+            }
+
+            return View("Index");
+        }
     }
 }

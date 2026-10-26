@@ -34,7 +34,7 @@ namespace RuteaYa.Servicios.Controllers
                 var nuevoEnvio = await _envioService.CrearEnvioAsync(envio);
 
                 // Respuesta exitosa código 201 
-                return CreatedAtAction(nameof(CrearEnvio), new { id = nuevoEnvio.Id }, nuevoEnvio);
+                return CreatedAtAction(nameof(ObtenerPorId), new { id = nuevoEnvio.Id }, nuevoEnvio);
             }
             catch (InvalidOperationException ex)
             {
@@ -47,5 +47,33 @@ namespace RuteaYa.Servicios.Controllers
                 return StatusCode(500, "Ocurrió un error interno al procesar el envío.");
             }
         }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> ObtenerPorId(int id)
+        {
+            if (!User.Identity?.IsAuthenticated ?? true)
+            {
+                return Unauthorized();
+            }
+
+            try
+            {
+                var envio = await _envioService.ObtenerPorIdAsync(id);
+
+                if (envio == null)
+                {
+                    return NotFound(); // código 404 si no se encuentra
+                }
+
+                return Ok(envio); // código 200 objeto encontrado
+            }
+            catch (Exception)
+            {
+                // Error interno Código 500
+                return StatusCode(500, "Ocurrió un error interno al obtener el envío.");
+            }
+        }
     }
+
+
 }
