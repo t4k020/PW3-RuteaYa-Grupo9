@@ -19,6 +19,7 @@ namespace RuteaYa.Tests
         private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
         private readonly EnvioController _controller;
         private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
+        
 
 
         public EnviosControllerTests()
@@ -249,6 +250,68 @@ namespace RuteaYa.Tests
             Assert.Equal("Index", viewResult.ViewName);
             Assert.False(_controller.ModelState.IsValid);
             Assert.Contains(_controller.ModelState[string.Empty]!.Errors, e => e.ErrorMessage.Contains("No se pudo conectar con el servidor de la API."));
+        }
+
+        //Tests para Eliminar envio
+
+        [Fact]
+        public async Task Eliminar_DeberiaRedireccionarAIndexConMensajeExito_CuandoLaApiRespondeOk()
+        {
+            // Arrange
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NoContent)); 
+
+            // Act
+            var resultado = await _controller.Eliminar(1);
+
+            // Assert
+            var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirectToActionResult.ActionName);
+            Assert.Equal("¡Envío eliminado con éxito!", _controller.TempData["Mensaje"]);
+        }
+
+        [Fact]
+        public async Task Eliminar_DeberiaRedireccionarAIndexConError_CuandoLaApiRetornaNotFound()
+        {
+            // Arrange
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            // Act
+            var resultado = await _controller.Eliminar(999);
+
+            // Assert
+            var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirectToActionResult.ActionName);
+            Assert.Equal("No se encontró el envío a eliminar.", _controller.TempData["Error"]);
+        }
+
+        [Fact]
+        public async Task Eliminar_DeberiaRedireccionarAIndexConError_CuandoLaApiRetornaUnauthorized()
+        {
+            // Arrange
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.Unauthorized));
+
+            // Act
+            var resultado = await _controller.Eliminar(1);
+
+            // Assert
+            var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirectToActionResult.ActionName);
+            Assert.Equal("No tienes autorización para realizar esta acción.", _controller.TempData["Error"]);
+        }
+
+        [Fact]
+        public async Task Eliminar_DeberiaRedireccionarAIndexConError_CuandoOcurreHttpRequestException()
+        {
+            // Arrange
+            SetHttpServerError(new HttpRequestException("Error de red"));
+
+            // Act
+            var resultado = await _controller.Eliminar(1);
+
+            // Assert
+            var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirectToActionResult.ActionName);
+            Assert.Equal("No se pudo conectar con el servidor de la API.", _controller.TempData["Error"]);
         }
 
         private void ConfigurarRespuestaHttp(HttpResponseMessage respuesta)

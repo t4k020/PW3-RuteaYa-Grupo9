@@ -8,6 +8,7 @@ namespace RuteaYa.Servicios
     {
         Task<Envio> CrearEnvioAsync(Envio envio);
         Task<Envio?> ObtenerPorIdAsync(int id);
+        Task<bool> EliminarEnvioAsync(int id);
 
     }
     public class EnvioService : IEnvioService {
@@ -30,6 +31,22 @@ namespace RuteaYa.Servicios
         {
             
             return await _context.Envios.FirstOrDefaultAsync(e => e.Id == id);
+        }
+
+        public async Task<bool> EliminarEnvioAsync(int id)
+        {
+            var envio = await _context.Envios.FindAsync(id);
+
+            if (envio == null)
+            {
+                return false; 
+            }
+
+            _context.Envios.Remove(envio);
+ 
+            await _context.SaveChangesAsync();
+
+            return true; 
         }
     }
 }

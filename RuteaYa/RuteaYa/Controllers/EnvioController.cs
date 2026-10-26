@@ -109,5 +109,43 @@ namespace RuteaYa.Controllers
 
             return View("Index");
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Eliminar(int id)
+        {
+            // Creamos el cliente utilizando el nombre configurado en Program.cs
+            var client = _httpClientFactory.CreateClient("ApiEnvio");
+
+            try
+            {
+                // Petición DELETE 
+                HttpResponseMessage respuesta = await client.DeleteAsync($"api/ApiEnvio/{id}");
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    TempData["Mensaje"] = "¡Envío eliminado con éxito!";
+                    return RedirectToAction("Index");
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    TempData["Error"] = "No se encontró el envío a eliminar.";
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    TempData["Error"] = "No tienes autorización para realizar esta acción.";
+                }
+                else
+                {
+                    TempData["Error"] = "Ocurrió un error inesperado al comunicarse con el servidor.";
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "No se pudo conectar con el servidor de la API.";
+            }
+
+            return RedirectToAction("Index");
+        }
     }
 }
