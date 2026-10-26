@@ -1,3 +1,8 @@
+using Microsoft.EntityFrameworkCore;
+using RuteaYa.Repositorios;
+using RuteaYa.Servicios.Servicios;
+using Microsoft.EntityFrameworkCore.Design;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -5,6 +10,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+// Conexión a SQL Server
+builder.Services.AddDbContext<RuteaYaDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection")
+    ));
+
+// Servicio de usuarios
+builder.Services.AddScoped<UsuarioService>();
 
 var app = builder.Build();
 

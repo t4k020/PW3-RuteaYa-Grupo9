@@ -1,0 +1,234 @@
+/* CSS for Login view */
+
+
+:root {
+    --bg: #F6F7FB;
+    --card: #FFFFFF;
+    --ink: #101828;
+    --muted: #4B5468;
+    --line: #E3E6EF;
+    --primary: #0E1830;
+    --accent: #FF9142;
+    --success-bg: #DEF6EB;
+    --success-text: #14714C;
+    --error: #B03030;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    min-height: 100%;
+}
+
+body {
+    min-height: 100vh;
+    font-family: Inter, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+}
+
+.auth {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 100vh;
+}
+
+.auth-panel {
+    background: var(--primary);
+    color: #FFFFFF;
+    padding: 56px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.brand {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 21px;
+    font-weight: 700;
+}
+
+.panel-message h1 {
+    max-width: 420px;
+    margin: 0;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 34px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.panel-message p,
+.panel-footer {
+    max-width: 400px;
+    color: #FFFFFFAD;
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.panel-footer {
+    margin: 0;
+}
+
+.auth-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 400px;
+}
+
+    .auth-form h2 {
+        margin: 0;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 28px;
+        font-weight: 600;
+    }
+
+.subtitle {
+    margin: -8px 0 4px;
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.name-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+    .field label {
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .field input {
+        width: 100%;
+        min-height: 46px;
+        padding: 12px 14px;
+        border: 1.5px solid var(--line);
+        border-radius: 12px;
+        background: var(--card);
+        color: var(--ink);
+        font: 15px Inter, sans-serif;
+    }
+
+        .field input:focus {
+            outline: 2px solid var(--accent);
+            outline-offset: 1px;
+        }
+
+        .field input:disabled {
+            opacity: 0.65;
+        }
+
+.btn {
+    min-height: 46px;
+    padding: 12px 18px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--primary);
+    color: #FFFFFF;
+    font: 600 14px Inter, sans-serif;
+    cursor: pointer;
+}
+
+    .btn:hover {
+        background: #1D2E56;
+    }
+
+    .btn:focus-visible,
+    .auth-switch a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+    }
+
+.auth-switch {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+}
+
+    .auth-switch a {
+        color: var(--ink);
+        font-weight: 600;
+    }
+
+.message {
+    display: none;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+    .message.info,
+    .message.error {
+        display: block;
+    }
+
+    .message.info {
+        background: var(--success-bg);
+        color: var(--success-text);
+    }
+
+    .message.error {
+        background: #FDEEEE;
+        color: var(--error);
+    }
+
+[hidden] {
+    display: none !important;
+}
+
+@media (max-width: 900px) {
+    .auth {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-panel {
+        display: none;
+    }
+
+    .auth-content {
+        padding: 24px;
+    }
+}
+
+@media (max-width: 420px) {
+    .name-fields {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #0B1222;
+        --card: #121C33;
+        --ink: #EEF1F8;
+        --muted: #9AA4BB;
+        --line: #25324F;
+        --primary: #0E1830;
+        --success-bg: #12372B;
+        --success-text: #5FD3A0;
+    }
+}

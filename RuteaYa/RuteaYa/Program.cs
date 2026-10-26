@@ -3,11 +3,20 @@ using RuteaYa.Repositorios;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddControllersWithViews();
+
 // Add services to the container.
 builder.Services.AddRazorPages();
 
 builder.Services.AddDbContext<RuteaYaDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddHttpClient("RuteaYaApi", client =>
+{
+    client.BaseAddress = new Uri(
+        builder.Configuration["ApiSettings:BaseUrl"]!
+    );
+});
 
 var app = builder.Build();
 
@@ -40,6 +49,11 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseAuthorization();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Auth}/{action=Login}/{id?}"
+);
 
 app.MapStaticAssets();
 app.MapRazorPages()
