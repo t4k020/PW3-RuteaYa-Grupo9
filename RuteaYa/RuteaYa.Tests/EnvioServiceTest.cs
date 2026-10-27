@@ -42,13 +42,13 @@ namespace RuteaYa.Tests
                 Tamano = 1,
                 Descripcion = "Documentación importante",
                 Monto = 2500.00m,
-                Estado = 0 // Ejemplo: Pendiente
+                Estado = 0 
             };
 
-            // Act (Acción)
+            // Act 
             var resultado = await service.CrearEnvioAsync(nuevoEnvio);
 
-            // Assert (Verificación)
+            // Assert 
             // 1. Verificamos que devuelva el objeto y se le asigne un ID
             Assert.NotNull(resultado);
             Assert.True(resultado.Id > 0, "El ID del envío debería generarse correctamente.");
@@ -105,6 +105,56 @@ namespace RuteaYa.Tests
 
                 // Assert
                 Assert.Null(resultado);
+            }
+        }
+
+        [Fact]
+        public async Task EliminarEnvioAsync_DeberiaRetornarTrue_CuandoElEnvioExiste()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<RuteaYaDbContext>()
+                .UseInMemoryDatabase(databaseName: "TestDb_Eliminar_Success")
+                .Options;
+
+            // Insertamos un registro de prueba
+            using (var context = new RuteaYaDbContext(options))
+            {
+                context.Envios.Add(new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" });
+                await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            }
+
+            // Act
+            using (var context = new RuteaYaDbContext(options))
+            {
+                var service = new EnvioService(context);
+                var resultado = await service.EliminarEnvioAsync(1);
+
+                // Assert
+                Assert.True(resultado);
+
+                // Verificamos que realmente se haya borrado de la base de datos
+                var envioEnDb = await context.Envios.FindAsync(new object[] { 1 }, TestContext.Current.CancellationToken);
+                Assert.Null(envioEnDb);
+            }
+        }
+
+        [Fact]
+        public async Task EliminarEnvioAsync_DeberiaRetornarFalse_CuandoElEnvioNoExiste()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<RuteaYaDbContext>()
+                .UseInMemoryDatabase(databaseName: "TestDb_Eliminar_NotFound")
+                .Options;
+
+            using (var context = new RuteaYaDbContext(options))
+            {
+                var service = new EnvioService(context);
+
+                // Act
+                var resultado = await service.EliminarEnvioAsync(999);
+
+                // Assert
+                Assert.False(resultado);
             }
         }
     }
