@@ -1,13 +1,21 @@
+using Microsoft.EntityFrameworkCore;
+using RuteaYa.Repositorios;
+using RuteaYa.Servicios;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllers();
-
-
-// Learn more about configuring Swagger at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(); // 1. Registramos el generador de Swagger
+builder.Services.AddSwaggerGen();
+
+//Registrar tu DbContext
+builder.Services.AddDbContext<RuteaYaDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<IEnvioService, EnvioService>();
+builder.Services.AddScoped<IViajeService, ViajeService>();
 
 var app = builder.Build();
 
