@@ -109,6 +109,7 @@ namespace RuteaYa.Tests
             Assert.Equal(500, statusCodeResult.StatusCode);
         }
 
+
         //tests para get por id 
 
         [Fact]
@@ -171,6 +172,70 @@ namespace RuteaYa.Tests
 
             // Act
             var resultado = await _controller.ObtenerPorId(1);
+
+            // Assert
+            var statusCodeResult = Assert.IsType<ObjectResult>(resultado);
+            Assert.Equal(500, statusCodeResult.StatusCode);
+        }
+
+
+        //eliminar envio tests 
+        [Fact]
+        public async Task EliminarEnvio_DeberiaRetornarUnauthorized_CuandoUsuarioNoEstaAutenticado()
+        {
+            // Act 
+            var resultado = await _controller.EliminarEnvio(1);
+
+            // Assert
+            Assert.IsType<UnauthorizedResult>(resultado);
+        }
+
+        [Fact]
+        public async Task EliminarEnvio_DeberiaRetornarNoContent_CuandoElEnvioExisteYSeElimina()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+
+            _envioServiceMock
+                .Setup(s => s.EliminarEnvioAsync(1))
+                .ReturnsAsync(true);
+
+            // Act
+            var resultado = await _controller.EliminarEnvio(1);
+
+            // Assert
+            Assert.IsType<NoContentResult>(resultado); // Código 204
+        }
+
+        [Fact]
+        public async Task EliminarEnvio_DeberiaRetornarNotFound_CuandoElEnvioNoExiste()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+
+            _envioServiceMock
+                .Setup(s => s.EliminarEnvioAsync(999))
+                .ReturnsAsync(false);
+
+            // Act
+            var resultado = await _controller.EliminarEnvio(999);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(resultado); // Código 404
+        }
+
+        [Fact]
+        public async Task EliminarEnvio_DeberiaRetornarStatusCode500_CuandoOcurreUnaExcepcion()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+
+            _envioServiceMock
+                .Setup(s => s.EliminarEnvioAsync(It.IsAny<int>()))
+                .ThrowsAsync(new Exception("Error de base de datos"));
+
+            // Act
+            var resultado = await _controller.EliminarEnvio(1);
 
             // Assert
             var statusCodeResult = Assert.IsType<ObjectResult>(resultado);

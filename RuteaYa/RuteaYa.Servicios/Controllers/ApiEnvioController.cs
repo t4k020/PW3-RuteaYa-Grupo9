@@ -73,6 +73,32 @@ namespace RuteaYa.Servicios.Controllers
                 return StatusCode(500, "Ocurrió un error interno al obtener el envío.");
             }
         }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> EliminarEnvio(int id)
+        {
+            if (!User.Identity?.IsAuthenticated ?? true)
+            {
+                return Unauthorized();
+            }
+
+            try
+            {
+                var eliminado = await _envioService.EliminarEnvioAsync(id);
+
+                if (!eliminado)
+                {
+                    return NotFound(); //código 404
+                }
+
+                return NoContent(); //  código 204 
+            }
+            catch (Exception)
+            {
+                //Código 500
+                return StatusCode(500, "Ocurrió un error interno al eliminar el envío.");
+            }
+        }
     }
 
 
