@@ -5,53 +5,71 @@ using RuteaYa.Servicios.Servicios;
 
 namespace RuteaYa.Servicios.Controllers
 {
+    public interface IAuthService
+    {
+        Task<bool> AutenticarUsuario(string nombre, string passwordHash);
+    }
+
     [Route("Api/Auth")]
     public class ApiAuthController : Controller
     {
         private UsuarioService _usuarioService;
+        private IAuthService _authService;
 
-        public ApiAuthController()
+        public ApiAuthController(UsuarioService usuarioService, IAuthService authService)
         {
-            _usuarioService = new UsuarioService();
+            _usuarioService = usuarioService;
+            _authService = authService;
         }
 
-        // Login: Api/Auth/Login
+        // POST: Api/Auth/Login
         [HttpPost("Login")]
-        public IActionResult Login([FromBody] Usuario usuario)
+        public async Task<IActionResult> Login([FromBody] Usuario usuario)
         {
-            if (usuario == null || string.IsNullOrEmpty(usuario.Nombre) || string.IsNullOrEmpty(usuario.PasswordHash))
+            if (usuario == null || string.IsNullOrWhiteSpace(usuario.Email) || string.IsNullOrWhiteSpace(usuario.PasswordHash))
             {
-                return BadRequest("Nombre de usuario y contraseña son requeridos.");
+                return BadRequest(new
+                {
+                    autenticado = false,
+                    mensaje = "Correo electrónico y contraseña son requeridos."
+                });
             }
-            // Lógica para autenticar al usuario
-            bool autenticado = _usuarioService.AutenticarUsuario(usuario.Nombre, usuario.PasswordHash);
+
+            bool autenticado = await _authService.AutenticarUsuario(usuario.Email, usuario.PasswordHash);
+
             if (autenticado)
             {
-                return Ok("Autenticación exitosa.");
+                return Ok(new
+                {
+                    autenticado = true,
+                    mensaje = "Autenticación exitosa."
+                });
             }
-            else
+
+            return Unauthorized(new
             {
-                return Unauthorized("Nombre de usuario o contraseña incorrectos.");
-            }
+                autenticado = false,
+                mensaje = "Correo electrónico o contraseña incorrectos."
+            });
         }
 
         // Register: Api/Auth/Register
         [HttpPost("Register")]
-        public IActionResult Register([FromBody] Usuario usuario)
+        public async Task<IActionResult> Register([FromBody] Usuario usuario)
         {
-            if (usuario == null || string.IsNullOrEmpty(usuario.Nombre) || string.IsNullOrEmpty(usuario.PasswordHash))
+            if (usuario == null || string.IsNullOrEmpty(usuario.Email) || string.IsNullOrEmpty(usuario.PasswordHash))
             {
-                return BadRequest("Nombre de usuario y contraseña son requeridos.");
+                return BadRequest("Correo electrónico y contraseña son requeridos.");
             }
             // Lógica para registrar al usuario
-            bool registrado = _usuarioService.RegistrarUsuario(usuario);
+            bool registrado = await _usuarioService.CrearUsuario(usuario);
             if (registrado)
             {
                 return Ok("Registro exitoso.");
             }
             else
             {
-                return Conflict("El nombre de usuario ya está en uso.");
+                return Conflict("El correo electrónico ya está en uso.");
             }
         }
 
@@ -67,4 +85,6 @@ namespace RuteaYa.Servicios.Controllers
             });
         }
     }
+
+    
 }

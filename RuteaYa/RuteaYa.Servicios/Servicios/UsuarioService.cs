@@ -1,17 +1,30 @@
 ﻿using RuteaYa.Entidades;
+using RuteaYa.Repositorios;
+using RuteaYa.Servicios.Controllers;
 
 namespace RuteaYa.Servicios.Servicios
 {
-    internal class UsuarioService
+    public class UsuarioService
     {
-        internal bool AutenticarUsuario(string nombre, string passwordHash)
+        private UsuarioRepository _usuarioRepository;
+
+        public UsuarioService( UsuarioRepository usuarioRepository)
+        {
+            _usuarioRepository = usuarioRepository;
+        }
+        public async Task<bool> AutenticarUsuario(string nombre, string passwordHash)
         {
             throw new NotImplementedException();
         }
 
-        internal bool RegistrarUsuario(Usuario usuario)
+        public async Task<bool> CrearUsuario(Usuario usuario)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<List<Usuario>> ListarUsuariosAsync()
+        {
+            return await _usuarioRepository.ListarUsuariosAsync();
         }
     }
 }

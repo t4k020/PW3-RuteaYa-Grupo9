@@ -17,7 +17,8 @@ builder.Services.AddDbContext<RuteaYaDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection")
     ));
 
-// Servicio de usuarios
+// Registrar repositorio y servicio
+builder.Services.AddScoped<UsuarioRepository>();
 builder.Services.AddScoped<UsuarioService>();
 
 var app = builder.Build();

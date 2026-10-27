@@ -1,10 +1,19 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
+using RuteaYa.Servicios.Servicios;
 
 namespace RuteaYa.Servicios.Controllers
 {
+    [Route("Api/Usuario")]
     public class ApiUsuarioController : Controller
     {
+        private UsuarioService _usuarioService;
+
+        public ApiUsuarioController(UsuarioService usuarioService)
+        {
+            _usuarioService = usuarioService;
+        }
+
         // GET: Api/Usuario/id
         [HttpGet("{id}")]
         public Usuario ObtenerUsuarioPorId(int id)
@@ -42,6 +51,15 @@ namespace RuteaYa.Servicios.Controllers
             }
             // Lógica para eliminar el usuario
             return true;
+        }
+
+        // Todos los usuarios: Api/Usuarios
+        [HttpGet("List")]
+        public async Task<IActionResult> ListarUsuarios()
+        {
+            var usuarios = await _usuarioService.ListarUsuariosAsync();
+
+            return Ok(usuarios);
         }
     }
 }
