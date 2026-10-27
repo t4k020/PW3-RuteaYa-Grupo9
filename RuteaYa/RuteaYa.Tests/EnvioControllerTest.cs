@@ -46,46 +46,45 @@ namespace RuteaYa.Tests
         }
 
         [Fact]
-        public async Task Index_DeberiaRetornarViewResult_CuandoUsuarioEstaAutenticado()
+        public async Task Index_DeberiaRetornarVistaConListaDeEnvios_CuandoLaApiRespondeOk()
         {
             // Arrange
-            var claims = new[] { new Claim(ClaimTypes.Name, "Juan") };
-            var identity = new ClaimsIdentity(claims, "TestAuth");
-            _controller.ControllerContext = new ControllerContext
+            var listaEnvios = new List<Envio>
             {
-                HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(identity) }
+                new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" },
+                new Envio { Id = 2, OrigenDir = "San Martin 200", DestinoDir = "Rivadavia 800" }
             };
 
+            var respuestaHttp = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(listaEnvios)
+            };
+            ConfigurarRespuestaHttp(respuestaHttp);
+
             // Act
-            var resultado = _controller.Index();
+            var resultado = await _controller.Index();
 
             // Assert
-            var viewResult = resultado.Should().BeOfType<ViewResult>().Subject;
-            viewResult.ViewName.Should().BeNullOrEmpty(); // Usa la vista Index por defecto
+            var viewResult = Assert.IsType<ViewResult>(resultado);
+            var modeloRetornado = Assert.IsType<List<Envio>>(viewResult.Model);
+            Assert.Equal(2, modeloRetornado.Count);
+            Assert.Equal("Mitre 1000", modeloRetornado[0].OrigenDir);
         }
 
         [Fact]
-        public async Task DeberiaRedirigirAHomeIndexCuandoUsuarioNoEstaAutenticado()
+        public async Task Index_DeberiaRetornarVistaConListaVaciaYError_CuandoOcurreHttpRequestException()
         {
             // Arrange
-            _controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) }
-            };
-
-            // Simula usuario NO autenticado
-            _controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) }
-            };
+            SetHttpServerError(new HttpRequestException("Error de red"));
 
             // Act
-            var resultado = _controller.Index();
+            var resultado = await _controller.Index();
 
             // Assert
-            var redirectResult = resultado.Should().BeOfType<RedirectToActionResult>().Subject;
-            redirectResult.ActionName.Should().Be("Index");
-            redirectResult.ControllerName.Should().Be("Home");
+            var viewResult = Assert.IsType<ViewResult>(resultado);
+            var modeloRetornado = Assert.IsType<List<Envio>>(viewResult.Model);
+            Assert.Empty(modeloRetornado);
+            Assert.Equal("No se pudo conectar con el servidor de la API.", _controller.TempData["Error"]);
         }
 
         [Fact]
@@ -218,7 +217,7 @@ namespace RuteaYa.Tests
             // Assert
             var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
             Assert.Equal("Index", redirectToActionResult.ActionName);
-            Assert.Equal("No se encontro este envio.", _controller.TempData["Error"]);
+            Assert.Equal("No se encontró este envío.", _controller.TempData["Error"]);
         }
 
         [Fact]
@@ -237,19 +236,18 @@ namespace RuteaYa.Tests
         }
 
         [Fact]
-        public async Task Detalles_DeberiaRetornarViewIndexConModelStateError_CuandoOcurreHttpRequestException()
+        public async Task Detalles_DeberiaRedireccionarAIndex_CuandoOcurreHttpRequestException()
         {
             // Arrange
-            SetHttpServerError(new HttpRequestException("Fallo de red"));
+            SetHttpServerError(new HttpRequestException("Error de red"));
 
             // Act
             var resultado = await _controller.Detalles(1);
 
             // Assert
-            var viewResult = Assert.IsType<ViewResult>(resultado);
-            Assert.Equal("Index", viewResult.ViewName);
-            Assert.False(_controller.ModelState.IsValid);
-            Assert.Contains(_controller.ModelState[string.Empty]!.Errors, e => e.ErrorMessage.Contains("No se pudo conectar con el servidor de la API."));
+            var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirectToActionResult.ActionName);
+            Assert.Equal("No se pudo conectar con el servidor de la API.", _controller.TempData["Error"]);
         }
 
         //Tests para Eliminar envio

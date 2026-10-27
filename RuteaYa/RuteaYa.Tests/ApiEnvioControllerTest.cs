@@ -109,6 +109,7 @@ namespace RuteaYa.Tests
             Assert.Equal(500, statusCodeResult.StatusCode);
         }
 
+
         //tests para get por id 
 
         [Fact]
@@ -176,6 +177,7 @@ namespace RuteaYa.Tests
             var statusCodeResult = Assert.IsType<ObjectResult>(resultado);
             Assert.Equal(500, statusCodeResult.StatusCode);
         }
+
 
         //eliminar envio tests 
         [Fact]
