@@ -1,0 +1,62 @@
+﻿@model IEnumerable<RuteaYa.Entidades.Viaje>
+
+@{
+    ViewData["Title"] = "Listado de Viajes";
+}
+
+<div class="container mt-4">
+    <h2>Listado de Viajes</h2>
+
+    <p>
+        <a asp-action="Crear" class="btn btn-primary">Nuevo Viaje</a>
+    </p>
+
+    @if (TempData["Mensaje"] != null)
+    {
+        <div class="alert alert-success">@TempData["Mensaje"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <!-- Reemplazá estas columnas según las propiedades reales de tu entidad Viaje -->
+                <th>ID</th>
+                <th>Origen</th>
+                <th>Destino</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model != null && Model.Any())
+            {
+                foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Id</td>
+                        <!-- Asegurate de que los nombres de las propiedades coincidan con tu clase Viaje -->
+                        <td>@item.OrigenDir</td>
+                        <td>@item.DestinoDir</td>
+                        <td>
+                            <a asp-action="Editar" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Editar</a>
+                            <a asp-action="Detalles" asp-route-id="@item.Id" class="btn btn-sm btn-info">Detalles</a>
+
+                            <form asp-action="Eliminar" asp-route-id="@item.Id" method="post" style="display:inline;" onsubmit="return confirm('¿Estás seguro de eliminar este viaje?');">
+                                <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="4" class="text-center">No hay viajes registrados o no se pudo conectar con la API.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

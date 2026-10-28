@@ -14,7 +14,28 @@ namespace RuteaYa.Servicios.Controllers
             _viajeService = viajeService ?? throw new ArgumentNullException(nameof(viajeService));
         }
 
-        
+        [HttpGet]
+        public async Task<IActionResult> ObtenerTodos()
+        {
+            
+            //if (!User?.Identity?.IsAuthenticated ?? true)
+            //{
+            //    return Unauthorized();
+            //}
+
+            try
+            {
+                // Llamás al servicio de la API para traer todos los viajes
+                var viajes = await _viajeService.ObtenerTodosAsync();
+                return Ok(viajes);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Ocurrió un error interno al obtener los viajes.");
+            }
+        }
+
+
         [HttpGet("{id}")]
         public async Task<IActionResult> ObtenerPorId(int id)
         {

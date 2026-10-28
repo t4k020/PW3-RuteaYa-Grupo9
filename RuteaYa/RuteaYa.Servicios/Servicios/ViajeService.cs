@@ -10,6 +10,7 @@ namespace RuteaYa.Servicios
         Task<Viaje?> ObtenerPorIdAsync(int id);
         Task<bool> ActualizarViajeAsync(int id, Viaje viaje);
         Task<bool> EliminarViajeAsync(int id);
+        Task<IEnumerable<Viaje>> ObtenerTodosAsync();
     }
 
     public class ViajeService : IViajeService
@@ -81,6 +82,15 @@ namespace RuteaYa.Servicios
             await _context.SaveChangesAsync();
 
             return true;
+        }
+
+        public async Task<IEnumerable<Viaje>> ObtenerTodosAsync()
+        {
+            return await _context.Viajes
+                .Include(v => v.Usuario)
+                .Include(v => v.Paradas)
+                .Include(v => v.ViajeDias)
+                .ToListAsync();
         }
     }
 }
