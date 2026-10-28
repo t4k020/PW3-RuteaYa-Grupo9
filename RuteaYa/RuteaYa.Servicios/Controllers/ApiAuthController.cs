@@ -7,7 +7,7 @@ namespace RuteaYa.Servicios.Controllers
 {
     public interface IAuthService
     {
-        Task<bool> AutenticarUsuario(string nombre, string passwordHash);
+        Task<bool> AutenticarUsuario(string email, string passwordHash);
     }
 
     [Route("Api/Auth")]

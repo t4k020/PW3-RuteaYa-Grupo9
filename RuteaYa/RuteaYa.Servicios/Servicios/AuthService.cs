@@ -6,11 +6,11 @@ namespace RuteaYa.Servicios.Servicios
 {
     public class AuthService : IAuthService
     {
-        private  UsuarioRepository _usuarioRepository;
+        private UsuarioRepository _usuarioRepository;
 
-        public AuthService()
+        public AuthService(UsuarioRepository usuarioRepository)
         {
-            _usuarioRepository = new UsuarioRepository();
+            _usuarioRepository = usuarioRepository;
         }
 
         public async Task<bool> AutenticarUsuario(string email, string password)

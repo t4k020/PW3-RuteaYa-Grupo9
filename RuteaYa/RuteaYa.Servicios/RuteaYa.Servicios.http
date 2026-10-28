@@ -1,11 +1,10 @@
-@RuteaYa.Servicios_HostAddress = http://localhost:5133
-
-POST {{RuteaYa_Servicios_HostAddress}}/Api/Auth/Login
+POST http://localhost:5133/Api/Auth/Login
+Content-Type: application/json
 Accept: application/json
 
 {
-  "nombre": "tu_usuario",
-  "passwordHash": "tu_contraseña"
+  "email": "admin@ruteaya.com",
+  "passwordHash": "1234"
 }
 
 ###
