@@ -12,7 +12,11 @@ builder.Services.AddDbContext<RuteaYaDbContext>(options =>
 
 builder.Services.AddHttpClient("ApiEnvio", client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7187/"); // Reemplaza con tu puerto de la API
+    client.BaseAddress = new Uri("https://localhost:7224/");
+});
+builder.Services.AddHttpClient("ApiViaje", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7224/");
 });
 
 
