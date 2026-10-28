@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
+using RuteaYa.Servicios.Dtos;
 
 
 namespace RuteaYa.Controllers
@@ -25,8 +26,10 @@ namespace RuteaYa.Controllers
 
                 if (respuesta.IsSuccessStatusCode)
                 {
-                    var viajes = await respuesta.Content.ReadFromJsonAsync<List<Viaje>>() ?? new List<Viaje>();
-                    return View(viajes);
+                
+                    var viajesDto = await respuesta.Content.ReadFromJsonAsync<List<RuteaYa.Servicios.Dtos.ViajeListadoDto>>() 
+                        ?? new List<RuteaYa.Servicios.Dtos.ViajeListadoDto>();
+                    return View(viajesDto);
                 }
 
                 TempData["Error"] = "No se pudieron cargar los viajes.";
@@ -36,7 +39,7 @@ namespace RuteaYa.Controllers
                 TempData["Error"] = "No se pudo conectar con el servidor de la API.";
             }
 
-            return View(new List<Viaje>());
+            return View(new List<ViajeListadoDto>());
         }
 
         [HttpGet]

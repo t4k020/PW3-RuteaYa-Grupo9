@@ -17,17 +17,17 @@ namespace RuteaYa.Servicios.Controllers
         [HttpGet]
         public async Task<IActionResult> ObtenerTodos()
         {
-            
-            //if (!User?.Identity?.IsAuthenticated ?? true)
-            //{
-            //    return Unauthorized();
-            //}
+
+            if (!User?.Identity?.IsAuthenticated ?? true)
+            {
+                return Unauthorized();
+            }
 
             try
             {
-                // Llamás al servicio de la API para traer todos los viajes
-                var viajes = await _viajeService.ObtenerTodosAsync();
-                return Ok(viajes);
+                // Llamamos al método del servicio que devuelve el DTO
+                var viajesDto = await _viajeService.ObtenerParaListadoAsync();
+                return Ok(viajesDto);
             }
             catch (Exception)
             {

@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\RuteaYa.Entidades\RuteaYa.Entidades.csproj" />
     <ProjectReference Include="..\RuteaYa.Repositorios\RuteaYa.Repositorios.csproj" />
+    <ProjectReference Include="..\RuteaYa.Servicios\RuteaYa.Servicios.csproj" />
   </ItemGroup>
 
   <ItemGroup>

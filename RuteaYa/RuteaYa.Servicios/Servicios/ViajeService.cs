@@ -1,6 +1,7 @@
-﻿using RuteaYa.Entidades;
+﻿using Microsoft.EntityFrameworkCore;
+using RuteaYa.Entidades;
 using RuteaYa.Repositorios;
-using Microsoft.EntityFrameworkCore;
+using RuteaYa.Servicios.Dtos;
 
 namespace RuteaYa.Servicios
 {
@@ -11,6 +12,7 @@ namespace RuteaYa.Servicios
         Task<bool> ActualizarViajeAsync(int id, Viaje viaje);
         Task<bool> EliminarViajeAsync(int id);
         Task<IEnumerable<Viaje>> ObtenerTodosAsync();
+        Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync();
     }
 
     public class ViajeService : IViajeService
@@ -91,6 +93,43 @@ namespace RuteaYa.Servicios
                 .Include(v => v.Paradas)
                 .Include(v => v.ViajeDias)
                 .ToListAsync();
+        }
+
+        public async Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync()
+        {
+            // 1. Traemos los viajes con sus relaciones de la base de datos
+            var viajes = await _context.Viajes
+                .Include(v => v.ViajeDias)
+                .ToListAsync();
+
+            // 2. Mapeamos al DTO procesando los días en memoria (C# puro)
+            var viajesDto = viajes.Select(v => new ViajeListadoDto
+            {
+                Id = v.Id,
+                OrigenDir = v.OrigenDir,
+                DestinoDir = v.DestinoDir,
+                HoraSalida = v.HoraSalida,
+                HoraLlegada = v.HoraLlegada,
+                Activo = v.Activo,
+                DiasSemana = v.ViajeDias.Select(vd => ObtenerNombreDia(vd.DiaSemana)).ToList()
+            }).ToList();
+
+            return viajesDto;
+        }
+
+        private string ObtenerNombreDia(byte dia)
+        {
+            return dia switch
+            {
+                1 => "Lun",
+                2 => "Mar",
+                3 => "Mié",
+                4 => "Jue",
+                5 => "Vie",
+                6 => "Sáb",
+                7 => "Dom",
+                _ => "Día"
+            };
         }
     }
 }
