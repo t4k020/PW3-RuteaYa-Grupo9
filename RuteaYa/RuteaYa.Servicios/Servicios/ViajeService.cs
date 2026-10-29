@@ -97,8 +97,12 @@ namespace RuteaYa.Servicios
 
         public async Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync()
         {
-            // 1. Traemos los viajes con sus relaciones de la base de datos
+            // ID temporal para simular al usuario logueado mientras tu compañero termina el login
+            int usuarioLogueadoId = 1;
+
+            // Traemos solo los viajes de este usuario de la base de datos
             var viajes = await _context.Viajes
+                .Where(v => v.UsuarioId == usuarioLogueadoId)
                 .Include(v => v.ViajeDias)
                 .ToListAsync();
 

@@ -18,10 +18,10 @@ namespace RuteaYa.Servicios.Controllers
         public async Task<IActionResult> ObtenerTodos()
         {
 
-            if (!User?.Identity?.IsAuthenticated ?? true)
-            {
-                return Unauthorized();
-            }
+            //if (!User?.Identity?.IsAuthenticated ?? true)
+            //{
+            //    return Unauthorized();
+            //}
 
             try
             {
