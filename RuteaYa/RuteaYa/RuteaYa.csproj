@@ -15,6 +15,7 @@
   <ItemGroup>
     <Folder Include="Pages\Envio\" />
     <Folder Include="Pages\Viaje\" />
+    <Folder Include="Views\" />
   </ItemGroup>
 
   <ItemGroup>

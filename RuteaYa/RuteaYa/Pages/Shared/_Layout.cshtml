@@ -28,6 +28,14 @@
                         </li>
                     </ul>
                 </div>
+                @if (User.Identity?.IsAuthenticated == true)
+{
+    <form method="post" asp-page="/Auth/Logout">
+        <button type="submit" class="btn btn-outline-danger">
+            Cerrar sesión
+        </button>
+    </form>
+}
             </div>
         </nav>
     </header>

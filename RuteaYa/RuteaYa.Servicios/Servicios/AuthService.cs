@@ -13,16 +13,15 @@ namespace RuteaYa.Servicios.Servicios
             _usuarioRepository = usuarioRepository;
         }
 
-        public async Task<bool> AutenticarUsuario(string email, string password)
+        public async Task<Usuario> AutenticarUsuario(string email, string password)
         {
             Usuario usuario = await _usuarioRepository.ObtenerUsuarioPorEmail(email);
+            bool autenticado = BCrypt.Net.BCrypt.Verify(password, usuario.PasswordHash);
 
-            if (usuario == null)
-                return false;
+            if (autenticado)
+                return usuario;
 
-            // Verificar la contraseña ingresada
-            // contra el hash almacenado en la base de datos.
-            return BCrypt.Net.BCrypt.Verify(password, usuario.PasswordHash);
+            return null;
         }
     }
 }

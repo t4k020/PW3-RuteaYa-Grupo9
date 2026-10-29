@@ -7,7 +7,7 @@ namespace RuteaYa.Servicios.Controllers
 {
     public interface IAuthService
     {
-        Task<bool> AutenticarUsuario(string email, string passwordHash);
+        Task<Usuario> AutenticarUsuario(string email, string passwordHash);
     }
 
     [Route("Api/Auth")]
@@ -35,13 +35,15 @@ namespace RuteaYa.Servicios.Controllers
                 });
             }
 
-            bool autenticado = await _authService.AutenticarUsuario(usuario.Email, usuario.PasswordHash);
+            Usuario usuarioAutenticado = await _authService.AutenticarUsuario(usuario.Email, usuario.PasswordHash);
 
-            if (autenticado)
+            if (usuarioAutenticado != null)
             {
                 return Ok(new
                 {
-                    autenticado = true,
+                    id = usuarioAutenticado.Id,
+                    nombre = usuarioAutenticado.Nombre,
+                    email = usuarioAutenticado.Email,
                     mensaje = "Autenticación exitosa."
                 });
             }
