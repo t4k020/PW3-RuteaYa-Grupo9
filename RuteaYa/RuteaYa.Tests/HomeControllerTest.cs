@@ -12,13 +12,11 @@ namespace RuteaYa.Tests
     public class HomeControllerTest
     {
 
-        private readonly Mock<IViajeService> _viajeServiceMock;
-        private readonly Mock<IEnvioService> _envioServiceMock;
+
 
         public HomeControllerTest()
         {
-            _viajeServiceMock = new Mock<IViajeService>();
-            _envioServiceMock = new Mock<IEnvioService>();
+
         }
         [Fact]
         public async Task DeberiaRetornarIndexCuandoSeLoPide()
@@ -26,7 +24,7 @@ namespace RuteaYa.Tests
             // Arrange (Preparación)
 
             
-            var controller = new HomeController(_viajeServiceMock.Object, _envioServiceMock.Object);
+            var controller = new HomeController();
 
             // Act (Ejecución)
 
@@ -43,7 +41,7 @@ namespace RuteaYa.Tests
         public async Task DeberiaRetornarVistaMainpageCuandoUsuarioEstaAutenticado()
         {
             // Arrange
-            var controller = new HomeController(_viajeServiceMock.Object, _envioServiceMock.Object);
+            var controller = new HomeController();
 
             // Simular usuario autenticado en el HttpContext
             var claims = new[] { new Claim(ClaimTypes.Name, "Juan") };
@@ -75,7 +73,7 @@ namespace RuteaYa.Tests
         public async Task DeberiaRedirigirALoginCuandoUsuarioNoEstaAutenticado()
         {
             // Arrange
-            var controller = new HomeController(_viajeServiceMock.Object, _envioServiceMock.Object);
+            var controller = new HomeController();
 
             // Simular usuario NO autenticado
             var identity = new ClaimsIdentity(); // Sin authenticationType indica no autenticado

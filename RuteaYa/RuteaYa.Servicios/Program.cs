@@ -1,4 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using RuteaYa.Repositorios;
+using RuteaYa.Servicios;
+
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using RuteaYa.Repositorios;
 using RuteaYa.Servicios.Controllers;
@@ -9,19 +13,18 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
-// Conexión a SQL Server
+//Registrar tu DbContext
 builder.Services.AddDbContext<RuteaYaDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-    ));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Registrar repositorio y servicio
 builder.Services.AddScoped<UsuarioRepository>();
 builder.Services.AddScoped<UsuarioService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IEnvioService, EnvioService>();
+builder.Services.AddScoped<IViajeService, ViajeService>();
 
 var app = builder.Build();
 
@@ -37,7 +40,12 @@ using (var scope = app.Services.CreateScope())
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger(); // 2. Genera el JSON de Swagger
+    app.UseSwaggerUI(c => // 3. Habilita la interfaz visual gráfica
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "RuteaYa API v1");
+        c.RoutePrefix = string.Empty; // Esto hace que Swagger abra directo en la raíz (ej: https://localhost:7224/)
+    });
 }
 
 app.UseHttpsRedirection();
