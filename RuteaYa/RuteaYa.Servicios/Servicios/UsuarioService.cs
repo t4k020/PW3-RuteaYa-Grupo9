@@ -1,4 +1,5 @@
-﻿using RuteaYa.Entidades;
+﻿using Microsoft.EntityFrameworkCore;
+using RuteaYa.Entidades;
 using RuteaYa.Repositorios;
 using RuteaYa.Servicios.Controllers;
 
@@ -12,14 +13,18 @@ namespace RuteaYa.Servicios.Servicios
         {
             _usuarioRepository = usuarioRepository;
         }
-        public async Task<bool> AutenticarUsuario(string nombre, string passwordHash)
-        {
-            throw new NotImplementedException();
-        }
 
         public async Task<bool> CrearUsuario(Usuario usuario)
         {
-            throw new NotImplementedException();
+            // Verificar si el correo ya está registrado
+            bool existe =await _usuarioRepository.ExisteEmailRegistrado(usuario.Email);
+
+            if (!existe)
+            {
+                await _usuarioRepository.CrearUsuario(usuario);
+            }
+
+            return !existe;
         }
 
         public async Task<List<Usuario>> ListarUsuariosAsync()

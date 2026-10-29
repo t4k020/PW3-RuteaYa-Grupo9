@@ -57,32 +57,43 @@ namespace RuteaYa.Servicios.Controllers
         [HttpPost("Register")]
         public async Task<IActionResult> Register([FromBody] Usuario usuario)
         {
-            if (usuario == null || string.IsNullOrEmpty(usuario.Email) || string.IsNullOrEmpty(usuario.PasswordHash))
+            if (usuario == null)
             {
-                return BadRequest("Correo electrónico y contraseña son requeridos.");
+                return BadRequest("Los datos del usuario son obligatorios.");
             }
-            // Lógica para registrar al usuario
-            bool registrado = await _usuarioService.CrearUsuario(usuario);
-            if (registrado)
-            {
-                return Ok("Registro exitoso.");
-            }
-            else
-            {
-                return Conflict("El correo electrónico ya está en uso.");
-            }
-        }
 
-        //Logout: Api/Auth/Logout
-        [HttpPost("Logout")]
-        public async Task<IActionResult> Logout()
-        {
-            await HttpContext.SignOutAsync();
-
-            return Ok(new
+            if (!ModelState.IsValid)
             {
-                mensaje = "Sesión cerrada correctamente"
-            });
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                bool registrado = await _usuarioService.CrearUsuario(usuario);
+
+                if (!registrado)
+                {
+                    return Conflict(new
+                    {
+                        registrado = false,
+                        mensaje = "El correo electrónico ya está en uso."
+                    });
+                }
+
+                return Ok(new
+                {
+                    registrado = true,
+                    mensaje = "Registro exitoso."
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new
+                {
+                    registrado = false,
+                    mensaje = "Ocurrió un error al registrar el usuario."
+                });
+            }
         }
     }
 
