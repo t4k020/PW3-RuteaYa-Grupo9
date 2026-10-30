@@ -39,14 +39,14 @@ namespace RuteaYa.Servicios.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> ObtenerPorId(int id)
         {
-            if (!User?.Identity?.IsAuthenticated ?? true)
-            {
-                return Unauthorized();
-            }
+            //if (!User?.Identity?.IsAuthenticated ?? true)
+            //{
+            //    return Unauthorized();
+            //}
 
             try
             {
-                var viaje = await _viajeService.ObtenerPorIdAsync(id);
+                var viaje = await _viajeService.ObtenerDetallePorIdAsync(id);
 
                 if (viaje == null)
                 {

@@ -14,6 +14,7 @@ namespace RuteaYa.Servicios
         Task<IEnumerable<Viaje>> ObtenerTodosAsync();
         Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync(bool? soloActivo);
         Task<bool> DesactivarViajeAsync(int id);
+        Task<ViajeDetalleDto?> ObtenerDetallePorIdAsync(int id);
     }
 
     public class ViajeService : IViajeService
@@ -156,6 +157,45 @@ namespace RuteaYa.Servicios
             _context.Viajes.Update(viaje);
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<ViajeDetalleDto?> ObtenerDetallePorIdAsync(int id)
+        {
+            // Buscamos el viaje incluyendo los días y las asignaciones con sus envíos correspondientes
+            var viaje = await _context.Viajes
+                .Include(v => v.ViajeDias)
+                .Include(v => v.Asignaciones)
+                    .ThenInclude(a => a.Envio)
+                .FirstOrDefaultAsync(v => v.Id == id);
+
+            if (viaje == null) return null;
+
+            // Mapeamos a nuestro DTO de detalle
+            var detalleDto = new ViajeDetalleDto
+            {
+                Id = viaje.Id,
+                OrigenDir = viaje.OrigenDir,
+                DestinoDir = viaje.DestinoDir,
+                HoraSalida = viaje.HoraSalida,
+                HoraLlegada = viaje.HoraLlegada,
+                Activo = viaje.Activo,
+                MaxPaquetes = viaje.MaxPaquetes,
+                PesoMaximoKg = viaje.PesoMaxKg,
+                DesvioMaxKm = viaje.DesvioMaxKm,
+                DiasSemana = viaje.ViajeDias.Select(vd => ObtenerNombreDia(vd.DiaSemana)).ToList(),
+
+                // Mapeamos los envíos (paquetes) asignados a este viaje
+                PaquetesAsignados = viaje.Asignaciones.Select(a => new PaqueteDto
+                {
+                    Id = a.Envio.Id,
+                    Descripcion = a.Envio.Descripcion,
+                    Estado = a.Envio.Estado,
+                    FechaLimite = a.Envio.FechaLimite,
+                    Monto = a.Envio.Monto
+                }).ToList()
+            };
+
+            return detalleDto;
         }
     }
 }

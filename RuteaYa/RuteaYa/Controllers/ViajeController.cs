@@ -103,7 +103,7 @@ namespace RuteaYa.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Detalles(int id)
+        public async Task<IActionResult> Detalle(int id)
         {
             var client = _httpClientFactory.CreateClient("ApiViaje");
 
@@ -113,7 +113,7 @@ namespace RuteaYa.Controllers
 
                 if (respuesta.IsSuccessStatusCode)
                 {
-                    var viaje = await respuesta.Content.ReadFromJsonAsync<Viaje>();
+                    var viaje = await respuesta.Content.ReadFromJsonAsync<ViajeDetalleDto>();
                     return View(viaje);
                 }
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
