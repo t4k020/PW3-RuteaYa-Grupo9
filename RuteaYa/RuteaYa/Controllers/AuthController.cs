@@ -78,6 +78,7 @@ namespace RuteaYa.Controllers
                 var id = root.GetProperty("id").ToString();
                 var nombre = root.GetProperty("nombre").GetString();
                 var correo = root.GetProperty("email").GetString();
+                var token = root.GetProperty("token").GetString();
 
                 if (string.IsNullOrWhiteSpace(id) ||
                     string.IsNullOrWhiteSpace(nombre) ||
@@ -92,9 +93,10 @@ namespace RuteaYa.Controllers
 
                 var claims = new List<Claim>
                 {
-                    new(ClaimTypes.NameIdentifier, id),
-                    new(ClaimTypes.Name, nombre),
-                    new(ClaimTypes.Email, correo)
+                    new Claim(ClaimTypes.NameIdentifier, id.ToString()),
+                    new Claim(ClaimTypes.Name, nombre ?? ""),
+                    new Claim(ClaimTypes.Email, email ?? ""),
+                    new Claim("AccessToken", token ?? "")
                 };
 
                 var identity = new ClaimsIdentity(

@@ -1,6 +1,7 @@
 
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using RuteaYa.Handlers;
 using RuteaYa.Repositorios;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,11 @@ builder.Services.AddHttpClient("RuteaYaApi", client =>
         builder.Configuration["ApiSettings:BaseUrl"]!
     );
 });
+
+//Access Token
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddTransient<JwtAuthorizationHandler>();
 
 // Autenticación mediante cookies
 builder.Services
@@ -45,12 +51,12 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddHttpClient("ApiEnvio", client =>
 {
     client.BaseAddress = new Uri("https://localhost:7224/");
-});
+}).AddHttpMessageHandler<JwtAuthorizationHandler>();
 
 builder.Services.AddHttpClient("ApiViaje", client =>
 {
     client.BaseAddress = new Uri("https://localhost:7224/");
-});
+}).AddHttpMessageHandler<JwtAuthorizationHandler>();
 
 var app = builder.Build();
 

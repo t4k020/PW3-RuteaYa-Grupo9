@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using RuteaYa.Entidades;
-using RuteaYa.Servicios.DTOs;
+using RuteaYa.Servicios.Dtos;
 using RuteaYa.Servicios.Servicios;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -86,31 +86,27 @@ namespace RuteaYa.Servicios.Controllers
 
             var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
 
-            return Ok(new
+            return Ok(new LoginResponse
             {
-                id = usuario.Id,
-                nombre = usuario.Nombre,
-                email = usuario.Email,
-                token = tokenString,
-                mensaje = "Inicio de sesión exitoso."
+                Id = usuario.Id,
+                Nombre = usuario.Nombre,
+                Email = usuario.Email,
+                Token = tokenString,
+                Mensaje = "Inicio de sesión exitoso."
             });
         }
 
         [AllowAnonymous]
         [HttpPost("Register")]
-        public async Task<IActionResult> Register(
-            [FromBody] Usuario usuario)
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
-            if (usuario == null)
-                return BadRequest();
-
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
                 bool registrado =
-                    await _usuarioService.CrearUsuario(usuario);
+                    await _usuarioService.CrearUsuario(request);
 
                 if (!registrado)
                 {

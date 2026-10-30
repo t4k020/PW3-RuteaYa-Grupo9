@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace RuteaYa.Servicios.DTOs
+namespace RuteaYa.Servicios.Dtos
 {
     public class LoginRequest
     {
@@ -9,6 +9,7 @@ namespace RuteaYa.Servicios.DTOs
         public string Email { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "La contraseña es obligatoria.")]
+        [DataType(DataType.Password)]
         public string PasswordHash { get; set; } = string.Empty;
     }
 }
