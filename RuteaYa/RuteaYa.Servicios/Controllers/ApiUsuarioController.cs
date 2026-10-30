@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
 using RuteaYa.Servicios.Servicios;
+using RuteaYa.Servicios.Dtos;
 
 namespace RuteaYa.Servicios.Controllers
 {
@@ -54,6 +56,7 @@ namespace RuteaYa.Servicios.Controllers
         }
 
         // Todos los usuarios: Api/Usuarios
+        [Authorize]
         [HttpGet("List")]
         public async Task<IActionResult> ListarUsuarios()
         {

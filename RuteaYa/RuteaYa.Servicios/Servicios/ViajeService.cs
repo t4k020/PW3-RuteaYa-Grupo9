@@ -9,12 +9,12 @@ namespace RuteaYa.Servicios
     {
         Task<Viaje> CrearViajeAsync(Viaje viaje);
         Task<Viaje?> ObtenerPorIdAsync(int id);
-        Task<bool> ActualizarViajeAsync(int id, Viaje viaje);
-        Task<bool> EliminarViajeAsync(int id);
+        Task<bool> ActualizarViajeAsync(int id, Viaje viaje, int usuarioId);
+        Task<bool> EliminarViajeAsync(int id, int usuarioId);
         Task<IEnumerable<Viaje>> ObtenerTodosAsync();
-        Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync(bool? soloActivo);
-        Task<bool> DesactivarViajeAsync(int id);
-        Task<ViajeDetalleDto?> ObtenerDetallePorIdAsync(int id);
+        Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync(bool? soloActivo, int usuarioId);
+        Task<bool> DesactivarViajeAsync(int id, int usuarioId);
+        Task<ViajeDetalleDto?> ObtenerDetallePorIdAsync(int id, int usuarioId);
     }
 
     public class ViajeService : IViajeService
@@ -42,16 +42,15 @@ namespace RuteaYa.Servicios
                 .FirstOrDefaultAsync(v => v.Id == id);
         }
 
-        public async Task<bool> ActualizarViajeAsync(int id, Viaje viajeModificado)
+        public async Task<bool> ActualizarViajeAsync(int id, Viaje viajeModificado, int usuarioId)
         {
-            var viajeExistente = await _context.Viajes.FindAsync(id);
+            var viajeExistente = await _context.Viajes.FirstOrDefaultAsync(v => v.Id == id && v.UsuarioId == usuarioId);
+            
             if (viajeExistente == null)
-            {
                 return false;
-            }
+            
 
             // Actualizamos todas las propiedades con los datos nuevos
-            viajeExistente.UsuarioId = viajeModificado.UsuarioId;
             viajeExistente.OrigenDir = viajeModificado.OrigenDir;
             viajeExistente.OrigenLat = viajeModificado.OrigenLat;
             viajeExistente.OrigenLng = viajeModificado.OrigenLng;
@@ -73,9 +72,9 @@ namespace RuteaYa.Servicios
             return true;
         }
 
-        public async Task<bool> EliminarViajeAsync(int id)
+        public async Task<bool> EliminarViajeAsync(int id, int usuarioId)
         {
-            var viaje = await _context.Viajes.FindAsync(id);
+            var viaje = await _context.Viajes.FirstOrDefaultAsync(v => v.Id == id && v.UsuarioId == usuarioId);
 
             if (viaje == null)
             {
@@ -97,13 +96,10 @@ namespace RuteaYa.Servicios
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync(bool? soloActivo)
+        public async Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync(bool? soloActivo, int usuarioId)
         {
-            // ID temporal para simular al usuario logueado mientras tu compañero termina el login
-            int usuarioLogueadoId = 1;
-
             var query = _context.Viajes
-                .Where(v => v.UsuarioId == usuarioLogueadoId);
+                .Where(v => v.UsuarioId == usuarioId);
 
             if (soloActivo.HasValue)
             {
@@ -146,9 +142,9 @@ namespace RuteaYa.Servicios
         }
 
         //Método para desactivar un viaje, lo saca de la lista de viajes activos, pero no lo elimina de la base de datos
-        public async Task<bool> DesactivarViajeAsync(int id)
+        public async Task<bool> DesactivarViajeAsync(int id, int usuarioId)
         {
-            var viaje = await _context.Viajes.FindAsync(id);
+            var viaje = await _context.Viajes.FirstOrDefaultAsync(v => v.Id == id && v.UsuarioId == usuarioId);
             if (viaje == null)
             {
                 return false;
@@ -159,14 +155,18 @@ namespace RuteaYa.Servicios
             return true;
         }
 
-        public async Task<ViajeDetalleDto?> ObtenerDetallePorIdAsync(int id)
+        public async Task<ViajeDetalleDto?> ObtenerDetallePorIdAsync(int id, int usuarioId)
         {
             // Buscamos el viaje incluyendo los días y las asignaciones con sus envíos correspondientes
             var viaje = await _context.Viajes
+                .Where(v =>
+                v.Id == id &&
+                v.UsuarioId == usuarioId
+                )
                 .Include(v => v.ViajeDias)
                 .Include(v => v.Asignaciones)
                     .ThenInclude(a => a.Envio)
-                .FirstOrDefaultAsync(v => v.Id == id);
+                .FirstOrDefaultAsync();
 
             if (viaje == null) return null;
 

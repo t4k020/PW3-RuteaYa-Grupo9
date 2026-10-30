@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
+using System.Security.Claims;
 
 namespace RuteaYa.Servicios.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class ApiViajeController : ControllerBase
@@ -17,16 +20,14 @@ namespace RuteaYa.Servicios.Controllers
         [HttpGet]
         public async Task<IActionResult> ObtenerTodos([FromQuery] bool? soloActivo)
         {
-
-            if (!User?.Identity?.IsAuthenticated ?? true)
-            {
+            // Obtenemos el ID del usuario desde el JWT
+            if (!TryObtenerUsuarioId(out int usuarioId))
                 return Unauthorized();
-            }
 
             try
             {
                 // Llamamos al método del servicio que devuelve el DTO
-                var viajesDto = await _viajeService.ObtenerParaListadoAsync(soloActivo);
+                var viajesDto = await _viajeService.ObtenerParaListadoAsync(soloActivo, usuarioId);
                 return Ok(viajesDto);
             }
             catch (Exception)
@@ -39,14 +40,12 @@ namespace RuteaYa.Servicios.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> ObtenerPorId(int id)
         {
-            if (!User?.Identity?.IsAuthenticated ?? true)
-            {
+            if (!TryObtenerUsuarioId(out int usuarioId))
                 return Unauthorized();
-            }
 
             try
             {
-                var viaje = await _viajeService.ObtenerDetallePorIdAsync(id);
+                var viaje = await _viajeService.ObtenerDetallePorIdAsync(id, usuarioId);
 
                 if (viaje == null)
                 {
@@ -65,10 +64,8 @@ namespace RuteaYa.Servicios.Controllers
         [HttpPost]
         public async Task<IActionResult> Crear([FromBody] Viaje viaje)
         {
-            if (!User?.Identity?.IsAuthenticated ?? true)
-            {
+            if (!TryObtenerUsuarioId(out int usuarioId))
                 return Unauthorized();
-            }
 
             if (!ModelState.IsValid)
             {
@@ -77,6 +74,8 @@ namespace RuteaYa.Servicios.Controllers
 
             try
             {
+                viaje.UsuarioId = usuarioId;
+                
                 var viajeCreado = await _viajeService.CrearViajeAsync(viaje);
                 return CreatedAtAction(nameof(ObtenerPorId), new { id = viajeCreado.Id }, viajeCreado);
             }
@@ -90,10 +89,9 @@ namespace RuteaYa.Servicios.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Actualizar(int id, [FromBody] Viaje viaje)
         {
-            if (!User?.Identity?.IsAuthenticated ?? true)
-            {
+            if (!TryObtenerUsuarioId(out int usuarioId))
                 return Unauthorized();
-            }
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -101,7 +99,7 @@ namespace RuteaYa.Servicios.Controllers
 
             try
             {
-                var actualizado = await _viajeService.ActualizarViajeAsync(id, viaje);
+                var actualizado = await _viajeService.ActualizarViajeAsync(id, viaje, usuarioId);
 
                 if (!actualizado)
                 {
@@ -120,14 +118,12 @@ namespace RuteaYa.Servicios.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Eliminar(int id)
         {
-            if (!User?.Identity?.IsAuthenticated ?? true)
-            {
+            if (!TryObtenerUsuarioId(out int usuarioId))
                 return Unauthorized();
-            }
 
             try
             {
-                var eliminado = await _viajeService.EliminarViajeAsync(id);
+                var eliminado = await _viajeService.EliminarViajeAsync(id, usuarioId);
 
                 if (!eliminado)
                 {
@@ -146,14 +142,12 @@ namespace RuteaYa.Servicios.Controllers
         [HttpPost("{id}/desactivar")]
         public async Task<IActionResult> Desactivar(int id)
         {
-            if (!User?.Identity?.IsAuthenticated ?? true)
-            {
+            if (!TryObtenerUsuarioId(out int usuarioId))
                 return Unauthorized();
-            }
 
             try
             {
-                var desactivado = await _viajeService.DesactivarViajeAsync(id);
+                var desactivado = await _viajeService.DesactivarViajeAsync(id, usuarioId);
 
                 if (!desactivado)
                 {
@@ -166,6 +160,15 @@ namespace RuteaYa.Servicios.Controllers
             {
                 return StatusCode(500, "Ocurrió un error interno al desactivar el viaje.");
             }
+        }
+
+        // Obtiene el ID del usuario autenticado desde el JWT
+        private bool TryObtenerUsuarioId(out int usuarioId)
+        {
+            return int.TryParse(
+                User.FindFirstValue(ClaimTypes.NameIdentifier),
+                out usuarioId
+            );
         }
     }
 }
