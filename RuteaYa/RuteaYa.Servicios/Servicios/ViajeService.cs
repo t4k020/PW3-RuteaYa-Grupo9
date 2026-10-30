@@ -12,7 +12,8 @@ namespace RuteaYa.Servicios
         Task<bool> ActualizarViajeAsync(int id, Viaje viaje);
         Task<bool> EliminarViajeAsync(int id);
         Task<IEnumerable<Viaje>> ObtenerTodosAsync();
-        Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync();
+        Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync(bool? soloActivo);
+        Task<bool> DesactivarViajeAsync(int id);
     }
 
     public class ViajeService : IViajeService
@@ -95,14 +96,21 @@ namespace RuteaYa.Servicios
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync()
+        public async Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync(bool? soloActivo)
         {
             // ID temporal para simular al usuario logueado mientras tu compañero termina el login
             int usuarioLogueadoId = 1;
 
+            var query = _context.Viajes
+                .Where(v => v.UsuarioId == usuarioLogueadoId);
+
+            if (soloActivo.HasValue)
+            {
+                query = query.Where(v => v.Activo == soloActivo.Value);
+            }
+
             // Traemos solo los viajes de este usuario de la base de datos
-            var viajes = await _context.Viajes
-                .Where(v => v.UsuarioId == usuarioLogueadoId)
+            var viajes = await query
                 .Include(v => v.ViajeDias)
                 .ToListAsync();
 
@@ -134,6 +142,20 @@ namespace RuteaYa.Servicios
                 7 => "Dom",
                 _ => "Día"
             };
+        }
+
+        //Método para desactivar un viaje, lo saca de la lista de viajes activos, pero no lo elimina de la base de datos
+        public async Task<bool> DesactivarViajeAsync(int id)
+        {
+            var viaje = await _context.Viajes.FindAsync(id);
+            if (viaje == null)
+            {
+                return false;
+            }
+            viaje.Activo = false;
+            _context.Viajes.Update(viaje);
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

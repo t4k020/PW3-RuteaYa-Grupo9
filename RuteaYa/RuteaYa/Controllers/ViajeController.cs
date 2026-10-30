@@ -16,19 +16,31 @@ namespace RuteaYa.Controllers
         }
 
         // GET: Viaje/Index
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string filtro = "activos")
         {
             var client = _httpClientFactory.CreateClient("ApiViaje");
 
+            string queryParam = "";
+            if (filtro == "activos")
+            {
+                queryParam = "?soloActivo=true";
+            }
+            else if (filtro == "inactivos")
+            {
+                queryParam = "?soloActivo=false";
+            }
+
+
             try
             {
-                HttpResponseMessage respuesta = await client.GetAsync(ApiRoute);
+                HttpResponseMessage respuesta = await client.GetAsync($"{ApiRoute}{queryParam}");
 
                 if (respuesta.IsSuccessStatusCode)
                 {
                 
                     var viajesDto = await respuesta.Content.ReadFromJsonAsync<List<RuteaYa.Servicios.Dtos.ViajeListadoDto>>() 
                         ?? new List<RuteaYa.Servicios.Dtos.ViajeListadoDto>();
+                    ViewBag.Filtro = filtro; // Pasamos el filtro a la vista
                     return View(viajesDto);
                 }
 
@@ -39,6 +51,7 @@ namespace RuteaYa.Controllers
                 TempData["Error"] = "No se pudo conectar con el servidor de la API.";
             }
 
+            ViewBag.FiltroActual = filtro; // Pasamos el filtro actual a la vista
             return View(new List<ViajeListadoDto>());
         }
 
@@ -235,5 +248,42 @@ namespace RuteaYa.Controllers
 
             return RedirectToAction("Index");
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Desactivar(int id)
+        {
+            var client = _httpClientFactory.CreateClient("ApiViaje");
+
+            try
+            {
+                HttpResponseMessage respuesta = await client.PostAsync($"{ApiRoute}/{id}/desactivar", null);
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    TempData["Mensaje"] = "¡Viaje desactivado con éxito!";
+                    return RedirectToAction("Index");
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    TempData["Error"] = "No se encontró el viaje a desactivar.";
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    TempData["Error"] = "No tienes autorización para realizar esta acción.";
+                }
+                else
+                {
+                    TempData["Error"] = "Ocurrió un error inesperado al comunicarse con el servidor.";
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "No se pudo conectar con el servidor de la API.";
+            }
+
+            return RedirectToAction("Index");
+        }
+
     }
 }
