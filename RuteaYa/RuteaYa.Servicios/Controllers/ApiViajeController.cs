@@ -18,10 +18,10 @@ namespace RuteaYa.Servicios.Controllers
         public async Task<IActionResult> ObtenerTodos([FromQuery] bool? soloActivo)
         {
 
-            //if (!User?.Identity?.IsAuthenticated ?? true)
-            //{
-            //    return Unauthorized();
-            //}
+            if (!User?.Identity?.IsAuthenticated ?? true)
+            {
+                return Unauthorized();
+            }
 
             try
             {
@@ -39,10 +39,10 @@ namespace RuteaYa.Servicios.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> ObtenerPorId(int id)
         {
-            //if (!User?.Identity?.IsAuthenticated ?? true)
-            //{
-            //    return Unauthorized();
-            //}
+            if (!User?.Identity?.IsAuthenticated ?? true)
+            {
+                return Unauthorized();
+            }
 
             try
             {
@@ -146,10 +146,10 @@ namespace RuteaYa.Servicios.Controllers
         [HttpPost("{id}/desactivar")]
         public async Task<IActionResult> Desactivar(int id)
         {
-            //if (!User?.Identity?.IsAuthenticated ?? true)
-            //{
-            //    return Unauthorized();
-            //}
+            if (!User?.Identity?.IsAuthenticated ?? true)
+            {
+                return Unauthorized();
+            }
 
             try
             {
