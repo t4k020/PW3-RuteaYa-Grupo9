@@ -33,9 +33,9 @@ builder.Services
         options.Cookie.Name = "RuteaYa.Auth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 
-        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.ExpireTimeSpan = TimeSpan.FromHours(2);
         options.SlidingExpiration = true;
     });
 

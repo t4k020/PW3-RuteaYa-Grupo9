@@ -181,7 +181,7 @@ namespace RuteaYa.Controllers
                         nombre,
                         apellido,
                         email,
-                        passwordHash
+                        password = passwordHash
                     },
                     cancellationToken);
 
