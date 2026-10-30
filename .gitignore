@@ -38,3 +38,6 @@ RuteaYa/RuteaYa.Entidades/obj/Debug/net10.0/RuteaYa.Entidades.AssemblyInfo.cs
 
 # IntelliJ / JetBrains
 .idea/
+
+# IA
+AGENTS.md
