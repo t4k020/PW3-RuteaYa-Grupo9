@@ -95,7 +95,7 @@ namespace RuteaYa.Controllers
                 {
                     new Claim(ClaimTypes.NameIdentifier, id.ToString()),
                     new Claim(ClaimTypes.Name, nombre ?? ""),
-                    new Claim(ClaimTypes.Email, email ?? ""),
+                    new Claim(ClaimTypes.Email, correo ?? ""),
                     new Claim("AccessToken", token ?? "")
                 };
 
@@ -197,7 +197,13 @@ namespace RuteaYa.Controllers
                 {
                     ModelState.AddModelError(
                         string.Empty,
-                        "Los datos enviados no son válidos o el correo ya está registrado.");
+                        "Los datos enviados no son válidos.");
+                }
+                else if (respuesta.StatusCode == HttpStatusCode.Conflict)
+                {
+                    ModelState.AddModelError(
+                        string.Empty,
+                        "Ese correo electrónico ya está registrado. Probá con otro.");
                 }
                 else
                 {

@@ -45,7 +45,7 @@ namespace RuteaYa.Servicios.Controllers
 
             try
             {
-                var viaje = await _viajeService.ObtenerDetallePorIdAsync(id);
+                var viaje = await _viajeService.ObtenerDetallePorIdAsync(id, usuarioId);
 
                 if (viaje == null)
                 {
@@ -99,7 +99,7 @@ namespace RuteaYa.Servicios.Controllers
 
             try
             {
-                var actualizado = await _viajeService.ActualizarViajeAsync(id, viaje);
+                var actualizado = await _viajeService.ActualizarViajeAsync(id, viaje, usuarioId);
 
                 if (!actualizado)
                 {
@@ -123,7 +123,7 @@ namespace RuteaYa.Servicios.Controllers
 
             try
             {
-                var eliminado = await _viajeService.EliminarViajeAsync(id);
+                var eliminado = await _viajeService.EliminarViajeAsync(id, usuarioId);
 
                 if (!eliminado)
                 {
@@ -147,7 +147,7 @@ namespace RuteaYa.Servicios.Controllers
 
             try
             {
-                var desactivado = await _viajeService.DesactivarViajeAsync(id);
+                var desactivado = await _viajeService.DesactivarViajeAsync(id, usuarioId);
 
                 if (!desactivado)
                 {
