@@ -40,7 +40,7 @@ namespace RuteaYa.Controllers
                 
                     var viajesDto = await respuesta.Content.ReadFromJsonAsync<List<RuteaYa.Servicios.Dtos.ViajeListadoDto>>() 
                         ?? new List<RuteaYa.Servicios.Dtos.ViajeListadoDto>();
-                    ViewBag.Filtro = filtro; // Pasamos el filtro a la vista
+                    ViewBag.FiltroActual = filtro; // Pasamos el filtro a la vista
                     return View(viajesDto);
                 }
 
