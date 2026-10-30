@@ -22,7 +22,7 @@
         <div class="alert alert-danger">@TempData["Error"]</div>
     }
 
-    <!-- Filtros visuales (opcionales según tu diseño) -->
+    <!-- Filtros visuales -->
     <div class="mb-4">
         <a asp-action="Index" asp-route-filtro="activos"
            class="badge rounded-pill @(ViewBag.FiltroActual == "activos" ? "bg-dark" : "bg-light text-dark border") px-3 py-2 me-1 text-decoration-none">
