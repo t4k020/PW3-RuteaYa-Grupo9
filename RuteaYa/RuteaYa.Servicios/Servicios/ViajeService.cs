@@ -12,7 +12,9 @@ namespace RuteaYa.Servicios
         Task<bool> ActualizarViajeAsync(int id, Viaje viaje);
         Task<bool> EliminarViajeAsync(int id);
         Task<IEnumerable<Viaje>> ObtenerTodosAsync();
-        Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync();
+        Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync(bool? soloActivo);
+        Task<bool> DesactivarViajeAsync(int id);
+        Task<ViajeDetalleDto?> ObtenerDetallePorIdAsync(int id);
     }
 
     public class ViajeService : IViajeService
@@ -95,14 +97,21 @@ namespace RuteaYa.Servicios
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync()
+        public async Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync(bool? soloActivo)
         {
             // ID temporal para simular al usuario logueado mientras tu compañero termina el login
             int usuarioLogueadoId = 1;
 
+            var query = _context.Viajes
+                .Where(v => v.UsuarioId == usuarioLogueadoId);
+
+            if (soloActivo.HasValue)
+            {
+                query = query.Where(v => v.Activo == soloActivo.Value);
+            }
+
             // Traemos solo los viajes de este usuario de la base de datos
-            var viajes = await _context.Viajes
-                .Where(v => v.UsuarioId == usuarioLogueadoId)
+            var viajes = await query
                 .Include(v => v.ViajeDias)
                 .ToListAsync();
 
@@ -134,6 +143,59 @@ namespace RuteaYa.Servicios
                 7 => "Dom",
                 _ => "Día"
             };
+        }
+
+        //Método para desactivar un viaje, lo saca de la lista de viajes activos, pero no lo elimina de la base de datos
+        public async Task<bool> DesactivarViajeAsync(int id)
+        {
+            var viaje = await _context.Viajes.FindAsync(id);
+            if (viaje == null)
+            {
+                return false;
+            }
+            viaje.Activo = false;
+            _context.Viajes.Update(viaje);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<ViajeDetalleDto?> ObtenerDetallePorIdAsync(int id)
+        {
+            // Buscamos el viaje incluyendo los días y las asignaciones con sus envíos correspondientes
+            var viaje = await _context.Viajes
+                .Include(v => v.ViajeDias)
+                .Include(v => v.Asignaciones)
+                    .ThenInclude(a => a.Envio)
+                .FirstOrDefaultAsync(v => v.Id == id);
+
+            if (viaje == null) return null;
+
+            // Mapeamos a nuestro DTO de detalle
+            var detalleDto = new ViajeDetalleDto
+            {
+                Id = viaje.Id,
+                OrigenDir = viaje.OrigenDir,
+                DestinoDir = viaje.DestinoDir,
+                HoraSalida = viaje.HoraSalida,
+                HoraLlegada = viaje.HoraLlegada,
+                Activo = viaje.Activo,
+                MaxPaquetes = viaje.MaxPaquetes,
+                PesoMaximoKg = viaje.PesoMaxKg,
+                DesvioMaxKm = viaje.DesvioMaxKm,
+                DiasSemana = viaje.ViajeDias.Select(vd => ObtenerNombreDia(vd.DiaSemana)).ToList(),
+
+                // Mapeamos los envíos (paquetes) asignados a este viaje
+                PaquetesAsignados = viaje.Asignaciones.Select(a => new PaqueteDto
+                {
+                    Id = a.Envio.Id,
+                    Descripcion = a.Envio.Descripcion,
+                    Estado = a.Envio.Estado,
+                    FechaLimite = a.Envio.FechaLimite,
+                    Monto = a.Envio.Monto
+                }).ToList()
+            };
+
+            return detalleDto;
         }
     }
 }
