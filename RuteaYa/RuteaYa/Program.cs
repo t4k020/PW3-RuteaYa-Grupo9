@@ -1,31 +1,64 @@
-using Microsoft.EntityFrameworkCore;
+
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using RuteaYa.Repositorios;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// MVC: controladores y vistas
 builder.Services.AddControllersWithViews();
 
+// Cliente HTTP para autenticación
+builder.Services.AddHttpClient("RuteaYaApi", client =>
+{
+    client.BaseAddress = new Uri(
+        builder.Configuration["ApiSettings:BaseUrl"]!
+    );
+});
 
-builder.Services.AddDbContext<RuteaYaDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Autenticación mediante cookies
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Auth/Login";
+        options.AccessDeniedPath = "/Auth/Login";
 
+        options.Cookie.Name = "RuteaYa.Auth";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+    });
+
+// Política de autorización
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
+// Clientes HTTP de las APIs
 builder.Services.AddHttpClient("ApiEnvio", client =>
 {
     client.BaseAddress = new Uri("https://localhost:7224/");
 });
+
 builder.Services.AddHttpClient("ApiViaje", client =>
 {
     client.BaseAddress = new Uri("https://localhost:7224/");
 });
 
-
 var app = builder.Build();
 
-
-// Carga del seed
+// Carga inicial de la base de datos
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+
     try
     {
         var context = services.GetRequiredService<RuteaYaDbContext>();
@@ -34,28 +67,35 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Ocurrió un error al poblar la base de datos con los datos iniciales.");
+
+        logger.LogError(
+            ex,
+            "Ocurrió un error al poblar la base de datos."
+        );
     }
 }
 
-// Configure the HTTP request pipeline.
+// Pipeline HTTP
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); // Importante para que lea CSS, JS e imágenes
+
+app.UseStaticFiles();
 
 app.UseRouting();
 
+// IMPORTANTE: primero autenticación y después autorización
+app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapStaticAssets();
+// Ruta MVC
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Auth}/{action=Login}/{id?}"
+);
 
 app.Run();
