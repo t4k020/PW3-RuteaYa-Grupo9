@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
+using System.Security.Claims;
 
 namespace RuteaYa.Servicios.Controllers
 {
@@ -19,15 +20,18 @@ namespace RuteaYa.Servicios.Controllers
         [HttpGet]
         public async Task<IActionResult> ObtenerTodos([FromQuery] bool? soloActivo)
         {
-            /*if (!User?.Identity?.IsAuthenticated ?? true)
+            // Obtenemos el ID del usuario desde el JWT
+            if (!int.TryParse(
+                User.FindFirstValue(ClaimTypes.NameIdentifier),
+                out int usuarioId))
             {
                 return Unauthorized();
-            }*/
+            }
 
             try
             {
                 // Llamamos al método del servicio que devuelve el DTO
-                var viajesDto = await _viajeService.ObtenerParaListadoAsync(soloActivo);
+                var viajesDto = await _viajeService.ObtenerParaListadoAsync(soloActivo, usuarioId);
                 return Ok(viajesDto);
             }
             catch (Exception)
@@ -66,10 +70,12 @@ namespace RuteaYa.Servicios.Controllers
         [HttpPost]
         public async Task<IActionResult> Crear([FromBody] Viaje viaje)
         {
-            /*if (!User?.Identity?.IsAuthenticated ?? true)
+            if (!int.TryParse(
+                User.FindFirstValue(ClaimTypes.NameIdentifier),
+                out int usuarioId))
             {
                 return Unauthorized();
-            }*/
+            }
 
             if (!ModelState.IsValid)
             {
@@ -78,6 +84,8 @@ namespace RuteaYa.Servicios.Controllers
 
             try
             {
+                viaje.UsuarioId = usuarioId;
+                
                 var viajeCreado = await _viajeService.CrearViajeAsync(viaje);
                 return CreatedAtAction(nameof(ObtenerPorId), new { id = viajeCreado.Id }, viajeCreado);
             }

@@ -12,7 +12,7 @@ namespace RuteaYa.Servicios
         Task<bool> ActualizarViajeAsync(int id, Viaje viaje);
         Task<bool> EliminarViajeAsync(int id);
         Task<IEnumerable<Viaje>> ObtenerTodosAsync();
-        Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync(bool? soloActivo);
+        Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync(bool? soloActivo, int usuarioId);
         Task<bool> DesactivarViajeAsync(int id);
         Task<ViajeDetalleDto?> ObtenerDetallePorIdAsync(int id);
     }
@@ -51,7 +51,6 @@ namespace RuteaYa.Servicios
             }
 
             // Actualizamos todas las propiedades con los datos nuevos
-            viajeExistente.UsuarioId = viajeModificado.UsuarioId;
             viajeExistente.OrigenDir = viajeModificado.OrigenDir;
             viajeExistente.OrigenLat = viajeModificado.OrigenLat;
             viajeExistente.OrigenLng = viajeModificado.OrigenLng;
@@ -97,13 +96,10 @@ namespace RuteaYa.Servicios
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync(bool? soloActivo)
+        public async Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync(bool? soloActivo, int usuarioId)
         {
-            // ID temporal para simular al usuario logueado mientras tu compañero termina el login
-            int usuarioLogueadoId = 1;
-
             var query = _context.Viajes
-                .Where(v => v.UsuarioId == usuarioLogueadoId);
+                .Where(v => v.UsuarioId == usuarioId);
 
             if (soloActivo.HasValue)
             {
