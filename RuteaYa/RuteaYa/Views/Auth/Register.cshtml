@@ -1,0 +1,97 @@
+﻿
+@{
+    ViewData["Title"] = "Crear cuenta";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow p-4">
+
+                <h2 class="text-center mb-4">Crear cuenta</h2>
+
+                <form asp-controller="Auth"
+                      asp-action="Register"
+                      method="post">
+
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="ModelOnly"
+                         class="text-danger mb-3">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="nombre">
+                            Nombre
+                        </label>
+
+                        <input name="nombre"
+                               id="nombre"
+                               class="form-control"
+                               autocomplete="given-name"
+                               placeholder="Tu nombre"
+                               required />
+
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="apellido">
+                            Apellido
+                        </label>
+
+                        <input name="apellido"
+                               id="apellido"
+                               class="form-control"
+                               autocomplete="family-name"
+                               placeholder="Tu apellido"
+                               required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="email">
+                            Correo electrónico
+                        </label>
+
+                        <input name="email"
+                               id="email"
+                               class="form-control"
+                               type="email"
+                               autocomplete="email"
+                               placeholder="usuario@correo.com"
+                               required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="passwordHash">
+                            Contraseña
+                        </label>
+
+                        <input name="passwordHash"
+                               id="passwordHash"
+                               class="form-control"
+                               type="password"
+                               autocomplete="new-password"
+                               placeholder="Mínimo 8 caracteres"
+                               minlength="8"
+                               required />
+                    </div>
+
+                    <button type="submit"
+                            class="btn btn-primary w-100">
+                        Registrarme
+                    </button>
+
+                </form>
+
+                <div class="text-center mt-3">
+                    ¿Ya tenés cuenta?
+                    <a asp-controller="Auth"
+                       asp-action="Login">
+                        Iniciá sesión
+                    </a>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>

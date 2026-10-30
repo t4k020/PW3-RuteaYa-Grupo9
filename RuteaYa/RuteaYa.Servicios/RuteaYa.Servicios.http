@@ -1,6 +1,10 @@
-@RuteaYa.Servicios_HostAddress = http://localhost:5133
-
-GET {{RuteaYa.Servicios_HostAddress}}/weatherforecast/
+POST http://localhost:5133/Api/Auth/Login
+Content-Type: application/json
 Accept: application/json
+
+{
+  "email": "admin@ruteaya.com",
+  "passwordHash": "1234"
+}
 
 ###

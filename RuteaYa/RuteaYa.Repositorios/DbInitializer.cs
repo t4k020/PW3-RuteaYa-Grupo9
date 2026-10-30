@@ -1,4 +1,5 @@
-﻿using RuteaYa.Entidades;
+﻿using BCrypt.Net;
+using RuteaYa.Entidades;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -25,7 +26,7 @@ namespace RuteaYa.Repositorios
                     Nombre = "Admin",
                     Apellido = "Sistema",
                     Email = "admin@ruteaya.com",
-                    PasswordHash = "1234",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("1234"),
                     CreadoEn = DateTime.Now
                 },
                 new Usuario
@@ -33,7 +34,7 @@ namespace RuteaYa.Repositorios
                     Nombre = "Carlos",
                     Apellido = "González",
                     Email = "carlos.gonzalez@example.com",
-                    PasswordHash = "1234",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("1234"),
                     CreadoEn = DateTime.Now
                 },
                 new Usuario
@@ -41,13 +42,13 @@ namespace RuteaYa.Repositorios
                     Nombre = "Lucía",
                     Apellido = "Martínez",
                     Email = "lucia.martinez@example.com",
-                    PasswordHash = "1234",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("1234"),
                     CreadoEn = DateTime.Now
                 }
             };
 
             context.Usuarios.AddRange(usuarios);
-            context.SaveChanges(); 
+            context.SaveChanges();
 
 
             var viajes = new List<Viaje>
@@ -236,7 +237,7 @@ namespace RuteaYa.Repositorios
 
             context.Asignaciones.AddRange(asignaciones);
 
-            
+
             context.SaveChanges();
         }
     }
