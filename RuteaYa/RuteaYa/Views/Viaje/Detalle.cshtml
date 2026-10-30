@@ -1,5 +1,104 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model RuteaYa.Servicios.Dtos.ViajeDetalleDto
 @{
+    ViewData["Title"] = "Detalle del viaje";
 }
+<div class="container my-4">
+    <!-- Cabecera superior: Título y Botones de acción -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h2 class="fw-bold mb-1">Detalle del viaje</h2>
+            <p class="text-muted mb-0">@Model.OrigenDir → @Model.DestinoDir</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-3">Volver</a>
+            <a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-outline-secondary rounded-pill px-3">Editar</a>
+
+            <form asp-action="Desactivar" asp-route-id="@Model.Id" method="post" style="display:inline;" onsubmit="return confirm('¿Estás seguro de desactivar este viaje?');">
+                <button type="submit" class="btn btn-outline-danger rounded-pill px-3">Desactivar</button>
+            </form>
+
+            <a href="#" class="btn btn-dark rounded-pill px-4">Ver oportunidades</a>
+        </div>
+    </div>
+
+    <!-- Contenido principal en dos columnas (Recorrido y Paquetes) -->
+    <div class="row g-4">
+        <!-- Columna Izquierda: Datos del Recorrido -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <h4 class="fw-bold mb-4">Recorrido</h4>
+
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="text-muted">Estado</span>
+                    @if (Model.Activo)
+                    {
+                        <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill">Activo</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger-subtle text-danger px-3 py-2 rounded-pill">Inactivo</span>
+                    }
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="text-muted">Días</span>
+                    <span class="fw-medium">@(Model.DiasSemana.Any() ? string.Join(", ", Model.DiasSemana) : "Sin días especificados")</span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="text-muted">Horarios</span>
+                    <span class="fw-medium">@Model.HoraSalida.ToString(@"hh\:mm") – @Model.HoraLlegada.ToString(@"hh\:mm")</span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="text-muted">Capacidad</span>
+                    <span class="fw-medium">@Model.MaxPaquetes paquetes</span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="text-muted">Peso máximo</span>
+                    <span class="fw-medium">@Model.PesoMaximoKg kg</span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center py-2">
+                    <span class="text-muted">Desvío máximo</span>
+                    <span class="fw-medium">@Model.DesvioMaxKm km</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Derecha: Paquetes Asignados (Envíos) -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <h4 class="fw-bold mb-4">Paquetes asignados</h4>
+
+                @if (Model.PaquetesAsignados != null && Model.PaquetesAsignados.Any())
+                {
+                    @foreach (var paquete in Model.PaquetesAsignados)
+                    {
+                        <div class="card border rounded-3 p-3 mb-3 shadow-sm">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="fw-bold mb-1">@paquete.Descripcion</h6>
+                                    <small class="text-muted">
+                                        Estado: @paquete.Estado · Fecha límite: @paquete.FechaLimite.ToString("dd/MM/yyyy")
+                                    </small>
+                                </div>
+                                <span class="fw-bold text-success fs-5">$@paquete.Monto</span>
+                            </div>
+                            <div class="text-end mt-2">
+                                <a href="#" class="btn btn-outline-dark btn-sm rounded-pill px-3">Ver paquete</a>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center text-muted my-auto py-5">
+                        <p class="mb-0">No hay paquetes asignados a este viaje actualmente.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

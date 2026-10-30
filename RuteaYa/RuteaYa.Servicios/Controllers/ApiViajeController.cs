@@ -17,7 +17,7 @@ namespace RuteaYa.Servicios.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> ObtenerTodos()
+        public async Task<IActionResult> ObtenerTodos([FromQuery] bool? soloActivo)
         {
             /*if (!User?.Identity?.IsAuthenticated ?? true)
             {
@@ -27,7 +27,7 @@ namespace RuteaYa.Servicios.Controllers
             try
             {
                 // Llamamos al método del servicio que devuelve el DTO
-                var viajesDto = await _viajeService.ObtenerParaListadoAsync();
+                var viajesDto = await _viajeService.ObtenerParaListadoAsync(soloActivo);
                 return Ok(viajesDto);
             }
             catch (Exception)
@@ -47,7 +47,7 @@ namespace RuteaYa.Servicios.Controllers
 
             try
             {
-                var viaje = await _viajeService.ObtenerPorIdAsync(id);
+                var viaje = await _viajeService.ObtenerDetallePorIdAsync(id);
 
                 if (viaje == null)
                 {
@@ -140,6 +140,32 @@ namespace RuteaYa.Servicios.Controllers
             catch (Exception)
             {
                 return StatusCode(500, "Ocurrió un error interno al eliminar el viaje.");
+            }
+        }
+
+        //desactivar un viaje
+        [HttpPost("{id}/desactivar")]
+        public async Task<IActionResult> Desactivar(int id)
+        {
+            if (!User?.Identity?.IsAuthenticated ?? true)
+            {
+                return Unauthorized();
+            }
+
+            try
+            {
+                var desactivado = await _viajeService.DesactivarViajeAsync(id);
+
+                if (!desactivado)
+                {
+                    return NotFound();
+                }
+
+                return NoContent(); // 204 No Content 
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Ocurrió un error interno al desactivar el viaje.");
             }
         }
     }
