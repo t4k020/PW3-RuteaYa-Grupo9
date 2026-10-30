@@ -21,12 +21,8 @@ namespace RuteaYa.Servicios.Controllers
         public async Task<IActionResult> ObtenerTodos([FromQuery] bool? soloActivo)
         {
             // Obtenemos el ID del usuario desde el JWT
-            if (!int.TryParse(
-                User.FindFirstValue(ClaimTypes.NameIdentifier),
-                out int usuarioId))
-            {
+            if (!TryObtenerUsuarioId(out int usuarioId))
                 return Unauthorized();
-            }
 
             try
             {
@@ -44,10 +40,8 @@ namespace RuteaYa.Servicios.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> ObtenerPorId(int id)
         {
-            /*if (!User?.Identity?.IsAuthenticated ?? true)
-            {
+            if (!TryObtenerUsuarioId(out int usuarioId))
                 return Unauthorized();
-            }*/
 
             try
             {
@@ -70,12 +64,8 @@ namespace RuteaYa.Servicios.Controllers
         [HttpPost]
         public async Task<IActionResult> Crear([FromBody] Viaje viaje)
         {
-            if (!int.TryParse(
-                User.FindFirstValue(ClaimTypes.NameIdentifier),
-                out int usuarioId))
-            {
+            if (!TryObtenerUsuarioId(out int usuarioId))
                 return Unauthorized();
-            }
 
             if (!ModelState.IsValid)
             {
@@ -99,10 +89,9 @@ namespace RuteaYa.Servicios.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Actualizar(int id, [FromBody] Viaje viaje)
         {
-            /*if (!User?.Identity?.IsAuthenticated ?? true)
-            {
+            if (!TryObtenerUsuarioId(out int usuarioId))
                 return Unauthorized();
-            }*/
+
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -129,10 +118,8 @@ namespace RuteaYa.Servicios.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Eliminar(int id)
         {
-            /*if (!User?.Identity?.IsAuthenticated ?? true)
-            {
+            if (!TryObtenerUsuarioId(out int usuarioId))
                 return Unauthorized();
-            }*/
 
             try
             {
@@ -155,10 +142,8 @@ namespace RuteaYa.Servicios.Controllers
         [HttpPost("{id}/desactivar")]
         public async Task<IActionResult> Desactivar(int id)
         {
-            if (!User?.Identity?.IsAuthenticated ?? true)
-            {
+            if (!TryObtenerUsuarioId(out int usuarioId))
                 return Unauthorized();
-            }
 
             try
             {
@@ -175,6 +160,15 @@ namespace RuteaYa.Servicios.Controllers
             {
                 return StatusCode(500, "Ocurrió un error interno al desactivar el viaje.");
             }
+        }
+
+        // Obtiene el ID del usuario autenticado desde el JWT
+        private bool TryObtenerUsuarioId(out int usuarioId)
+        {
+            return int.TryParse(
+                User.FindFirstValue(ClaimTypes.NameIdentifier),
+                out usuarioId
+            );
         }
     }
 }
