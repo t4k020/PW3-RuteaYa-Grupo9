@@ -1,4 +1,5 @@
-﻿using RuteaYa.Entidades;
+﻿
+using RuteaYa.Entidades;
 using RuteaYa.Repositorios;
 using RuteaYa.Servicios.Controllers;
 
@@ -6,22 +7,28 @@ namespace RuteaYa.Servicios.Servicios
 {
     public class AuthService : IAuthService
     {
-        private UsuarioRepository _usuarioRepository;
+        private readonly UsuarioRepository _usuarioRepository;
 
         public AuthService(UsuarioRepository usuarioRepository)
         {
             _usuarioRepository = usuarioRepository;
         }
 
-        public async Task<Usuario> AutenticarUsuario(string email, string password)
+        public async Task<Usuario?> AutenticarUsuario(
+            string email,
+            string password)
         {
-            Usuario usuario = await _usuarioRepository.ObtenerUsuarioPorEmail(email);
-            bool autenticado = BCrypt.Net.BCrypt.Verify(password, usuario.PasswordHash);
+            var usuario = await _usuarioRepository
+                .ObtenerUsuarioPorEmail(email);
 
-            if (autenticado)
-                return usuario;
+            if (usuario == null)
+                return null;
 
-            return null;
+            bool autenticado = BCrypt.Net.BCrypt.Verify(
+                password,
+                usuario.PasswordHash);
+
+            return autenticado ? usuario : null;
         }
     }
 }

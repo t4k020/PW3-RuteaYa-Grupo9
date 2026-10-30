@@ -1,84 +1,122 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using RuteaYa.Entidades;
+using RuteaYa.Servicios.DTOs;
 using RuteaYa.Servicios.Servicios;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace RuteaYa.Servicios.Controllers
 {
     public interface IAuthService
     {
-        Task<Usuario> AutenticarUsuario(string email, string passwordHash);
+        Task<Usuario?> AutenticarUsuario(string email, string password);
     }
 
+    [ApiController]
     [Route("Api/Auth")]
-    public class ApiAuthController : Controller
+    public class ApiAuthController : ControllerBase
     {
-        private UsuarioService _usuarioService;
-        private IAuthService _authService;
+        private readonly UsuarioService _usuarioService;
+        private readonly IAuthService _authService;
+        private readonly IConfiguration _configuration;
 
-        public ApiAuthController(UsuarioService usuarioService, IAuthService authService)
+        public ApiAuthController(
+            UsuarioService usuarioService,
+            IAuthService authService,
+            IConfiguration configuration)
         {
             _usuarioService = usuarioService;
             _authService = authService;
+            _configuration = configuration;
         }
 
-        // POST: Api/Auth/Login
+        [AllowAnonymous]
         [HttpPost("Login")]
-        public async Task<IActionResult> Login([FromBody] Usuario usuario)
+        public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            if (usuario == null || string.IsNullOrWhiteSpace(usuario.Email) || string.IsNullOrWhiteSpace(usuario.PasswordHash))
-            {
-                return BadRequest(new
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var usuario = await _authService.AutenticarUsuario(
+                request.Email,
+                request.PasswordHash
+            );
+
+            if (usuario == null)
+                return Unauthorized(new
                 {
-                    autenticado = false,
-                    mensaje = "Correo electrónico y contraseña son requeridos."
+                    mensaje = "Email o contraseña incorrectos."
                 });
-            }
 
-            Usuario usuarioAutenticado = await _authService.AutenticarUsuario(usuario.Email, usuario.PasswordHash);
+            var jwtKey = _configuration["Jwt:Key"];
+            var jwtIssuer = _configuration["Jwt:Issuer"];
+            var jwtAudience = _configuration["Jwt:Audience"];
 
-            if (usuarioAutenticado != null)
+            var claims = new[]
             {
-                return Ok(new
-                {
-                    id = usuarioAutenticado.Id,
-                    nombre = usuarioAutenticado.Nombre,
-                    email = usuarioAutenticado.Email,
-                    mensaje = "Autenticación exitosa."
-                });
-            }
+                new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
+                new Claim(ClaimTypes.Name, usuario.Nombre),
+                new Claim(ClaimTypes.Email, usuario.Email)
+            };
 
-            return Unauthorized(new
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtKey!)
+            );
+
+            var credentials = new SigningCredentials(
+                key,
+                SecurityAlgorithms.HmacSha256
+            );
+
+            var expirationMinutes = int.Parse(
+                _configuration["Jwt:ExpirationMinutes"] ?? "60"
+            );
+
+            var token = new JwtSecurityToken(
+                issuer: jwtIssuer,
+                audience: jwtAudience,
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(expirationMinutes),
+                signingCredentials: credentials
+            );
+
+            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
+            return Ok(new
             {
-                autenticado = false,
-                mensaje = "Correo electrónico o contraseña incorrectos."
+                id = usuario.Id,
+                nombre = usuario.Nombre,
+                email = usuario.Email,
+                token = tokenString,
+                mensaje = "Inicio de sesión exitoso."
             });
         }
 
-        // Register: Api/Auth/Register
+        [AllowAnonymous]
         [HttpPost("Register")]
-        public async Task<IActionResult> Register([FromBody] Usuario usuario)
+        public async Task<IActionResult> Register(
+            [FromBody] Usuario usuario)
         {
             if (usuario == null)
-            {
-                return BadRequest("Los datos del usuario son obligatorios.");
-            }
+                return BadRequest();
 
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
             try
             {
-                bool registrado = await _usuarioService.CrearUsuario(usuario);
+                bool registrado =
+                    await _usuarioService.CrearUsuario(usuario);
 
                 if (!registrado)
                 {
                     return Conflict(new
                     {
-                        registrado = false,
-                        mensaje = "El correo electrónico ya está en uso."
+                        mensaje = "El email ya está registrado."
                     });
                 }
 
@@ -92,12 +130,9 @@ namespace RuteaYa.Servicios.Controllers
             {
                 return StatusCode(500, new
                 {
-                    registrado = false,
-                    mensaje = "Ocurrió un error al registrar el usuario."
+                    mensaje = "Error al registrar el usuario."
                 });
             }
         }
     }
-
-    
 }

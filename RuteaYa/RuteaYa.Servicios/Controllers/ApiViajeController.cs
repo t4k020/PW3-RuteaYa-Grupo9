@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
 
 namespace RuteaYa.Servicios.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class ApiViajeController : ControllerBase
@@ -17,11 +19,10 @@ namespace RuteaYa.Servicios.Controllers
         [HttpGet]
         public async Task<IActionResult> ObtenerTodos()
         {
-
-            if (!User?.Identity?.IsAuthenticated ?? true)
+            /*if (!User?.Identity?.IsAuthenticated ?? true)
             {
                 return Unauthorized();
-            }
+            }*/
 
             try
             {
@@ -39,10 +40,10 @@ namespace RuteaYa.Servicios.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> ObtenerPorId(int id)
         {
-            if (!User?.Identity?.IsAuthenticated ?? true)
+            /*if (!User?.Identity?.IsAuthenticated ?? true)
             {
                 return Unauthorized();
-            }
+            }*/
 
             try
             {
@@ -65,10 +66,10 @@ namespace RuteaYa.Servicios.Controllers
         [HttpPost]
         public async Task<IActionResult> Crear([FromBody] Viaje viaje)
         {
-            if (!User?.Identity?.IsAuthenticated ?? true)
+            /*if (!User?.Identity?.IsAuthenticated ?? true)
             {
                 return Unauthorized();
-            }
+            }*/
 
             if (!ModelState.IsValid)
             {
@@ -90,10 +91,10 @@ namespace RuteaYa.Servicios.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Actualizar(int id, [FromBody] Viaje viaje)
         {
-            if (!User?.Identity?.IsAuthenticated ?? true)
+            /*if (!User?.Identity?.IsAuthenticated ?? true)
             {
                 return Unauthorized();
-            }
+            }*/
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
@@ -120,10 +121,10 @@ namespace RuteaYa.Servicios.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Eliminar(int id)
         {
-            if (!User?.Identity?.IsAuthenticated ?? true)
+            /*if (!User?.Identity?.IsAuthenticated ?? true)
             {
                 return Unauthorized();
-            }
+            }*/
 
             try
             {
