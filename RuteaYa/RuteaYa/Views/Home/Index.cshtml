@@ -1,6 +1,152 @@
-﻿@{
-    ViewData["Title"] = "Home";
+﻿@model RuteaYa.Servicios.Dtos.HomeDashboardDto
+
+@{
+    ViewData["Title"] = "Inicio";
 }
 
-<h1>Bienvenido a RuteaYa</h1>
-<p>El layout debería mostrarse automáticamente.</p>
+<div class="container-fluid py-3">
+    @* Mensaje de contingencia cuando la API no pudo entregar el resumen. *@
+    @if (TempData["Error"] is string error)
+    {
+        <div class="alert alert-warning rounded-4 shadow-sm">@error</div>
+    }
+
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1">Hola, @Model.NombreUsuario</h1>
+            <p class="text-muted mb-0">Esto pasa con tus viajes y envíos.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-controller="Envio" asp-action="Crear" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold">
+                Nuevo envío
+            </a>
+            <a asp-controller="Viaje" asp-action="Crear" class="btn btn-dark rounded-pill px-4 fw-semibold">
+                Nuevo viaje
+            </a>
+        </div>
+    </div>
+
+    @* Indicadores principales del usuario autenticado. *@
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <h2 class="h6 text-muted fw-normal mb-3">Próximos viajes</h2>
+                    <p class="display-6 fw-bold mb-0">@Model.CantidadViajes</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <h2 class="h6 text-muted fw-normal mb-3">Envíos pendientes</h2>
+                    <p class="display-6 fw-bold mb-0">@Model.CantidadEnvios</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm rounded-4">
+                <div class="card-body p-4">
+                    <h2 class="h6 text-muted fw-normal mb-3">Oportunidades</h2>
+                    <p class="display-6 fw-bold mb-0">@Model.CantidadOportunidades</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm rounded-4" style="background-color: #e8f5e9;">
+                <div class="card-body p-4">
+                    <h2 class="h6 text-muted fw-normal mb-3">Potencial del mes</h2>
+                    <p class="display-6 fw-bold text-success mb-0">@Model.PotencialGanancias.ToString("C")</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* Listados resumidos para consultar rápidamente viajes y envíos. *@
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <section class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="h5 fw-bold mb-0">Próximos viajes</h2>
+                    </div>
+                    @if (Model.Viajes.Count == 0)
+                    {
+                        <p class="text-muted mb-0">No tenés viajes activos.</p>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-3">
+                            @foreach (var viaje in Model.Viajes)
+                            {
+                                <div class="d-flex justify-content-between align-items-center pb-3 border-bottom">
+                                    <div>
+                                        <div class="fw-bold">@viaje.Origen &rarr; @viaje.Destino</div>
+                                        <div class="small text-muted mt-1">
+                                            @(viaje.DiasSemana.Count > 0 ? string.Join(", ", viaje.DiasSemana) : "Sin días configurados")
+                                            &middot; @viaje.HoraSalida.ToString("HH:mm") - @viaje.HoraLlegada.ToString("HH:mm")
+                                        </div>
+                                    </div>
+                                    <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                                        Activo
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </section>
+        </div>
+
+        <div class="col-lg-6">
+            <section class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="h5 fw-bold mb-0">Envíos pendientes</h2>
+                    </div>
+                    @if (Model.Envios.Count == 0)
+                    {
+                        <p class="text-muted mb-0">No tenés envíos pendientes.</p>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-3 mb-4">
+                            @foreach (var envio in Model.Envios)
+                            {
+                                <div class="d-flex justify-content-between align-items-center pb-3 border-bottom">
+                                    <div>
+                                        <div class="fw-bold">@envio.Origen &rarr; @envio.Destino</div>
+                                        <div class="small text-muted mt-1">
+                                            @(string.IsNullOrWhiteSpace(envio.Descripcion) ? "Sin descripción" : envio.Descripcion)
+                                            &middot; @envio.Monto.ToString("C")
+                                        </div>
+                                    </div>
+
+                                    <span class="badge rounded-pill @ObtenerClaseEstado(envio.Estado) px-3 py-2 fw-normal">
+                                        @envio.EstadoNombre
+                                    </span>
+                                </div>
+
+                                @functions {
+                                    // La clase visual se determina por el estado real recibido desde la API.
+                                    private static string ObtenerClaseEstado(byte estado) => estado switch
+                                    {
+                                        2 => "bg-primary-subtle text-primary border border-primary-subtle",
+                                        3 => "bg-warning-subtle text-warning-emphasis border border-warning-subtle",
+                                        4 => "bg-success-subtle text-success border border-success-subtle",
+                                        5 => "bg-danger-subtle text-danger border border-danger-subtle",
+                                        _ => "bg-secondary-subtle text-secondary border"
+                                    };
+                                }
+                            }
+                        </div>
+                    }
+
+                    <div>
+                        <a class="btn btn-outline-secondary rounded-pill px-3" href="#">Ver oportunidades</a>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>

@@ -1,48 +1,46 @@
 ﻿/* Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
 for details on configuring this project to bundle and minify static web assets. */
 
-a.navbar-brand {
-  white-space: normal;
-  text-align: center;
-  word-break: break-all;
+/* Configuración de la barra lateral */
+.sidebar {
+    width: 260px;
+    background-color: #0f1628; /* Azul oscuro basado en la imagen */
 }
 
-a {
-  color: #0077cc;
+    /* Enlaces de navegación del menú */
+    .sidebar .nav-link {
+        padding: 0.65rem 1.25rem;
+        border-radius: 8px;
+        transition: background-color 0.2s ease, opacity 0.2s ease;
+        font-weight: 400;
+    }
+
+        .sidebar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            opacity: 1 !important;
+        }
+
+    /* Estilo para la vista actual activa (Inicio) */
+    .sidebar .active-link {
+        background-color: #1e293b;
+        box-shadow: inset 4px 0 0 #f97316; /* Borde naranja a la izquierda */
+        opacity: 1 !important;
+        border-radius: 8px;
+    }
+
+/* Caja de perfil de usuario al fondo */
+.user-profile-box {
+    background-color: #1e293b;
 }
 
-.btn-primary {
-  color: #fff;
-  background-color: #1b6ec2;
-  border-color: #1861ac;
-}
+    .user-profile-box form button:hover {
+        opacity: 1 !important;
+        text-decoration: underline !important;
+    }
 
-.nav-pills .nav-link.active, .nav-pills .show > .nav-link {
-  color: #fff;
-  background-color: #1b6ec2;
-  border-color: #1861ac;
-}
-
-.border-top {
-  border-top: 1px solid #e5e5e5;
-}
-.border-bottom {
-  border-bottom: 1px solid #e5e5e5;
-}
-
-.box-shadow {
-  box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05);
-}
-
-button.accept-policy {
-  font-size: 1rem;
-  line-height: inherit;
-}
-
-.footer {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  white-space: nowrap;
-  line-height: 60px;
+/* Área de contenido para contrastar con el menú */
+.main-content {
+    background-color: #f8f9fa; /* Fondo gris muy claro para el resto de la app */
+    overflow-y: auto;
+    height: 100vh;
 }

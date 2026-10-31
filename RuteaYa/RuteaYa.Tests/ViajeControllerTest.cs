@@ -89,7 +89,7 @@ namespace RuteaYa.Tests
             ConfigurarRespuestaHttp(respuestaHttp);
 
             // Act
-            var resultado = await _controller.Detalles(1);
+            var resultado = await _controller.Detalle(1);
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(resultado);
@@ -105,7 +105,7 @@ namespace RuteaYa.Tests
             ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NotFound));
 
             // Act
-            var resultado = await _controller.Detalles(999);
+            var resultado = await _controller.Detalle(999);
 
             // Assert
             var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
