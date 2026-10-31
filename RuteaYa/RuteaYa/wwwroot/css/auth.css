@@ -79,6 +79,7 @@ body {
     align-items: center;
     justify-content: center;
     padding: 32px;
+    background: #FFFFFF;
 }
 
 .auth-form {
@@ -191,6 +192,11 @@ body {
         color: var(--success-text);
     }
 
+    .message ul {
+        margin: 0;
+        padding-left: 18px;
+    }
+
     .message.error {
         background: #FDEEEE;
         color: var(--error);
@@ -220,6 +226,7 @@ body {
     }
 }
 
+/* Modo oscuro deshabilitado: las pantallas de auth usan fondo blanco fijo.
 @media (prefers-color-scheme: dark) {
     :root {
         --bg: #0B1222;
@@ -232,3 +239,4 @@ body {
         --success-text: #5FD3A0;
     }
 }
+*/

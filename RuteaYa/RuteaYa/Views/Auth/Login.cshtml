@@ -1,68 +1,71 @@
-﻿
-@{
+﻿@{
     ViewData["Title"] = "Iniciar sesión";
-    /* Se deberia implementar un layout personalizado para login */
+    Layout = "_AuthLayout";
 }
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-5">
-            <div class="card shadow p-4">
+<div class="auth">
+    <aside class="auth-panel">
+        <div class="brand">RuteaYa</div>
 
-                <h2 class="text-center mb-4">
-                    Iniciar sesión
-                </h2>
-
-                <form asp-controller="Auth"
-                      asp-action="Login"
-                      method="post">
-
-                    @Html.AntiForgeryToken()
-
-                    <div asp-validation-summary="ModelOnly"
-                         class="text-danger mb-3">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">
-                            Correo electrónico
-                        </label>
-
-                        <input name="email"
-                               type="email"
-                               class="form-control"
-                               placeholder="usuario@correo.com"
-                               required />
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">
-                            Contraseña
-                        </label>
-
-                        <input name="password"
-                               type="password"
-                               class="form-control"
-                               placeholder="Tu contraseña"
-                               required />
-                    </div>
-
-                    <button type="submit"
-                            class="btn btn-primary w-100">
-                        Ingresar
-                    </button>
-             
-                </form>
-
-                <div class="text-center mt-3">
-                    ¿No tenés cuenta?
-                    <a asp-controller="Auth"
-                       asp-action="Register">
-                        Registrate
-                    </a>
-                </div>
-
-            </div>
+        <div class="panel-message">
+            <h1>Tu ruta, tus paquetes, un solo lugar.</h1>
+            <p>Ingresá para gestionar tus viajes, envíos y oportunidades.</p>
         </div>
-    </div>
+
+        <p class="panel-footer">Compartí el camino y hacé rendir cada viaje.</p>
+    </aside>
+
+    <main class="auth-content">
+        <form class="auth-form"
+              asp-controller="Auth"
+              asp-action="Login"
+              method="post">
+
+            @Html.AntiForgeryToken()
+
+            <h2>Iniciar sesión</h2>
+            <p class="subtitle">Accedé a tu cuenta de RuteaYa.</p>
+
+            @if (TempData["RegisterSuccess"] is string mensajeExito)
+            {
+                <div class="message info">@mensajeExito</div>
+            }
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="message error">
+                    <div asp-validation-summary="ModelOnly"></div>
+                </div>
+            }
+
+            <div class="field">
+                <label for="email">Correo electrónico</label>
+
+                <input id="email"
+                       name="email"
+                       type="email"
+                       autocomplete="email"
+                       placeholder="usuario@correo.com"
+                       required />
+            </div>
+
+            <div class="field">
+                <label for="password">Contraseña</label>
+
+                <input id="password"
+                       name="password"
+                       type="password"
+                       autocomplete="current-password"
+                       placeholder="Tu contraseña"
+                       required />
+            </div>
+
+            <button type="submit" class="btn">Ingresar</button>
+
+            <p class="auth-switch">
+                ¿No tenés cuenta?
+                <a asp-controller="Auth" asp-action="Register">Registrate</a>
+            </p>
+        </form>
+    </main>
 </div>

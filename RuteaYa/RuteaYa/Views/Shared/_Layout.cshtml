@@ -48,7 +48,7 @@
             {
                 <div class="mt-auto user-profile-box p-3 rounded">
                     <!-- Cambia esto por @User.Identity.Name si tienes el nombre en los claims -->
-                    <div class="fw-bold">Juan Pérez</div>
+                    <div class="fw-bold"> @Model.NombreUsuario</div>
                     <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0 p-0 mt-1">
                         @Html.AntiForgeryToken()
                         <button type="submit" class="btn btn-outline-danger btn-sm w-100 mt-2 fw-semibold">
