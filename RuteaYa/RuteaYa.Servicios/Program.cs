@@ -24,6 +24,7 @@ builder.Services.AddScoped<UsuarioService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEnvioService, EnvioService>();
 builder.Services.AddScoped<IViajeService, ViajeService>();
+builder.Services.AddScoped<IHomeService, HomeService>();
 
 // Configuración JWT
 var jwtKey = builder.Configuration["Jwt:Key"]
