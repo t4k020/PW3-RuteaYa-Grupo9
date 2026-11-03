@@ -1,0 +1,81 @@
+@model RuteaYa.Entidades.Envio
+
+@{
+    ViewData["Title"] = "Nuevo envío";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Nuevo envío</h2>
+            <p class="text-muted mb-0">Completá los datos del paquete.</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-3">Volver</a>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4">
+        <form asp-action="Crear" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <input asp-for="UsuarioId" type="hidden" />
+            <input asp-for="Estado" type="hidden" value="@((byte)RuteaYa.Entidades.EstadoEnvio.BuscandoConductor)" />
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="OrigenDir" class="form-label"></label>
+                    <input asp-for="OrigenDir" class="form-control" />
+                    <span asp-validation-for="OrigenDir" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="DestinoDir" class="form-label"></label>
+                    <input asp-for="DestinoDir" class="form-control" />
+                    <span asp-validation-for="DestinoDir" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="FechaLimite" class="form-label"></label>
+                    <input asp-for="FechaLimite" class="form-control" type="date" />
+                    <span asp-validation-for="FechaLimite" class="text-danger"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="PesoKg" class="form-label"></label>
+                    <input asp-for="PesoKg" class="form-control" type="number" min="0.1" step="0.01" />
+                    <span asp-validation-for="PesoKg" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Monto" class="form-label"></label>
+                    <input asp-for="Monto" class="form-control" type="number" min="0.01" step="0.01" />
+                    <span asp-validation-for="Monto" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-4">
+                    <label asp-for="Tamano" class="form-label"></label>
+                    <select asp-for="Tamano" class="form-select">
+                        <option value="1">Pequeño</option>
+                        <option value="2">Mediano</option>
+                        <option value="3">Grande</option>
+                    </select>
+                    <span asp-validation-for="Tamano" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-8">
+                    <label asp-for="Descripcion" class="form-label"></label>
+                    <textarea asp-for="Descripcion" class="form-control" rows="3"></textarea>
+                    <span asp-validation-for="Descripcion" class="text-danger"></span>
+                </div>
+                
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-dark rounded-pill px-4">Publicar envío</button>
+                <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4 ms-2">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
