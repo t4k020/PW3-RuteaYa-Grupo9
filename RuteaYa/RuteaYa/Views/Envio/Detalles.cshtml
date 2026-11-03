@@ -1,0 +1,30 @@
+@model RuteaYa.Entidades.Envio
+
+@{
+    ViewData["Title"] = "Detalle del envío";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Detalle del envío</h2>
+            <p class="text-muted mb-0">@Model.OrigenDir &rarr; @Model.DestinoDir</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-3">Volver</a>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4">
+        <dl class="row mb-0">
+            <dt class="col-sm-4">Estado</dt>
+            <dd class="col-sm-8">@((RuteaYa.Entidades.EstadoEnvio)Model.Estado)</dd>
+            <dt class="col-sm-4">Fecha límite</dt>
+            <dd class="col-sm-8">@Model.FechaLimite.ToString("dd/MM/yyyy")</dd>
+            <dt class="col-sm-4">Peso</dt>
+            <dd class="col-sm-8">@Model.PesoKg.ToString("0.##") kg</dd>
+            <dt class="col-sm-4">Monto</dt>
+            <dd class="col-sm-8">$@Model.Monto.ToString("N2")</dd>
+            <dt class="col-sm-4">Descripción</dt>
+            <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Descripcion) ? "Sin descripción" : Model.Descripcion)</dd>
+        </dl>
+    </div>
+</div>

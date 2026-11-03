@@ -102,7 +102,7 @@ namespace RuteaYa.Tests
             using (var context = new RuteaYaDbContext(options))
             {
                 var service = new ViajeService(context);
-                var resultado = await service.ActualizarViajeAsync(1, viajeModificado);
+                var resultado = await service.ActualizarViajeAsync(1, viajeModificado, 1);
                 
                 //assert
                 Assert.True(resultado);
@@ -125,7 +125,7 @@ namespace RuteaYa.Tests
             using (var context = new RuteaYaDbContext(CrearOpcionesMemoria()))
             {
                 var service = new ViajeService(context);
-                var resultado = await service.ActualizarViajeAsync(999, viajeModificado);
+                var resultado = await service.ActualizarViajeAsync(999, viajeModificado, 1);
                 //assert
                 Assert.False(resultado);
             }
@@ -147,7 +147,7 @@ namespace RuteaYa.Tests
             using (var context = new RuteaYaDbContext(options))
             {
                 var service = new ViajeService(context);
-                var resultado = await service.EliminarViajeAsync(1);
+                var resultado = await service.EliminarViajeAsync(1, 1);
 
                 // Assert
                 Assert.True(resultado);
@@ -166,7 +166,7 @@ namespace RuteaYa.Tests
                 var service = new ViajeService(context);
 
                 // Act
-                var resultado = await service.EliminarViajeAsync(999);
+                var resultado = await service.EliminarViajeAsync(999, 1);
 
                 // Assert
                 Assert.False(resultado);
