@@ -4,6 +4,7 @@ using Moq;
 using RuteaYa.Entidades;
 using RuteaYa.Servicios;
 using RuteaYa.Servicios.Controllers;
+using RuteaYa.Servicios.Dtos;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
@@ -29,6 +30,8 @@ namespace RuteaYa.Tests
         [Fact]
         public async Task ObtenerPorId_DeberiaRetornarUnauthorized_CuandoUsuarioNoEstaAutenticado()
         {
+            ConfigurarUsuarioNoAutenticado();
+
             // Act
             var resultado = await _controller.ObtenerPorId(1);
 
@@ -41,10 +44,10 @@ namespace RuteaYa.Tests
         {
             // Arrange
             ConfigurarUsuarioAutenticado();
-            var viajePrueba = CrearViajeValido(1);
+            var viajePrueba = CrearDetalleValido(1);
 
             _viajeServiceMock
-                .Setup(s => s.ObtenerPorIdAsync(1))
+                .Setup(s => s.ObtenerDetallePorIdAsync(1, 1))
                 .ReturnsAsync(viajePrueba);
 
             // Act
@@ -52,7 +55,7 @@ namespace RuteaYa.Tests
 
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(resultado);
-            var viajeRetornado = Assert.IsType<Viaje>(okResult.Value);
+            var viajeRetornado = Assert.IsType<ViajeDetalleDto>(okResult.Value);
             Assert.Equal(1, viajeRetornado.Id);
             Assert.Equal("Av. Corrientes 1234, CABA", viajeRetornado.OrigenDir);
         }
@@ -64,8 +67,8 @@ namespace RuteaYa.Tests
             ConfigurarUsuarioAutenticado();
 
             _viajeServiceMock
-                .Setup(s => s.ObtenerPorIdAsync(999))
-                .ReturnsAsync((Viaje?)null);
+                .Setup(s => s.ObtenerDetallePorIdAsync(999, 1))
+                .ReturnsAsync((ViajeDetalleDto?)null);
 
             // Act
             var resultado = await _controller.ObtenerPorId(999);
@@ -140,7 +143,7 @@ namespace RuteaYa.Tests
             var viajeModificado = CrearViajeValido(1);
 
             _viajeServiceMock
-                .Setup(s => s.ActualizarViajeAsync(1, viajeModificado))
+                .Setup(s => s.ActualizarViajeAsync(1, viajeModificado, 1))
                 .ReturnsAsync(true);
 
             // Act
@@ -158,7 +161,7 @@ namespace RuteaYa.Tests
             var viajeModificado = CrearViajeValido(999);
 
             _viajeServiceMock
-                .Setup(s => s.ActualizarViajeAsync(999, viajeModificado))
+                .Setup(s => s.ActualizarViajeAsync(999, viajeModificado, 1))
                 .ReturnsAsync(false);
 
             // Act
@@ -171,6 +174,8 @@ namespace RuteaYa.Tests
         [Fact]
         public async Task Actualizar_DeberiaRetornarUnauthorized_CuandoUsuarioNoEstaAutenticado()
         {
+            ConfigurarUsuarioNoAutenticado();
+
             // Act
             var resultado = await _controller.Actualizar(1, CrearViajeValido(1));
 
@@ -201,7 +206,7 @@ namespace RuteaYa.Tests
             var viajeModificado = CrearViajeValido(1);
 
             _viajeServiceMock
-                .Setup(s => s.ActualizarViajeAsync(1, It.IsAny<Viaje>()))
+                .Setup(s => s.ActualizarViajeAsync(1, It.IsAny<Viaje>(), 1))
                 .ThrowsAsync(new System.Exception("Error de base de datos"));
 
             // Act
@@ -219,7 +224,7 @@ namespace RuteaYa.Tests
             ConfigurarUsuarioAutenticado();
 
             _viajeServiceMock
-                .Setup(s => s.EliminarViajeAsync(1))
+                .Setup(s => s.EliminarViajeAsync(1, 1))
                 .ReturnsAsync(true);
 
             // Act
@@ -236,7 +241,7 @@ namespace RuteaYa.Tests
             ConfigurarUsuarioAutenticado();
 
             _viajeServiceMock
-                .Setup(s => s.EliminarViajeAsync(999))
+                .Setup(s => s.EliminarViajeAsync(999, 1))
                 .ReturnsAsync(false);
 
             // Act
@@ -249,6 +254,8 @@ namespace RuteaYa.Tests
         [Fact]
         public async Task Eliminar_DeberiaRetornarUnauthorized_CuandoUsuarioNoEstaAutenticado()
         {
+            ConfigurarUsuarioNoAutenticado();
+
             // Act
             var resultado = await _controller.Eliminar(1);
 
@@ -263,7 +270,7 @@ namespace RuteaYa.Tests
             ConfigurarUsuarioAutenticado();
 
             _viajeServiceMock
-                .Setup(s => s.EliminarViajeAsync(1))
+                .Setup(s => s.EliminarViajeAsync(1, 1))
                 .ThrowsAsync(new System.Exception("Error de base de datos"));
 
             // Act
@@ -281,7 +288,7 @@ namespace RuteaYa.Tests
             ConfigurarUsuarioAutenticado();
 
             _viajeServiceMock
-                .Setup(s => s.ObtenerPorIdAsync(It.IsAny<int>()))
+                .Setup(s => s.ObtenerDetallePorIdAsync(It.IsAny<int>(), 1))
                 .ThrowsAsync(new Exception("Error crítico de base de datos"));
 
             // Act
@@ -296,12 +303,40 @@ namespace RuteaYa.Tests
         {
             var user = new ClaimsPrincipal(new ClaimsIdentity(new[]
             {
-                new Claim(ClaimTypes.Name, "UsuarioTest")
+                new Claim(ClaimTypes.NameIdentifier, "1")
             }, "TestAuthentication"));
 
             _controller.ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext { User = user }
+            };
+        }
+
+        private void ConfigurarUsuarioNoAutenticado()
+        {
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity())
+                }
+            };
+        }
+
+        private ViajeDetalleDto CrearDetalleValido(int id = 1)
+        {
+            return new ViajeDetalleDto
+            {
+                Id = id,
+                OrigenDir = "Av. Corrientes 1234, CABA",
+                DestinoDir = "Av. Santa Fe 4321, CABA",
+                HoraSalida = new TimeOnly(8, 0),
+                HoraLlegada = new TimeOnly(10, 0),
+                Activo = true,
+                MaxPaquetes = 5,
+                PesoMaximoKg = 50.0m,
+                DesvioMaxKm = 2.5m,
+                DiasSemana = new List<string>()
             };
         }
 
