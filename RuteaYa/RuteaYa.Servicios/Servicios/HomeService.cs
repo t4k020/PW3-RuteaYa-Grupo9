@@ -93,6 +93,7 @@ public class HomeService : IHomeService
         // Ganancia efectiva: asignaciones ya registradas en viajes del usuario.
         var gananciaEfectiva = await _context.Asignaciones
             .AsNoTracking()
+            .Include(a => a.Viaje)
             .Where(a =>
                 a.Viaje!.UsuarioId == usuarioId &&
                 a.FechaViaje >= inicioMes &&
