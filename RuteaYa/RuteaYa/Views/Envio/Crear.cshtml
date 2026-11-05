@@ -1,4 +1,5 @@
-@model RuteaYa.Entidades.Envio
+@* El formulario usa un DTO de entrada y no expone UsuarioId ni Estado al navegador. *@
+@model RuteaYa.Servicios.Dtos.CrearEnvioDto
 
 @{
     ViewData["Title"] = "Nuevo envío";
@@ -7,19 +8,22 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h2>Nuevo envío</h2>
-            <p class="text-muted mb-0">Completá los datos del paquete.</p>
+            <span class="badge rounded-pill text-bg-dark mb-2">Publicar paquete</span>
+            <h2 class="fw-bold mb-1">Nuevo envío</h2>
+            <p class="text-muted mb-0">Completá los datos para encontrar un conductor.</p>
         </div>
         <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-3">Volver</a>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4 p-4">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="bg-light border-bottom px-4 py-3">
+            <h5 class="mb-1">Datos del paquete</h5>
+            <p class="text-muted small mb-0">Los campos marcados son necesarios para publicar el envío.</p>
+        </div>
+        <div class="p-4">
         <form asp-action="Crear" method="post">
             @Html.AntiForgeryToken()
             <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-
-            <input asp-for="UsuarioId" type="hidden" />
-            <input asp-for="Estado" type="hidden" value="@((byte)RuteaYa.Entidades.EstadoEnvio.BuscandoConductor)" />
 
             <div class="row g-3">
                 <div class="col-md-6">
@@ -40,29 +44,41 @@
                 </div>
                 <div class="col-md-4">
                     <label asp-for="PesoKg" class="form-label"></label>
-                    <input asp-for="PesoKg" class="form-control" type="number" min="0.1" step="0.01" />
+                    <div class="input-group">
+                        <input asp-for="PesoKg" class="form-control" type="number" min="0.01" step="0.01" />
+                        <span class="input-group-text">kg</span>
+                    </div>
+                    <div class="form-text">Debe ser mayor que cero.</div>
                     <span asp-validation-for="PesoKg" class="text-danger"></span>
                 </div>
 
                 <div class="col-md-4">
                     <label asp-for="Monto" class="form-label"></label>
-                    <input asp-for="Monto" class="form-control" type="number" min="0.01" step="0.01" />
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input asp-for="Monto" class="form-control" type="number" min="0.01" step="0.01" />
+                    </div>
+                    <div class="form-text">Indicá cuánto ofrecés por el traslado.</div>
                     <span asp-validation-for="Monto" class="text-danger"></span>
                 </div>
 
                 <div class="col-md-4">
                     <label asp-for="Tamano" class="form-label"></label>
                     <select asp-for="Tamano" class="form-select">
+                        <option value="">Seleccioná un tamaño</option>
                         <option value="1">Pequeño</option>
                         <option value="2">Mediano</option>
                         <option value="3">Grande</option>
                     </select>
+                    <div class="form-text">Elegí una opción para continuar.</div>
                     <span asp-validation-for="Tamano" class="text-danger"></span>
                 </div>
 
                 <div class="col-md-8">
                     <label asp-for="Descripcion" class="form-label"></label>
-                    <textarea asp-for="Descripcion" class="form-control" rows="3"></textarea>
+                    <textarea asp-for="Descripcion" class="form-control" rows="3" maxlength="70"
+                              placeholder="Contanos brevemente qué contiene el paquete"></textarea>
+                    <div class="form-text">Máximo 70 caracteres.</div>
                     <span asp-validation-for="Descripcion" class="text-danger"></span>
                 </div>
                 
@@ -73,6 +89,7 @@
                 <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4 ms-2">Cancelar</a>
             </div>
         </form>
+        </div>
     </div>
 </div>
 

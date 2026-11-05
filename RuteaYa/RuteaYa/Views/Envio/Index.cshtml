@@ -1,3 +1,4 @@
+@* La API devuelve únicamente los envíos del usuario autenticado. *@
 @model IEnumerable<RuteaYa.Entidades.Envio>
 
 @{
@@ -50,6 +51,7 @@
                                class="btn btn-outline-secondary btn-sm rounded-pill px-3">
                                 Ver detalle
                             </a>
+                            @* La eliminación vuelve a validarse en la API según el propietario. *@
                             <form asp-action="Eliminar" asp-route-id="@envio.Id" method="post"
                                   onsubmit="return confirm('¿Estás seguro de eliminar este envío?');">
                                 @Html.AntiForgeryToken()

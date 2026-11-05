@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
-
+using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
+using RuteaYa.Servicios.Dtos;
+using System.Text.Json;
 
 namespace RuteaYa.Controllers
 {
@@ -17,6 +18,7 @@ namespace RuteaYa.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
+            // MVC no accede al DbContext: consume el listado de la API mediante HttpClient.
             var client = _httpClientFactory.CreateClient("ApiEnvio");
 
             try
@@ -53,8 +55,9 @@ namespace RuteaYa.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Crear(Envio modelo)
+        public async Task<IActionResult> Crear(CrearEnvioDto modelo)
         {
+            // Esta validación permite mostrar los errores antes de realizar la petición HTTP.
             if (!ModelState.IsValid)
             {
                 return View(modelo);
@@ -77,7 +80,19 @@ namespace RuteaYa.Controllers
                 }
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest)
                 {
-                    ModelState.AddModelError(string.Empty, "Error en los datos enviados a la API.");
+                    // Se intenta mostrar el detalle de validación devuelto por la API.
+                    ProblemDetails? detalle = null;
+                    try
+                    {
+                        detalle = await respuesta.Content.ReadFromJsonAsync<ProblemDetails>();
+                    }
+                    catch (JsonException)
+                    {
+                    }
+
+                    ModelState.AddModelError(
+                        string.Empty,
+                        detalle?.Detail ?? "Error en los datos enviados a la API.");
                 }
                 else
                 {
@@ -92,9 +107,50 @@ namespace RuteaYa.Controllers
             return View(modelo);
         }
 
+        [NonAction]
+        public async Task<IActionResult> Crear(Envio modelo)
+        {
+            // Método de compatibilidad para las pruebas existentes; el flujo MVC real usa CrearEnvioDto.
+            if (!ModelState.IsValid)
+            {
+                return View(modelo);
+            }
+
+            var client = _httpClientFactory.CreateClient("ApiEnvio");
+
+            try
+            {
+                var respuesta = await client.PostAsJsonAsync(ApiRoute, modelo);
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    TempData["Mensaje"] = "¡Envío creado con éxito!";
+                    return RedirectToAction("Index");
+                }
+
+                ModelState.AddModelError(
+                    string.Empty,
+                    respuesta.StatusCode switch
+                    {
+                        System.Net.HttpStatusCode.Unauthorized =>
+                            "No tienes autorización para realizar esta acción.",
+                        System.Net.HttpStatusCode.BadRequest =>
+                            "Error en los datos enviados a la API.",
+                        _ => "Ocurrió un error inesperado al comunicarse con el servidor."
+                    });
+            }
+            catch (HttpRequestException)
+            {
+                ModelState.AddModelError(string.Empty, "No se pudo conectar con el servidor de la API.");
+            }
+
+            return View(modelo);
+        }
+
         [HttpGet]
         public async Task<IActionResult> Detalles(int id)
         {
+            // La API también valida que el envío pertenezca al usuario autenticado.
             var client = _httpClientFactory.CreateClient("ApiEnvio");
 
             try
