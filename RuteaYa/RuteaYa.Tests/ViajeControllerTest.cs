@@ -7,6 +7,7 @@ using Moq.Protected;
 using RuteaYa.Controllers;
 using RuteaYa.Entidades;
 using RuteaYa.Servicios;
+using RuteaYa.Servicios.Dtos;
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
@@ -81,7 +82,19 @@ namespace RuteaYa.Tests
         public async Task Detalles_DeberiaRetornarVistaConViaje_CuandoLaApiRespondeOk()
         {
             // Arrange
-            var viajePrueba = CrearViajeValido(1);
+            var viajePrueba = new ViajeDetalleDto
+            {
+                Id = 1,
+                OrigenDir = "Av. Corrientes 1234, CABA",
+                DestinoDir = "Av. Santa Fe 4321, CABA",
+                HoraSalida = new TimeOnly(8, 0),
+                HoraLlegada = new TimeOnly(10, 0),
+                MaxPaquetes = 5,
+                PesoMaximoKg = 50.0m,
+                DesvioMaxKm = 2.5m,
+                Activo = true,
+                DiasSemana = new List<string> { "Lunes", "Miércoles", "Viernes" }
+            };
             var respuestaHttp = new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = JsonContent.Create(viajePrueba)
@@ -93,7 +106,7 @@ namespace RuteaYa.Tests
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(resultado);
-            var viajeRetornado = Assert.IsType<Viaje>(viewResult.Model);
+            var viajeRetornado = Assert.IsType<ViajeDetalleDto>(viewResult.Model);
             Assert.Equal(1, viajeRetornado.Id);
             Assert.Equal("Av. Corrientes 1234, CABA", viajeRetornado.OrigenDir);
         }

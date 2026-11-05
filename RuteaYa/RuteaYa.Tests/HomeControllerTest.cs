@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Moq;
 using RuteaYa.Controllers;
 using RuteaYa.Servicios.Dtos;
@@ -47,7 +48,8 @@ public class HomeControllerTest
             ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext()
-            }
+            },
+            TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
         };
 
         var resultado = await controller.Index(CancellationToken.None);
