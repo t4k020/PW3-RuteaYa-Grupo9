@@ -107,45 +107,7 @@ namespace RuteaYa.Controllers
             return View(modelo);
         }
 
-        [NonAction]
-        public async Task<IActionResult> Crear(Envio modelo)
-        {
-            // Método de compatibilidad para las pruebas existentes; el flujo MVC real usa CrearEnvioDto.
-            if (!ModelState.IsValid)
-            {
-                return View(modelo);
-            }
-
-            var client = _httpClientFactory.CreateClient("ApiEnvio");
-
-            try
-            {
-                var respuesta = await client.PostAsJsonAsync(ApiRoute, modelo);
-
-                if (respuesta.IsSuccessStatusCode)
-                {
-                    TempData["Mensaje"] = "¡Envío creado con éxito!";
-                    return RedirectToAction("Index");
-                }
-
-                ModelState.AddModelError(
-                    string.Empty,
-                    respuesta.StatusCode switch
-                    {
-                        System.Net.HttpStatusCode.Unauthorized =>
-                            "No tienes autorización para realizar esta acción.",
-                        System.Net.HttpStatusCode.BadRequest =>
-                            "Error en los datos enviados a la API.",
-                        _ => "Ocurrió un error inesperado al comunicarse con el servidor."
-                    });
-            }
-            catch (HttpRequestException)
-            {
-                ModelState.AddModelError(string.Empty, "No se pudo conectar con el servidor de la API.");
-            }
-
-            return View(modelo);
-        }
+        
 
         [HttpGet]
         public async Task<IActionResult> Detalles(int id)
