@@ -1,14 +1,17 @@
-@model IEnumerable<RuteaYa.Entidades.Envio>
+@using RuteaYa.Entidades
+@using RuteaYa.Servicios.Dtos
+@model IEnumerable<EnvioDto>
 
 @{
     ViewData["Title"] = "Mis envíos";
+    var estadoSeleccionado = Context.Request.Query["estado"].ToString();
 }
 
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
             <h2>Mis envíos</h2>
-            <p class="text-muted mb-0">Paquetes que publicaste para transportar.</p>
+            <p class="text-muted mb-0">Seguí el estado de lo que enviaste.</p>
         </div>
         <a asp-action="Crear" class="btn btn-dark">Nuevo envío</a>
     </div>
@@ -22,11 +25,55 @@
         <div class="alert alert-danger">@TempData["Error"]</div>
     }
 
-    @if (Model != null && Model.Any())
+    <div class="card border-0 shadow-sm rounded-4 p-3 mb-4">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="fw-semibold me-2">Filtrar por estado:</span>
+            <a asp-action="Index"
+               class="btn btn-sm rounded-pill @(string.IsNullOrEmpty(estadoSeleccionado) ? "btn-dark" : "btn-outline-secondary")">
+                Todos
+            </a>
+            @foreach (var estado in Enum.GetValues<EstadoEnvio>())
+            {
+                var nombreEstado = estado switch
+                {
+                    EstadoEnvio.BuscandoConductor => "Buscando conductor",
+                    EstadoEnvio.ConductorAsignado => "Conductor asignado",
+                    EstadoEnvio.Retirado => "Retirado",
+                    EstadoEnvio.EnCamino => "En camino",
+                    EstadoEnvio.Entregado => "Entregado",
+                    EstadoEnvio.Cancelado => "Cancelado",
+                    _ => "Estado desconocido"
+                };
+                var seleccionado = string.Equals(
+                    estadoSeleccionado,
+                    estado.ToString(),
+                    StringComparison.OrdinalIgnoreCase);
+                <a asp-action="Index"
+                   asp-route-estado="@estado"
+                   class="btn btn-sm rounded-pill @(seleccionado ? "btn-dark" : "btn-outline-secondary")">
+                    @nombreEstado
+                </a>
+            }
+        </div>
+    </div>
+
+    @if (Model.Any())
     {
         <div class="d-flex flex-column gap-3">
             @foreach (var envio in Model)
             {
+                var estado = (EstadoEnvio)envio.Estado;
+                var claseEstado = estado switch
+                {
+                    EstadoEnvio.BuscandoConductor => "bg-primary-subtle text-primary border-primary-subtle",
+                    EstadoEnvio.ConductorAsignado => "bg-warning-subtle text-warning-emphasis border-warning-subtle",
+                    EstadoEnvio.Retirado => "bg-info-subtle text-info-emphasis border-info-subtle",
+                    EstadoEnvio.EnCamino => "bg-info-subtle text-info-emphasis border-info-subtle",
+                    EstadoEnvio.Entregado => "bg-success-subtle text-success border-success-subtle",
+                    EstadoEnvio.Cancelado => "bg-danger-subtle text-danger border-danger-subtle",
+                    _ => "bg-secondary-subtle text-secondary border-secondary-subtle"
+                };
+
                 <div class="card shadow-sm border rounded-4 p-3">
                     <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
                         <div>
@@ -36,27 +83,40 @@
                             <p class="text-muted small mb-0">
                                 Límite: @envio.FechaLimite.ToString("dd/MM/yyyy")
                                 &middot;
-                                @envio.PesoKg.ToString("0.##") kg
+                                @envio.Descripcion
                                 &middot;
                                 $@envio.Monto.ToString("N2")
                             </p>
                         </div>
 
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="badge bg-secondary-subtle text-secondary border px-3 py-2 rounded-pill">
-                                @((RuteaYa.Entidades.EstadoEnvio)envio.Estado)
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="badge @claseEstado border px-3 py-2 rounded-pill">
+                                @envio.EstadoNombre
                             </span>
                             <a asp-action="Detalles" asp-route-id="@envio.Id"
                                class="btn btn-outline-secondary btn-sm rounded-pill px-3">
                                 Ver detalle
                             </a>
-                            <form asp-action="Eliminar" asp-route-id="@envio.Id" method="post"
-                                  onsubmit="return confirm('¿Estás seguro de eliminar este envío?');">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
-                                    Eliminar
-                                </button>
-                            </form>
+                            @if (envio.PuedeCancelar)
+                            {
+                                <form asp-action="Cancelar" asp-route-id="@envio.Id" method="post"
+                                      onsubmit="return confirm('¿Estás seguro de cancelar este envío?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                                        Cancelar
+                                    </button>
+                                </form>
+                            }
+                            @if (envio.PuedeEliminar)
+                            {
+                                <form asp-action="Eliminar" asp-route-id="@envio.Id" method="post"
+                                      onsubmit="return confirm('¿Estás seguro de eliminar este envío de tus envíos?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                                        Eliminar de mis envíos
+                                    </button>
+                                </form>
+                            }
                         </div>
                     </div>
                 </div>
@@ -66,7 +126,7 @@
     else
     {
         <div class="card shadow-sm border rounded-4 p-5 text-center text-muted">
-            <p class="mb-3">Todavía no tenés envíos registrados.</p>
+            <p class="mb-3">No hay envíos que coincidan con el filtro seleccionado.</p>
             <a asp-action="Crear" class="btn btn-dark align-self-center">Crear envío</a>
         </div>
     }

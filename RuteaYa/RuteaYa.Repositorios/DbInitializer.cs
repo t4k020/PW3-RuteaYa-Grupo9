@@ -13,6 +13,9 @@ namespace RuteaYa.Repositorios
             // Asegura que la base de datos esté creada
             context.Database.EnsureCreated();
 
+            // Normaliza envíos creados con el estado Pendiente, que ya no existe.
+            NormalizarEnviosPendientes(context);
+
             //  evita duplicados
             if (context.Usuarios.Any())
             {
@@ -148,7 +151,7 @@ namespace RuteaYa.Repositorios
                     Tamano = 1, // Pequeño
                     Descripcion = "Documentación importante",
                     Monto = 1500.00m,
-                    Estado = 1, // Pendiente / Creado
+                    Estado = (byte)EstadoEnvio.BuscandoConductor,
                     CreadoEn = DateTime.Now
                 },
                 new Envio
@@ -165,7 +168,7 @@ namespace RuteaYa.Repositorios
                     Tamano = 2, // Mediano
                     Descripcion = "Caja de repuestos",
                     Monto = 3500.00m,
-                    Estado = 1,
+                    Estado = (byte)EstadoEnvio.BuscandoConductor,
                     CreadoEn = DateTime.Now
                 },
                 new Envio
@@ -182,8 +185,76 @@ namespace RuteaYa.Repositorios
                     Tamano = 1,
                     Descripcion = "Sobre cerrado",
                     Monto = 1200.00m,
-                    Estado = 2, // En proceso
+                    Estado = (byte)EstadoEnvio.ConductorAsignado,
                     CreadoEn = DateTime.Now
+                },
+                new Envio
+                {
+                    UsuarioId = usuarios[1].Id, // Carlos envía
+                    OrigenDir = "Av. Belgrano 900",
+                    OrigenLat = -34.611000m,
+                    OrigenLng = -58.377000m,
+                    DestinoDir = "Av. Independencia 1800",
+                    DestinoLat = -34.620000m,
+                    DestinoLng = -58.383000m,
+                    FechaLimite = DateTime.Now.AddDays(4),
+                    PesoKg = 3.00m,
+                    Tamano = 1,
+                    Descripcion = "Paquete asignado a conductor",
+                    Monto = 2200.00m,
+                    Estado = (byte)EstadoEnvio.Retirado,
+                    CreadoEn = DateTime.Now
+                },
+                new Envio
+                {
+                    UsuarioId = usuarios[1].Id, // Carlos envía
+                    OrigenDir = "Av. Córdoba 1200",
+                    OrigenLat = -34.598000m,
+                    OrigenLng = -58.398000m,
+                    DestinoDir = "Av. San Juan 2400",
+                    DestinoLat = -34.627000m,
+                    DestinoLng = -58.390000m,
+                    FechaLimite = DateTime.Now.AddDays(-1),
+                    PesoKg = 1.50m,
+                    Tamano = 1,
+                    Descripcion = "Paquete entregado",
+                    Monto = 1800.00m,
+                    Estado = (byte)EstadoEnvio.Entregado,
+                    CreadoEn = DateTime.Now.AddDays(-3)
+                },
+                new Envio
+                {
+                    UsuarioId = usuarios[2].Id, // Lucía envía
+                    OrigenDir = "Av. Las Heras 1500",
+                    OrigenLat = -34.588000m,
+                    OrigenLng = -58.402000m,
+                    DestinoDir = "Av. Scalabrini Ortiz 2200",
+                    DestinoLat = -34.583000m,
+                    DestinoLng = -58.426000m,
+                    FechaLimite = DateTime.Now.AddDays(2),
+                    PesoKg = 4.00m,
+                    Tamano = 2,
+                    Descripcion = "Paquete cancelado",
+                    Monto = 2800.00m,
+                    Estado = (byte)EstadoEnvio.Cancelado,
+                    CreadoEn = DateTime.Now.AddDays(-1)
+                },
+                new Envio
+                {
+                    UsuarioId = usuarios[0].Id, // Admin envía
+                    OrigenDir = "Av. Callao 600",
+                    OrigenLat = -34.603000m,
+                    OrigenLng = -58.395000m,
+                    DestinoDir = "Av. Belgrano 1500",
+                    DestinoLat = -34.613000m,
+                    DestinoLng = -58.389000m,
+                    FechaLimite = DateTime.Now.AddDays(1),
+                    PesoKg = 2.00m,
+                    Tamano = 1,
+                    Descripcion = "Paquete en camino",
+                    Monto = 2100.00m,
+                    Estado = (byte)EstadoEnvio.EnCamino,
+                    CreadoEn = DateTime.Now.AddDays(-1)
                 }
             };
 
@@ -193,9 +264,13 @@ namespace RuteaYa.Repositorios
 
             var historiales = new List<EnvioEstadoHistorial>
             {
-                new EnvioEstadoHistorial { EnvioId = envios[0].Id, EstadoAnterior = 0, EstadoNuevo = 1, Fecha = DateTime.Now },
-                new EnvioEstadoHistorial { EnvioId = envios[1].Id, EstadoAnterior = 0, EstadoNuevo = 1, Fecha = DateTime.Now },
-                new EnvioEstadoHistorial { EnvioId = envios[2].Id, EstadoAnterior = 1, EstadoNuevo = 2, Fecha = DateTime.Now }
+                new EnvioEstadoHistorial { EnvioId = envios[0].Id, EstadoAnterior = (byte)EstadoEnvio.BuscandoConductor, EstadoNuevo = (byte)EstadoEnvio.BuscandoConductor, Fecha = DateTime.Now },
+                new EnvioEstadoHistorial { EnvioId = envios[1].Id, EstadoAnterior = (byte)EstadoEnvio.BuscandoConductor, EstadoNuevo = (byte)EstadoEnvio.BuscandoConductor, Fecha = DateTime.Now },
+                new EnvioEstadoHistorial { EnvioId = envios[2].Id, EstadoAnterior = 1, EstadoNuevo = 2, Fecha = DateTime.Now },
+                new EnvioEstadoHistorial { EnvioId = envios[3].Id, EstadoAnterior = (byte)EstadoEnvio.ConductorAsignado, EstadoNuevo = (byte)EstadoEnvio.Retirado, Fecha = DateTime.Now },
+                new EnvioEstadoHistorial { EnvioId = envios[4].Id, EstadoAnterior = (byte)EstadoEnvio.EnCamino, EstadoNuevo = (byte)EstadoEnvio.Entregado, Fecha = DateTime.Now },
+                new EnvioEstadoHistorial { EnvioId = envios[5].Id, EstadoAnterior = (byte)EstadoEnvio.BuscandoConductor, EstadoNuevo = (byte)EstadoEnvio.Cancelado, Fecha = DateTime.Now },
+                new EnvioEstadoHistorial { EnvioId = envios[6].Id, EstadoAnterior = (byte)EstadoEnvio.Retirado, EstadoNuevo = (byte)EstadoEnvio.EnCamino, Fecha = DateTime.Now }
             };
 
             context.EnvioEstadoHistoriales.AddRange(historiales);
@@ -205,32 +280,42 @@ namespace RuteaYa.Repositorios
             {
                 new Asignacion
                 {
-                    EnvioId = envios[0].Id,
-                    ViajeId = viajes[0].Id,
-                    FechaViaje = DateTime.Now.AddDays(1),
-                    DesvioKm = 1.20m,
-                    TiempoExtraMin = 10,
-                    Ganancia = 500.00m,
-                    AsignadoEn = DateTime.Now
-                },
-                new Asignacion
-                {
-                    EnvioId = envios[1].Id,
-                    ViajeId = viajes[1].Id,
-                    FechaViaje = DateTime.Now.AddDays(2),
-                    DesvioKm = 2.50m,
-                    TiempoExtraMin = 15,
-                    Ganancia = 900.00m,
-                    AsignadoEn = DateTime.Now
-                },
-                new Asignacion
-                {
                     EnvioId = envios[2].Id,
                     ViajeId = viajes[2].Id,
                     FechaViaje = DateTime.Now.AddDays(1),
                     DesvioKm = 0.50m,
                     TiempoExtraMin = 5,
                     Ganancia = 400.00m,
+                    AsignadoEn = DateTime.Now
+                },
+                new Asignacion
+                {
+                    EnvioId = envios[3].Id,
+                    ViajeId = viajes[0].Id,
+                    FechaViaje = DateTime.Now.AddDays(3),
+                    DesvioKm = 1.00m,
+                    TiempoExtraMin = 8,
+                    Ganancia = 700.00m,
+                    AsignadoEn = DateTime.Now
+                },
+                new Asignacion
+                {
+                    EnvioId = envios[4].Id,
+                    ViajeId = viajes[0].Id,
+                    FechaViaje = DateTime.Now.AddDays(-2),
+                    DesvioKm = 0.80m,
+                    TiempoExtraMin = 6,
+                    Ganancia = 600.00m,
+                    AsignadoEn = DateTime.Now.AddDays(-2)
+                },
+                new Asignacion
+                {
+                    EnvioId = envios[6].Id,
+                    ViajeId = viajes[1].Id,
+                    FechaViaje = DateTime.Now.AddDays(1),
+                    DesvioKm = 1.50m,
+                    TiempoExtraMin = 12,
+                    Ganancia = 650.00m,
                     AsignadoEn = DateTime.Now
                 }
             };
@@ -240,6 +325,42 @@ namespace RuteaYa.Repositorios
 
             context.SaveChanges();
         }
+
+        private static void NormalizarEnviosPendientes(RuteaYaDbContext context)
+        {
+            const byte estadoPendiente = 0;
+            var estadoBuscandoConductor = (byte)EstadoEnvio.BuscandoConductor;
+
+            var envios = context.Envios
+                .Where(e => e.Estado == estadoPendiente)
+                .ToList();
+
+            foreach (var envio in envios)
+            {
+                envio.Estado = estadoBuscandoConductor;
+            }
+
+            var historiales = context.EnvioEstadoHistoriales
+                .Where(h => h.EstadoAnterior == estadoPendiente || h.EstadoNuevo == estadoPendiente)
+                .ToList();
+
+            foreach (var historial in historiales)
+            {
+                if (historial.EstadoAnterior == estadoPendiente)
+                {
+                    historial.EstadoAnterior = estadoBuscandoConductor;
+                }
+
+                if (historial.EstadoNuevo == estadoPendiente)
+                {
+                    historial.EstadoNuevo = estadoBuscandoConductor;
+                }
+            }
+
+            if (envios.Count > 0 || historiales.Count > 0)
+            {
+                context.SaveChanges();
+            }
+        }
     }
 }
-
