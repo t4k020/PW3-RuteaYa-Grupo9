@@ -96,8 +96,11 @@ namespace RuteaYa.Tests
         {
             ConfigurarUsuarioAutenticado();
             _envioServiceMock
-                .Setup(s => s.ObtenerPorIdAsync(1, 1))
-                .ReturnsAsync(new Envio
+                .Setup(s => s.ObtenerDetalleDtoAsync(
+                    1,
+                    1,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new EnvioDto
                 {
                     Id = 1,
                     OrigenDir = "Mitre 1000",
@@ -117,8 +120,11 @@ namespace RuteaYa.Tests
         {
             ConfigurarUsuarioAutenticado();
             _envioServiceMock
-                .Setup(s => s.ObtenerPorIdAsync(999, 1))
-                .ReturnsAsync((Envio?)null);
+                .Setup(s => s.ObtenerDetalleDtoAsync(
+                    999,
+                    1,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync((EnvioDto?)null);
 
             var resultado = await _controller.ObtenerPorIdApi(999);
 
@@ -130,7 +136,10 @@ namespace RuteaYa.Tests
         {
             ConfigurarUsuarioAutenticado();
             _envioServiceMock
-                .Setup(s => s.ObtenerPorIdAsync(It.IsAny<int>(), 1))
+                .Setup(s => s.ObtenerDetalleDtoAsync(
+                    It.IsAny<int>(),
+                    1,
+                    It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("Error de base de datos"));
 
             var resultado = await _controller.ObtenerPorIdApi(1);
@@ -185,6 +194,33 @@ namespace RuteaYa.Tests
 
             var statusCodeResult = Assert.IsType<ObjectResult>(resultado);
             Assert.Equal(500, statusCodeResult.StatusCode);
+        }
+
+        [Fact]
+        public async Task CancelarEnvioApi_DeberiaRetornarNoContent_CuandoElServicioCancela()
+        {
+            ConfigurarUsuarioAutenticado();
+            _envioServiceMock
+                .Setup(s => s.CancelarEnvioAsync(1, 1))
+                .ReturnsAsync(true);
+
+            var resultado = await _controller.CancelarEnvioApi(1);
+
+            Assert.IsType<NoContentResult>(resultado);
+        }
+
+        [Fact]
+        public async Task CancelarEnvioApi_DeberiaRetornarBadRequest_CuandoElEstadoNoPermiteCancelar()
+        {
+            ConfigurarUsuarioAutenticado();
+            _envioServiceMock
+                .Setup(s => s.CancelarEnvioAsync(1, 1))
+                .ThrowsAsync(new InvalidOperationException("No se puede cancelar."));
+
+            var resultado = await _controller.CancelarEnvioApi(1);
+
+            var badRequest = Assert.IsType<BadRequestObjectResult>(resultado);
+            Assert.Equal(400, badRequest.StatusCode);
         }
 
         private static CrearEnvioDto CrearSolicitudValida()

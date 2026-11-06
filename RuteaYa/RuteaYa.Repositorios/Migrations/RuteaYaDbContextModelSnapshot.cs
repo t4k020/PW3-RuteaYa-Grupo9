@@ -72,8 +72,8 @@ namespace RuteaYa.Repositorios.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Descripcion")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasMaxLength(70)
+                        .HasColumnType("nvarchar(70)");
 
                     b.Property<string>("DestinoDir")
                         .IsRequired()

@@ -170,10 +170,10 @@ public class HomeService : IHomeService
 
     private static string ObtenerNombreEstado(byte estado) => (EstadoEnvio)estado switch
     {
-        EstadoEnvio.Pendiente => "Pendiente",
         EstadoEnvio.BuscandoConductor => "Buscando conductor",
         EstadoEnvio.ConductorAsignado => "Conductor asignado",
         EstadoEnvio.Retirado => "Retirado",
+        EstadoEnvio.EnCamino => "En camino",
         EstadoEnvio.Entregado => "Entregado",
         EstadoEnvio.Cancelado => "Cancelado",
         _ => "Estado desconocido"

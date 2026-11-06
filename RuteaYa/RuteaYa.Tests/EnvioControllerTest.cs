@@ -67,7 +67,7 @@ namespace RuteaYa.Tests
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(resultado);
-            var modeloRetornado = Assert.IsType<List<Envio>>(viewResult.Model);
+            var modeloRetornado = Assert.IsType<List<EnvioDto>>(viewResult.Model);
             Assert.Equal(2, modeloRetornado.Count);
             Assert.Equal("Mitre 1000", modeloRetornado[0].OrigenDir);
         }
@@ -83,7 +83,7 @@ namespace RuteaYa.Tests
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(resultado);
-            var modeloRetornado = Assert.IsType<List<Envio>>(viewResult.Model);
+            var modeloRetornado = Assert.IsType<List<EnvioDto>>(viewResult.Model);
             Assert.Empty(modeloRetornado);
             Assert.Equal("No se pudo conectar con el servidor de la API.", _controller.TempData["Error"]);
         }
@@ -221,7 +221,7 @@ namespace RuteaYa.Tests
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(resultado);
-            var modeloRetornado = Assert.IsType<Envio>(viewResult.Model);
+            var modeloRetornado = Assert.IsType<EnvioDto>(viewResult.Model);
             Assert.Equal(1, modeloRetornado.Id);
             Assert.Equal("Mitre 1000", modeloRetornado.OrigenDir);
         }

@@ -27,23 +27,26 @@
 
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label asp-for="OrigenDir" class="form-label"></label>
+                    <label asp-for="OrigenDir" class="form-label">Origen</label>
                     <input asp-for="OrigenDir" class="form-control" />
+                    <div class="form-text">Escribí la dirección de origen del paquete.</div>
                     <span asp-validation-for="OrigenDir" class="text-danger"></span>
                 </div>
                 <div class="col-md-6">
-                    <label asp-for="DestinoDir" class="form-label"></label>
+                        <label asp-for="DestinoDir" class="form-label">Destino</label>
                     <input asp-for="DestinoDir" class="form-control" />
+                    <div class="form-text">Escribí la dirección de destino del paquete.</div>
                     <span asp-validation-for="DestinoDir" class="text-danger"></span>
                 </div>
 
                 <div class="col-md-4">
-                    <label asp-for="FechaLimite" class="form-label"></label>
+                    <label asp-for="FechaLimite" class="form-label">Fecha</label>
                     <input asp-for="FechaLimite" class="form-control" type="date" />
+                        <div class="form-text">La fecha límite para el envío no puede ser anterior a la fecha actual.</div>
                     <span asp-validation-for="FechaLimite" class="text-danger"></span>
                 </div>
                 <div class="col-md-4">
-                    <label asp-for="PesoKg" class="form-label"></label>
+                    <label asp-for="PesoKg" class="form-label">Peso (kg)</label>
                     <div class="input-group">
                         <input asp-for="PesoKg" class="form-control" type="number" min="0.01" step="0.01" />
                         <span class="input-group-text">kg</span>
@@ -53,7 +56,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label asp-for="Monto" class="form-label"></label>
+                    <label asp-for="Monto" class="form-label">Monto ofrecido($$)</label>
                     <div class="input-group">
                         <span class="input-group-text">$</span>
                         <input asp-for="Monto" class="form-control" type="number" min="0.01" step="0.01" />
@@ -63,7 +66,7 @@
                 </div>
 
                 <div class="col-md-4">
-                    <label asp-for="Tamano" class="form-label"></label>
+                    <label asp-for="Tamano" class="form-label">Tamaño</label>
                     <select asp-for="Tamano" class="form-select">
                         <option value="">Seleccioná un tamaño</option>
                         <option value="1">Pequeño</option>
@@ -75,7 +78,7 @@
                 </div>
 
                 <div class="col-md-8">
-                    <label asp-for="Descripcion" class="form-label"></label>
+                    <label asp-for="Descripcion" class="form-label">Descripción</label>
                     <textarea asp-for="Descripcion" class="form-control" rows="3" maxlength="70"
                               placeholder="Contanos brevemente qué contiene el paquete"></textarea>
                     <div class="form-text">Máximo 70 caracteres.</div>

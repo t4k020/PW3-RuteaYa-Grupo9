@@ -6,11 +6,16 @@ using RuteaYa.Servicios.Dtos;
 
 namespace RuteaYa.Servicios.Controllers;
 
+/// <summary>
+/// API REST para gestionar envíos. 
+/// Todos los endpoints requieren autenticación (JWT).
+/// </summary>
 [Authorize]
 [Route("api/[controller]")]
 [ApiController]
 public class ApiEnvioController : ControllerBase
 {
+    // Inyección de dependencia del servicio de envíos
     private readonly IEnvioService _envioService;
 
     public ApiEnvioController(IEnvioService envioService)
@@ -18,21 +23,34 @@ public class ApiEnvioController : ControllerBase
         _envioService = envioService;
     }
 
+    /// <summary>
+    /// GET: Obtiene todos los envíos del usuario autenticado.
+    /// Permite filtrar por estado.
+    /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<EnvioDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> ObtenerMisEnvios()
+    public async Task<IActionResult> ObtenerMisEnvios(
+        [FromQuery] EstadoEnvio? estado,
+        CancellationToken cancellationToken)
     {
-        // El listado se filtra en la API usando el usuario autenticado.
+        // Validar autenticación: extraer usuarioId del JWT
         if (!TryObtenerUsuarioId(out var usuarioId))
         {
             return Unauthorized();
         }
 
-        var envios = await _envioService.ObtenerPorUsuarioAsync(usuarioId);
-        return Ok(envios.Select(Mapear));
+        // Obtener envíos del usuario desde el servicio
+        var envios = await _envioService.ObtenerListadoPorUsuarioAsync(
+            usuarioId,
+            estado,
+            cancellationToken);
+        return Ok(envios);
     }
 
+    /// <summary>
+    /// POST: Crear un nuevo envío. El usuarioId se obtiene del JWT (no del cliente).
+    /// </summary>
     [HttpPost]
     [ProducesResponseType(typeof(EnvioDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -45,6 +63,7 @@ public class ApiEnvioController : ControllerBase
             return Unauthorized();
         }
 
+        // Validar modelo recibido
         if (!ModelState.IsValid)
         {
             return ValidationProblem(ModelState);
@@ -52,8 +71,8 @@ public class ApiEnvioController : ControllerBase
 
         try
         {
-            // Se construye la entidad en la API para evitar over-posting.
-            // UsuarioId y Estado no son datos confiables enviados por el cliente.
+            // CLAVE: Construir entidad en el servidor (no confiar en datos del cliente).
+            // UsuarioId y Estado se asignan acá, nunca desde el cliente (over-posting).
             var envio = new Envio
             {
                 OrigenDir = solicitud.OrigenDir.Trim(),
@@ -66,6 +85,7 @@ public class ApiEnvioController : ControllerBase
             };
             var nuevoEnvio = await _envioService.CrearEnvioAsync(envio, usuarioId);
 
+            // Retornar 201 Created con la URL del nuevo recurso
             return CreatedAtAction(
                 nameof(ObtenerPorIdApi),
                 new { id = nuevoEnvio.Id },
@@ -82,6 +102,9 @@ public class ApiEnvioController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// GET: Obtiene un envío específico por su ID (solo si pertenece al usuario).
+    /// </summary>
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(EnvioDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -95,8 +118,12 @@ public class ApiEnvioController : ControllerBase
 
         try
         {
-            var envio = await _envioService.ObtenerPorIdAsync(id, usuarioId);
-            return envio == null ? NotFound() : Ok(Mapear(envio));
+            // Obtener envío del usuario específico
+            var envio = await _envioService.ObtenerDetalleDtoAsync(
+                id,
+                usuarioId,
+                HttpContext.RequestAborted);
+            return envio == null ? NotFound() : Ok(envio);
         }
         catch (Exception)
         {
@@ -104,6 +131,9 @@ public class ApiEnvioController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// DELETE: Elimina un envío (solo si pertenece al usuario).
+    /// </summary>
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -117,6 +147,7 @@ public class ApiEnvioController : ControllerBase
 
         try
         {
+            // Eliminar envío del usuario
             var eliminado = await _envioService.EliminarEnvioAsync(id, usuarioId);
             return eliminado ? NoContent() : NotFound();
         }
@@ -126,17 +157,62 @@ public class ApiEnvioController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// POST: Cancela un envío existente (solo si pertenece al usuario y está en estado válido).
+    /// </summary>
+    [HttpPost("{id:int}/cancelar")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> CancelarEnvioApi(int id)
+    {
+        if (!TryObtenerUsuarioId(out var usuarioId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            // Cancelar envío (valida estado antes de cancelar)
+            var cancelado = await _envioService.CancelarEnvioAsync(id, usuarioId);
+            return cancelado ? NoContent() : NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Error: estado no válido para cancelación
+            return BadRequest(new ProblemDetails
+            {
+                Title = "No se puede cancelar el envío.",
+                Detail = ex.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Ocurrió un error interno al cancelar el envío.");
+        }
+    }
+
+    /// <summary>
+    /// Método privado: Extrae el ID del usuario desde el JWT (Claims).
+    /// CLAVE: Nunca confiar en datos del cliente, siempre extraer desde tokens seguros.
+    /// </summary>
     private bool TryObtenerUsuarioId(out int usuarioId)
     {
-        // La identidad se obtiene del JWT, nunca de un parámetro del formulario o de la URL.
+        // Obtener usuarioId del JWT, no de parámetros o formularios
         return int.TryParse(
             User.FindFirstValue(ClaimTypes.NameIdentifier),
             out usuarioId);
     }
 
+    /// <summary>
+    /// Convierte una entidad Envio a DTO (Data Transfer Object).
+    /// CLAVE: Mantener separación entre entidades de persistencia y contratos REST.
+    /// </summary>
     private static EnvioDto Mapear(Envio envio)
     {
-        // El mapeo mantiene la frontera entre las entidades de persistencia y los contratos REST.
+        // Convertir entidad a DTO: solo propiedades públicas, agregar lógica de negocio
         return new EnvioDto
         {
             Id = envio.Id,
@@ -148,8 +224,27 @@ public class ApiEnvioController : ControllerBase
             Descripcion = envio.Descripcion ?? string.Empty,
             Monto = envio.Monto,
             Estado = envio.Estado,
-            CreadoEn = envio.CreadoEn
+            CreadoEn = envio.CreadoEn,
+            EstadoNombre = ObtenerNombreEstado((EstadoEnvio)envio.Estado),
+            // CLAVE: Calcular permisos en la API (no confiar en cliente)
+            PuedeCancelar = (EstadoEnvio)envio.Estado is
+                EstadoEnvio.BuscandoConductor or EstadoEnvio.ConductorAsignado,
+            PuedeEliminar = (EstadoEnvio)envio.Estado is EstadoEnvio.Cancelado
         };
     }
+
+    /// <summary>
+    /// Convierte un enum EstadoEnvio a su nombre legible
+    /// </summary>
+    private static string ObtenerNombreEstado(EstadoEnvio estado) => estado switch
+    {
+        EstadoEnvio.BuscandoConductor => "Buscando conductor",
+        EstadoEnvio.ConductorAsignado => "Conductor asignado",
+        EstadoEnvio.Retirado => "Retirado",
+        EstadoEnvio.EnCamino => "En camino",
+        EstadoEnvio.Entregado => "Entregado",
+        EstadoEnvio.Cancelado => "Cancelado",
+        _ => "Estado desconocido"
+    };
 
 }

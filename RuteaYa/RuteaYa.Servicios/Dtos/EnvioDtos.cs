@@ -65,4 +65,20 @@ public sealed class EnvioDto
     public decimal Monto { get; set; }
     public byte Estado { get; set; }
     public DateTime CreadoEn { get; set; }
+    public ViajeAsociadoDto? Viaje { get; set; }
+    public bool PuedeCancelar { get; set; }
+    public bool PuedeEliminar { get; set; }
+    public string EstadoNombre { get; set; } = string.Empty;
+}
+
+// DTO con la información del viaje en el que se asignó el envío.
+public sealed class ViajeAsociadoDto
+{
+    public int Id { get; set; }
+    public string OrigenDir { get; set; } = string.Empty;
+    public string DestinoDir { get; set; } = string.Empty;
+    public TimeOnly HoraSalida { get; set; }
+    public TimeOnly HoraLlegada { get; set; }
+    public List<string> DiasSemana { get; set; } = new();
+    public string? NombreConductor { get; set; }
 }

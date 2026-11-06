@@ -1,8 +1,27 @@
-@* Esta vista muestra el detalle que la API autorizó para el usuario actual. *@
-@model RuteaYa.Entidades.Envio
+@using RuteaYa.Entidades
+@using RuteaYa.Servicios.Dtos
+@model EnvioDto
 
 @{
     ViewData["Title"] = "Detalle del envío";
+    var estado = (EstadoEnvio)Model.Estado;
+    var tamanoNombre = Model.Tamano switch
+    {
+        1 => "Pequeño",
+        2 => "Mediano",
+        3 => "Grande",
+        _ => "No especificado"
+    };
+    var claseEstado = estado switch
+    {
+        EstadoEnvio.BuscandoConductor => "bg-primary-subtle text-primary border-primary-subtle",
+        EstadoEnvio.ConductorAsignado => "bg-warning-subtle text-warning-emphasis border-warning-subtle",
+        EstadoEnvio.Retirado => "bg-info-subtle text-info-emphasis border-info-subtle",
+        EstadoEnvio.EnCamino => "bg-info-subtle text-info-emphasis border-info-subtle",
+        EstadoEnvio.Entregado => "bg-success-subtle text-success border-success-subtle",
+        EstadoEnvio.Cancelado => "bg-danger-subtle text-danger border-danger-subtle",
+        _ => "bg-secondary-subtle text-secondary border-secondary-subtle"
+    };
 }
 
 <div class="container mt-4">
@@ -17,15 +36,63 @@
     <div class="card border-0 shadow-sm rounded-4 p-4">
         <dl class="row mb-0">
             <dt class="col-sm-4">Estado</dt>
-            <dd class="col-sm-8">@((RuteaYa.Entidades.EstadoEnvio)Model.Estado)</dd>
+            <dd class="col-sm-8">
+                <span class="badge @claseEstado border px-3 py-2 rounded-pill">
+                    @Model.EstadoNombre
+                </span>
+            </dd>
             <dt class="col-sm-4">Fecha límite</dt>
             <dd class="col-sm-8">@Model.FechaLimite.ToString("dd/MM/yyyy")</dd>
             <dt class="col-sm-4">Peso</dt>
             <dd class="col-sm-8">@Model.PesoKg.ToString("0.##") kg</dd>
+            <dt class="col-sm-4">Tamaño</dt>
+            <dd class="col-sm-8">@tamanoNombre</dd>
             <dt class="col-sm-4">Monto</dt>
             <dd class="col-sm-8">$@Model.Monto.ToString("N2")</dd>
             <dt class="col-sm-4">Descripción</dt>
             <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.Descripcion) ? "Sin descripción" : Model.Descripcion)</dd>
         </dl>
+
+        @if (Model.Viaje is not null && estado != EstadoEnvio.BuscandoConductor)
+        {
+            <hr class="my-4" />
+            <h5 class="fw-bold mb-3">Viaje asociado</h5>
+            <dl class="row mb-0">
+                <dt class="col-sm-4">Recorrido</dt>
+                <dd class="col-sm-8">@Model.Viaje.OrigenDir &rarr; @Model.Viaje.DestinoDir</dd>
+                <dt class="col-sm-4">Horario</dt>
+                <dd class="col-sm-8">@Model.Viaje.HoraSalida.ToString(@"hh\:mm") - @Model.Viaje.HoraLlegada.ToString(@"hh\:mm")</dd>
+                <dt class="col-sm-4">Días</dt>
+                <dd class="col-sm-8">@(Model.Viaje.DiasSemana.Any() ? string.Join(", ", Model.Viaje.DiasSemana) : "Sin días especificados")</dd>
+                @if (!string.IsNullOrWhiteSpace(Model.Viaje.NombreConductor))
+                {
+                    <dt class="col-sm-4">Conductor</dt>
+                    <dd class="col-sm-8">@Model.Viaje.NombreConductor</dd>
+                }
+            </dl>
+        }
+
+        <div class="d-flex gap-2 mt-4">
+            @if (Model.PuedeCancelar)
+            {
+                <form asp-controller="Envio" asp-action="Cancelar" asp-route-id="@Model.Id" method="post"
+                      onsubmit="return confirm('¿Estás seguro de cancelar este envío?');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-danger rounded-pill px-3">
+                        Cancelar envío
+                    </button>
+                </form>
+            }
+            @if (Model.PuedeEliminar)
+            {
+                <form asp-controller="Envio" asp-action="Eliminar" asp-route-id="@Model.Id" method="post"
+                      onsubmit="return confirm('¿Estás seguro de eliminar este envío de tus envíos?');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-danger rounded-pill px-3">
+                        Eliminar de mis envíos
+                    </button>
+                </form>
+            }
+        </div>
     </div>
 </div>
