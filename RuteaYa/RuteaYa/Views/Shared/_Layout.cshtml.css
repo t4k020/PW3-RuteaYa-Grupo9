@@ -4,7 +4,7 @@ for details on configuring this project to bundle and minify static web assets. 
 /* Configuración de la barra lateral */
 .sidebar {
     width: 260px;
-    background-color: #0f1628; /* Azul oscuro basado en la imagen */
+    background-color: var(--sidebar-bg); /* Azul oscuro basado en la imagen */
 }
 
     /* Enlaces de navegación del menú */
@@ -22,7 +22,7 @@ for details on configuring this project to bundle and minify static web assets. 
 
     /* Estilo para la vista actual activa (Inicio) */
     .sidebar .active-link {
-        background-color: #1e293b;
+        background-color: var(--sidebar-surface);
         box-shadow: inset 4px 0 0 #f97316; /* Borde naranja a la izquierda */
         opacity: 1 !important;
         border-radius: 8px;
@@ -30,7 +30,7 @@ for details on configuring this project to bundle and minify static web assets. 
 
 /* Caja de perfil de usuario al fondo */
 .user-profile-box {
-    background-color: #1e293b;
+    background-color: var(--sidebar-surface);
 }
 
     .user-profile-box form button:hover {
@@ -40,7 +40,16 @@ for details on configuring this project to bundle and minify static web assets. 
 
 /* Área de contenido para contrastar con el menú */
 .main-content {
-    background-color: #f8f9fa; /* Fondo gris muy claro para el resto de la app */
+    background-color: var(--app-bg); /* Fondo gris muy claro para el resto de la app */
     overflow-y: auto;
     height: 100vh;
+}
+
+/* Barra superior con el selector de tema */
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--app-bg);
+    border-bottom: 1px solid var(--bs-border-color);
 }

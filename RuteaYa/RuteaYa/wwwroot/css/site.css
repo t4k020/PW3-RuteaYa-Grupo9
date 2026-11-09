@@ -9,7 +9,7 @@ html {
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+  box-shadow: 0 0 0 0.1rem var(--bs-body-bg), 0 0 0 0.25rem #258cfb;
 }
 
 html {
@@ -28,4 +28,124 @@ body {
 
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
+}
+
+/* ===== Variables de la app ===== */
+:root,
+[data-bs-theme="light"] {
+    --app-bg: #f8f9fa;
+    --sidebar-bg: #0f1628;
+    --sidebar-surface: #1e293b;
+    --potencial-bg: #e8f5e9;
+}
+
+[data-bs-theme="dark"] {
+    --app-bg: #0b1220;
+    --sidebar-bg: #070d1a;
+    --sidebar-surface: #111a2e;
+    --potencial-bg: rgba(34, 197, 94, .12);
+
+    /* Variables de Bootstrap: tarjetas, inputs, tablas, etc. */
+    --bs-body-bg: #111a2e;
+    --bs-body-bg-rgb: 17, 26, 46;
+    --bs-body-color: #e5e7eb;
+    --bs-body-color-rgb: 229, 231, 235;
+    --bs-secondary-color: #94a3b8;
+    --bs-border-color: #1f2a44;
+
+    /* Superficies navy para bg-body-secondary/tertiary e input-group-text */
+    --bs-secondary-bg: #0e1626;
+    --bs-secondary-bg-rgb: 14, 22, 38;
+    --bs-tertiary-bg: #0e1626;
+    --bs-tertiary-bg-rgb: 14, 22, 38;
+    --bs-emphasis-color: #f8fafc;
+    --bs-emphasis-color-rgb: 248, 250, 252;
+}
+
+/* Fondo del documento en oscuro (evita la franja blanca inferior) */
+html[data-bs-theme="dark"],
+html[data-bs-theme="dark"] body {
+    background-color: var(--app-bg);
+}
+
+/* Tarjetas: borde sutil en oscuro (las tarjetas tienen border-0 y shadow-sm) */
+[data-bs-theme="dark"] .card {
+    border: 1px solid var(--bs-border-color) !important;
+}
+
+/* Tarjeta verde "Potencial del mes" */
+.card-potencial {
+    background-color: var(--potencial-bg);
+}
+
+/* ===== Overrides solo para oscuro (el claro queda idéntico) ===== */
+
+/* Colores de texto fijos que en oscuro necesitan más contraste */
+[data-bs-theme="dark"] .text-success {
+    color: var(--bs-success-text-emphasis) !important;
+}
+
+[data-bs-theme="dark"] .text-danger {
+    color: var(--bs-danger-text-emphasis) !important;
+}
+
+[data-bs-theme="dark"] .text-primary {
+    color: var(--bs-primary-text-emphasis) !important;
+}
+
+[data-bs-theme="dark"] .text-secondary {
+    color: var(--bs-secondary-text-emphasis) !important;
+}
+
+[data-bs-theme="dark"] .text-dark {
+    color: var(--bs-body-color) !important;
+}
+
+/* Encabezados y pills con bg-light (Nuevo envío, filtros de Mis viajes) */
+[data-bs-theme="dark"] .bg-light {
+    background-color: var(--bs-tertiary-bg) !important;
+}
+
+/* Pills/filtros con fondo oscuro: se invierten en oscuro */
+[data-bs-theme="dark"] .badge.bg-dark,
+[data-bs-theme="dark"] .text-bg-dark {
+    background-color: #e5e7eb !important;
+    color: #0b1220 !important;
+}
+
+/* Botones que en oscuro necesitan invertirse */
+[data-bs-theme="dark"] .btn-dark {
+    --bs-btn-color: #0b1220;
+    --bs-btn-bg: #e5e7eb;
+    --bs-btn-border-color: #e5e7eb;
+    --bs-btn-hover-color: #0b1220;
+    --bs-btn-hover-bg: #ffffff;
+    --bs-btn-hover-border-color: #ffffff;
+    --bs-btn-active-color: #0b1220;
+    --bs-btn-active-bg: #cbd5e1;
+    --bs-btn-active-border-color: #cbd5e1;
+}
+
+[data-bs-theme="dark"] .btn-outline-dark,
+[data-bs-theme="dark"] .btn-outline-secondary {
+    --bs-btn-color: #e5e7eb;
+    --bs-btn-border-color: #475569;
+    --bs-btn-hover-color: #0b1220;
+    --bs-btn-hover-bg: #e5e7eb;
+    --bs-btn-hover-border-color: #e5e7eb;
+    --bs-btn-active-color: #0b1220;
+    --bs-btn-active-bg: #e5e7eb;
+    --bs-btn-active-border-color: #e5e7eb;
+}
+
+/* Acciones destructivas con mejor contraste en oscuro */
+[data-bs-theme="dark"] .btn-outline-danger {
+    --bs-btn-color: #ea868f;
+    --bs-btn-border-color: #ea868f;
+    --bs-btn-hover-color: #0b1220;
+    --bs-btn-hover-bg: #ea868f;
+    --bs-btn-hover-border-color: #ea868f;
+    --bs-btn-active-color: #0b1220;
+    --bs-btn-active-bg: #ea868f;
+    --bs-btn-active-border-color: #ea868f;
 }

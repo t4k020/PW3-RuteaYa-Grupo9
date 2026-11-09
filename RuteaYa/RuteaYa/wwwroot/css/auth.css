@@ -12,6 +12,10 @@
     --success-bg: #DEF6EB;
     --success-text: #14714C;
     --error: #B03030;
+    --error-bg: #FDEEEE;
+    --btn-bg: #0E1830;
+    --btn-text: #FFFFFF;
+    --btn-hover: #1D2E56;
 }
 
 * {
@@ -75,11 +79,12 @@ body {
 }
 
 .auth-content {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 32px;
-    background: #FFFFFF;
+    background: var(--card);
 }
 
 .auth-form {
@@ -146,14 +151,14 @@ body {
     padding: 12px 18px;
     border: 0;
     border-radius: 12px;
-    background: var(--primary);
-    color: #FFFFFF;
+    background: var(--btn-bg);
+    color: var(--btn-text);
     font: 600 14px Inter, sans-serif;
     cursor: pointer;
 }
 
     .btn:hover {
-        background: #1D2E56;
+        background: var(--btn-hover);
     }
 
     .btn:focus-visible,
@@ -198,7 +203,7 @@ body {
     }
 
     .message.error {
-        background: #FDEEEE;
+        background: var(--error-bg);
         color: var(--error);
     }
 
@@ -226,17 +231,48 @@ body {
     }
 }
 
-/* Modo oscuro deshabilitado: las pantallas de auth usan fondo blanco fijo.
-@media (prefers-color-scheme: dark) {
-    :root {
-        --bg: #0B1222;
-        --card: #121C33;
-        --ink: #EEF1F8;
-        --muted: #9AA4BB;
-        --line: #25324F;
-        --primary: #0E1830;
-        --success-bg: #12372B;
-        --success-text: #5FD3A0;
-    }
+/* ===== Modo oscuro (se activa con data-bs-theme="dark" en <html>) ===== */
+[data-bs-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0B1220;
+    --card: #111A2E;
+    --ink: #E5E7EB;
+    --muted: #94A3B8;
+    --line: #1F2A44;
+    --success-bg: rgba(34, 197, 94, .12);
+    --success-text: #4ADE80;
+    --error: #FCA5A5;
+    --error-bg: rgba(239, 68, 68, .12);
+    --btn-bg: #E5E7EB;
+    --btn-text: #0B1220;
+    --btn-hover: #FFFFFF;
 }
-*/
+
+/* Separa el panel azul del panel de formulario */
+[data-bs-theme="dark"] .auth-panel {
+    border-right: 1px solid var(--line);
+}
+
+/* ===== Botón para cambiar de tema ===== */
+.theme-toggle {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 1;
+    padding: 8px 14px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink);
+    font: 600 13px Inter, sans-serif;
+    cursor: pointer;
+}
+
+.theme-toggle:hover {
+    background: var(--bg);
+}
+
+.theme-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
