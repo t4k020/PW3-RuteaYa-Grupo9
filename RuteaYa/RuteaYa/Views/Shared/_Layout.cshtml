@@ -3,7 +3,9 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <title>@ViewData["Title"] - RuteaYa</title>
+    <partial name="_ThemeInit" />
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -59,14 +61,21 @@
         </aside>
 
         <!-- Contenido Principal -->
-        <div class="main-content flex-grow-1 p-4 pb-0">
-            <main role="main" class="pb-3 h-100">
+        <div class="main-content flex-grow-1 d-flex flex-column">
+            <header class="topbar d-flex justify-content-end align-items-center px-4 py-2">
+                <button type="button" data-theme-toggle class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                    🌙 Modo oscuro
+                </button>
+            </header>
+
+            <main role="main" class="p-4 pb-3 flex-grow-1">
                 @RenderBody()
             </main>
         </div>
 
     </div>
 
+    <script src="~/js/theme.js" asp-append-version="true"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
