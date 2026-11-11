@@ -24,6 +24,10 @@ namespace RuteaYa.Servicios
         Task<bool> EliminarEnvioAsync(int id, int usuarioId);
         Task<bool> CancelarEnvioAsync(int id, int usuarioId);
 
+        Task<bool> VincularEnvioAViajeAsync(int envioId, int viajeId, DateTime fechaViaje, int usuarioId);
+        Task<List<Envio>> ObtenerOportunidadesDisponiblesAsync(int usuarioId);
+        Task<EnvioDto?> ObtenerDetalleOportunidadAsync(int id, int usuarioActualId);
+
     }
     public class EnvioService : IEnvioService {
         private readonly RuteaYaDbContext _context;
@@ -108,6 +112,22 @@ namespace RuteaYa.Servicios
             return await _context.Envios
                 .AsNoTracking()
                 .FirstOrDefaultAsync(e => e.Id == id && e.UsuarioId == usuarioId);
+        }
+
+        public async Task<EnvioDto?> ObtenerDetalleOportunidadAsync(int id, int usuarioActualId)
+        {
+            var envio = await _context.Envios
+                .AsNoTracking()
+                .Include(e => e.Usuario)
+                .Where(e => e.Id == id
+                         && e.UsuarioId != usuarioActualId
+                         && e.Estado == (byte)EstadoEnvio.BuscandoConductor)
+                .FirstOrDefaultAsync();
+
+            if (envio == null) return null;
+
+    
+            return CrearDto(envio, asignacion: null);
         }
 
         public async Task<EnvioDto?> ObtenerDetalleDtoAsync(
@@ -251,6 +271,123 @@ namespace RuteaYa.Servicios
 
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<bool> VincularEnvioAViajeAsync(int envioId, int viajeId, DateTime fechaViaje, int usuarioId)
+        {
+            // no debe estar cancelado ni ya asignado
+            var envio = await _context.Envios.FirstOrDefaultAsync(e => e.Id == envioId);
+            if (envio == null)
+            {
+                throw new InvalidOperationException("El envío no existe.");
+            }
+
+            if (envio.Estado == (byte)EstadoEnvio.Cancelado || envio.Estado == (byte)EstadoEnvio.ConductorAsignado)
+            {
+                throw new InvalidOperationException("El envío no está disponible (ya fue asignado o cancelado).");
+            }
+
+            // Verificar que no tenga ya un registro en Asignaciones
+            bool yaAsignado = await _context.Asignaciones.AnyAsync(a => a.EnvioId == envioId);
+            if (yaAsignado)
+            {
+                throw new InvalidOperationException("El envío ya cuenta con una asignación activa.");
+            }
+
+            // que el viaje exista y pertenezca al usuario 
+            var viaje = await _context.Viajes
+                .Include(v => v.ViajeDias)
+                .FirstOrDefaultAsync(v => v.Id == viajeId);
+
+            if (viaje == null)
+            {
+                throw new InvalidOperationException("El viaje seleccionado no existe.");
+            }
+
+            if (viaje.UsuarioId != usuarioId)
+            {
+                throw new InvalidOperationException("No puedes asignar envíos a un viaje que no te pertenece.");
+            }
+
+            if (!viaje.Activo)
+            {
+                throw new InvalidOperationException("El viaje no se encuentra activo.");
+            }
+
+            //  Validar la fecha 
+            byte diaSemanaFecha = fechaViaje.DayOfWeek == DayOfWeek.Sunday ? (byte)7 : (byte)fechaViaje.DayOfWeek;
+            bool diaValido = viaje.ViajeDias.Any(d => d.DiaSemana == diaSemanaFecha);
+
+            if (!diaValido)
+            {
+                throw new InvalidOperationException("La fecha seleccionada no coincide con los días programados para este viaje.");
+            }
+
+            if (fechaViaje.Date < DateTime.Today)
+            {
+                throw new InvalidOperationException("No se puede asignar un envío a una fecha pasada.");
+            }
+
+            // que no supere la cantidad máxima de envíos 
+            int cantidadAsignadosActuales = await _context.Asignaciones
+                .Where(a => a.ViajeId == viajeId && a.FechaViaje.Date == fechaViaje.Date)
+                .CountAsync();
+
+            if (cantidadAsignadosActuales >= viaje.MaxPaquetes)
+            {
+                throw new InvalidOperationException("El viaje ha alcanzado el límite máximo de paquetes para esa fecha.");
+            }
+
+            // que no supere el peso máximo 
+            decimal pesoActualAsignados = await _context.Asignaciones
+                .Where(a => a.ViajeId == viajeId && a.FechaViaje.Date == fechaViaje.Date)
+                .Join(_context.Envios, a => a.EnvioId, e => e.Id, (a, e) => e.PesoKg)
+                .SumAsync();
+
+            if (pesoActualAsignados + envio.PesoKg > viaje.PesoMaxKg)
+            {
+                throw new InvalidOperationException($"El peso total excedería el límite máximo del viaje ({viaje.PesoMaxKg} kg).");
+            }
+
+            // Crea la asignación
+            var asignacion = new Asignacion
+            {
+                EnvioId = envio.Id,
+                ViajeId = viaje.Id,
+                FechaViaje = fechaViaje.Date,
+                DesvioKm = 0.0m, // cambiar cuando haya geolocalizacion
+                TiempoExtraMin = 0,
+                Ganancia = envio.Monto,
+                AsignadoEn = DateTime.Now
+            };
+
+            _context.Asignaciones.Add(asignacion);
+
+            // Registrar cambio de estado del envío a ConductorAsignado
+            var estadoAnterior = envio.Estado;
+            envio.Estado = (byte)EstadoEnvio.ConductorAsignado;
+
+            _context.EnvioEstadoHistoriales.Add(new EnvioEstadoHistorial
+            {
+                EnvioId = envio.Id,
+                EstadoAnterior = estadoAnterior,
+                EstadoNuevo = envio.Estado,
+                Fecha = DateTime.Now
+            });
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<List<Envio>> ObtenerOportunidadesDisponiblesAsync(int usuarioId)
+        {
+            return await _context.Envios
+                .AsNoTracking()
+                .Where(e => e.UsuarioId != usuarioId 
+                         && e.Estado == (byte)EstadoEnvio.BuscandoConductor 
+                         && !_context.Asignaciones.Any(a => a.EnvioId == e.Id)) 
+                .OrderByDescending(e => e.CreadoEn)
+                .ToListAsync();
         }
 
         private static string ObtenerNombreEstado(EstadoEnvio estado) => estado switch

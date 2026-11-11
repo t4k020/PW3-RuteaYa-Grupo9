@@ -1,0 +1,110 @@
+﻿@model IEnumerable<RuteaYa.Servicios.Dtos.EnvioDto>
+@{
+    ViewData["Title"] = "Oportunidades";
+    // El viaje seleccionado actual o pasado por ViewBag/Query
+    var viajeSeleccionado = ViewBag.ViajeSeleccionado as string ?? "Belgrano → Lomas de Zamora";
+    var ordenActual = Context.Request.Query["orden"].ToString();
+}
+
+<div class="container mt-4">
+    <!-- Cabecera con título y botón de acción principal -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h2>Oportunidades</h2>
+            <p class="text-muted mb-0">Envíos compatibles con @viajeSeleccionado.</p>
+        </div>
+        <a asp-action="Optimizar" class="btn btn-dark rounded-pill px-4">
+            Optimizar combinación
+        </a>
+    </div>
+
+    @if (TempData["Mensaje"] != null)
+    {
+        <div class="alert alert-success">@TempData["Mensaje"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <!-- Barra de filtros / Ordenamiento -->
+    <div class="card border-0 shadow-sm rounded-4 p-3 mb-4">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="fw-semibold me-2">Ordenar por:</span>
+
+            <a asp-action="Oportunidades" asp-route-orden="ganancia"
+               class="btn btn-sm rounded-pill @(string.IsNullOrEmpty(ordenActual) || ordenActual == "ganancia" ? "btn-dark" : "btn-outline-secondary") px-3">
+                Ganancia
+            </a>
+            <a asp-action="Oportunidades" asp-route-orden="desvio"
+               class="btn btn-sm rounded-pill @(ordenActual == "desvio" ? "btn-dark" : "btn-outline-secondary") px-3">
+                Desvío
+            </a>
+            <a asp-action="Oportunidades" asp-route-orden="compatibilidad"
+               class="btn btn-sm rounded-pill @(ordenActual == "compatibilidad" ? "btn-dark" : "btn-outline-secondary") px-3">
+                Compatibilidad
+            </a>
+        </div>
+    </div>
+
+    <!-- Listado de Oportunidades -->
+    @if (Model != null && Model.Any())
+    {
+        <div class="d-flex flex-column gap-3">
+            @foreach (var oportunidad in Model)
+            {
+                // lógica badges HARDCODED
+                var badgeClase = 1m > 2.5m
+                    ? "bg-warning-subtle text-warning-emphasis border-warning-subtle"
+                    : "bg-success-subtle text-success border-success-subtle";
+
+                var badgeTexto = "Muy compatible HARDCODED";
+
+                <div class="card shadow-sm border rounded-4 p-3">
+                    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+
+                        <!-- Información del envío y desvío -->
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                <h5 class="mb-0 fw-bold text-dark">
+                                    @oportunidad.OrigenDir &rarr; @oportunidad.DestinoDir
+                                </h5>
+                                <span class="badge @badgeClase border px-3 py-1 rounded-pill small">
+                                    @badgeTexto
+                                </span>
+                            </div>
+                            <p class="text-muted small mb-0">
+                                @oportunidad.PesoKg kg &middot; desvío 500 km
+                            </p>
+                        </div>
+
+                        <!-- Monto y Botones de Acción (Ver detalle / Aceptar) -->
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <span class="fs-4 fw-bold text-success">
+                                $@oportunidad.Monto.ToString("N3")
+                            </span>
+
+                            <a asp-action="DetallesOportunidad" asp-route-id="@oportunidad.Id"
+                               class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                                Ver detalle
+                            </a>
+
+                            <!-- Redirige a la pantalla de aceptación que armamos antes -->
+                            <a asp-action="Aceptar" asp-route-id="@oportunidad.Id"
+                               class="btn btn-dark btn-sm rounded-pill px-4">
+                                Aceptar
+                            </a>
+                        </div>
+
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border rounded-4 p-5 text-center text-muted">
+            <p class="mb-0">No hay oportunidades de envío compatibles disponibles en este momento.</p>
+        </div>
+    }
+</div>

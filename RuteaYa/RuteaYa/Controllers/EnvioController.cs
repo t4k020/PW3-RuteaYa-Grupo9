@@ -249,5 +249,122 @@ namespace RuteaYa.Controllers
 
             return RedirectToAction("Index");
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Vincular(int envioId, int viajeId, DateTime fechaViaje)
+        {
+            var client = _httpClientFactory.CreateClient("ApiEnvio");
+
+            try
+            {
+                // Estructura el objeto con las propiedades que espera el AsignarEnvioDto de la API
+                var modelo = new { ViajeId = viajeId, FechaViaje = fechaViaje };
+
+                // Envía la solicitud POST al nuevo endpoint de la API
+                HttpResponseMessage respuesta = await client.PostAsJsonAsync($"{ApiRoute}/{envioId}/asignar", modelo);
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    TempData["Mensaje"] = "¡Envío aceptado y asignado a tu viaje con éxito!";
+                    return RedirectToAction(nameof(Oportunidades));
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    ProblemDetails? detalle = null;
+                    try
+                    {
+                        detalle = await respuesta.Content.ReadFromJsonAsync<ProblemDetails>();
+                    }
+                    catch (JsonException) { }
+
+                    TempData["Error"] = detalle?.Detail ?? "El envío no pudo ser vinculado debido a una regla de negocio.";
+                }
+                else
+                {
+                    TempData["Error"] = "Ocurrió un error inesperado al procesar la asignación.";
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "No se pudo conectar con el servidor de la API.";
+            }
+
+            return RedirectToAction(nameof(Oportunidades));
+        }
+        [HttpGet]
+        public async Task<IActionResult> Oportunidades()
+        {
+            var client = _httpClientFactory.CreateClient("ApiEnvio");
+
+            try
+            {
+                HttpResponseMessage respuesta = await client.GetAsync($"{ApiRoute}/oportunidades");
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    var oportunidades = await respuesta.Content.ReadFromJsonAsync<List<EnvioDto>>()
+                        ?? new List<EnvioDto>();
+                    return View(oportunidades);
+                }
+                else
+                {
+                    TempData["Error"] = "No se pudieron cargar las oportunidades.";
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "No se pudo conectar con el servidor de la API.";
+            }
+
+            return View(new List<EnvioDto>());
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DetallesOportunidad(int id)
+        {
+            var client = _httpClientFactory.CreateClient("ApiEnvio");
+
+            try
+            {
+                // 1. Solicita el envío por ID a la API
+                HttpResponseMessage respuestaEnvio = await client.GetAsync($"{ApiRoute}/oportunidades/{id}");
+
+                if (!respuestaEnvio.IsSuccessStatusCode)
+                {
+                    if (respuestaEnvio.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        TempData["Error"] = "No se encontró la oportunidad solicitada.";
+                    }
+                    else
+                    {
+                        TempData["Error"] = "No se pudieron obtener los detalles de la oportunidad.";
+                    }
+                    return RedirectToAction(nameof(Oportunidades));
+                }
+
+                var envio = await respuestaEnvio.Content.ReadFromJsonAsync<EnvioDto>();
+
+                // 2. Obtiene los viajes del propio usuario para el dropdown de la vista
+                HttpResponseMessage respuestaViajes = await client.GetAsync("api/ApiViaje?soloActivo=true");
+                var misViajes = new List<ViajeListadoDto>();
+
+                if (respuestaViajes.IsSuccessStatusCode)
+                {
+                    misViajes = await respuestaViajes.Content.ReadFromJsonAsync<List<ViajeListadoDto>>()
+                        ?? new List<ViajeListadoDto>();
+                }
+
+                ViewBag.MisViajes = misViajes;
+
+                // 3. Retorna la vista DetalleOportunidad (o Detalles) pasándole el modelo
+                return View("DetalleOportunidad", envio);
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "No se pudo conectar con el servidor de la API.";
+                return RedirectToAction(nameof(Oportunidades));
+            }
+        }
     }
 }
