@@ -81,16 +81,16 @@ namespace RuteaYa.Tests
         public async Task Crear_DeberiaRetornarStatusCode500_CuandoOcurreUnaExcepcionEnElServicio()
         {
             // Arrange
-            ConfigurarUsuarioAutenticado(); // <-- Agregamos esto para que pase la seguridad
-            var viajeValido = new Viaje { Id = 1, OrigenDir = "Test" };
+            ConfigurarUsuarioAutenticado();
+            var solicitud = CrearViajeDtoValido();
 
             // Simulamos que el servicio lanza una excepción no controlada
             _viajeServiceMock
                 .Setup(s => s.CrearViajeAsync(It.IsAny<Viaje>()))
-                .ThrowsAsync(new System.Exception("Error de base de datos"));
+                .ThrowsAsync(new Exception("Error de base de datos"));
 
             // Act
-            var resultado = await _controller.Crear(viajeValido);
+            var resultado = await _controller.Crear(solicitud);
 
             // Assert
             var statusCodeResult = Assert.IsType<ObjectResult>(resultado);
@@ -101,38 +101,56 @@ namespace RuteaYa.Tests
         public async Task Crear_DeberiaRetornarBadRequest_CuandoElModelStateEsInvalido()
         {
             // Arrange
-            ConfigurarUsuarioAutenticado(); 
+            ConfigurarUsuarioAutenticado();
             _controller.ModelState.AddModelError("OrigenDir", "El campo es requerido");
-            var viajeInvalido = new Viaje(); // Objeto incompleto/inválido
+            var solicitudInvalida = new CrearViajeDto();
 
             // Act
-            var resultado = await _controller.Crear(viajeInvalido);
+            var resultado = await _controller.Crear(solicitudInvalida);
 
             // Assert
             var badRequestResult = Assert.IsType<BadRequestObjectResult>(resultado);
-            Assert.NotNull(badRequestResult.Value);
+            Assert.Equal(400, badRequestResult.StatusCode);
+            var detalles = Assert.IsType<ValidationProblemDetails>(badRequestResult.Value);
+            Assert.True(detalles.Errors.ContainsKey("OrigenDir"));
         }
 
         [Fact]
-        public async Task Crear_DeberiaRetornarCreatedAtAction_CuandoDatosSonValidos()
+        public async Task Crear_DeberiaMapearElDtoYRetornarCreatedAtAction_CuandoDatosSonValidos()
         {
             // Arrange
             ConfigurarUsuarioAutenticado();
-        var nuevoViaje = CrearViajeValido(0);
-        var viajeCreado = CrearViajeValido(1);
+            var solicitud = CrearViajeDtoValido();
+            var viajeCreado = CrearViajeValido(1);
+            Viaje? viajeMapeado = null;
 
-        _viajeServiceMock
-            .Setup(s => s.CrearViajeAsync(It.IsAny<Viaje>()))
+            _viajeServiceMock
+                .Setup(s => s.CrearViajeAsync(It.IsAny<Viaje>()))
+                .Callback<Viaje>(viaje => viajeMapeado = viaje)
                 .ReturnsAsync(viajeCreado);
 
-        // Act
-        var resultado = await _controller.Crear(nuevoViaje);
+            _viajeServiceMock
+                .Setup(s => s.ObtenerDetallePorIdAsync(1, 1))
+                .ReturnsAsync(CrearDetalleValido(1));
 
-        // Assert
-        var createdAtActionResult = Assert.IsType<CreatedAtActionResult>(resultado);
-        Assert.Equal(nameof(ApiViajeController.ObtenerPorId), createdAtActionResult.ActionName);
-            var viajeRetornado = Assert.IsType<Viaje>(createdAtActionResult.Value);
-        Assert.Equal(1, viajeRetornado.Id);
+            // Act
+            var resultado = await _controller.Crear(solicitud);
+
+            // Assert
+            var createdAtActionResult = Assert.IsType<CreatedAtActionResult>(resultado);
+            Assert.Equal(nameof(ApiViajeController.ObtenerPorId), createdAtActionResult.ActionName);
+
+            var detalleRetornado = Assert.IsType<ViajeDetalleDto>(createdAtActionResult.Value);
+            Assert.Equal(1, detalleRetornado.Id);
+
+            Assert.NotNull(viajeMapeado);
+            Assert.Equal(1, viajeMapeado.UsuarioId);
+            Assert.True(viajeMapeado.Activo);
+            Assert.Equal(0, viajeMapeado.OrigenLat);
+            Assert.Equal(0, viajeMapeado.OrigenLng);
+            Assert.Equal(new[] { 1, 2 }, viajeMapeado.Paradas.OrderBy(p => p.Orden).Select(p => p.Orden));
+            Assert.Equal("Parada 1", viajeMapeado.Paradas.OrderBy(p => p.Orden).First().Direccion);
+            Assert.Equal(new byte[] { 1, 3 }, viajeMapeado.ViajeDias.OrderBy(d => d.DiaSemana).Select(d => d.DiaSemana));
         }
 
         [Fact]
@@ -319,6 +337,26 @@ namespace RuteaYa.Tests
                 HttpContext = new DefaultHttpContext
                 {
                     User = new ClaimsPrincipal(new ClaimsIdentity())
+                }
+            };
+        }
+
+        private CrearViajeDto CrearViajeDtoValido()
+        {
+            return new CrearViajeDto
+            {
+                OrigenDir = "Av. Corrientes 1234, CABA",
+                DestinoDir = "Av. Santa Fe 4321, CABA",
+                HoraSalida = new TimeOnly(8, 0),
+                HoraLlegada = new TimeOnly(10, 0),
+                DiasSemana = new List<byte> { 3, 1 },
+                MaxPaquetes = 5,
+                PesoMaxKg = 50.0m,
+                DesvioMaxKm = 2.5m,
+                Paradas = new List<ParadaViajeDto>
+                {
+                    new() { Direccion = "Parada 1" },
+                    new() { Direccion = "Parada 2" }
                 }
             };
         }

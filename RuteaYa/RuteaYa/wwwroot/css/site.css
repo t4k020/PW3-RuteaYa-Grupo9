@@ -37,6 +37,9 @@ body {
     --sidebar-bg: #0f1628;
     --sidebar-surface: #1e293b;
     --potencial-bg: #e8f5e9;
+
+    /* Fuerza controles nativos (íconos de date/time) en modo claro. */
+    color-scheme: light;
 }
 
 [data-bs-theme="dark"] {
@@ -44,6 +47,9 @@ body {
     --sidebar-bg: #070d1a;
     --sidebar-surface: #111a2e;
     --potencial-bg: rgba(34, 197, 94, .12);
+
+    /* Fuerza controles nativos (íconos de date/time) en modo oscuro. */
+    color-scheme: dark;
 
     /* Variables de Bootstrap: tarjetas, inputs, tablas, etc. */
     --bs-body-bg: #111a2e;

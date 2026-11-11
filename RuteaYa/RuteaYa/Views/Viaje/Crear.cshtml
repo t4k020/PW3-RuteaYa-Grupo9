@@ -1,5 +1,239 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model RuteaYa.Servicios.Dtos.CrearViajeDto
+
 @{
+    ViewData["Title"] = "Nuevo viaje";
+
+    var dias = new (byte Numero, string Nombre)[]
+    {
+        (1, "Lun"),
+        (2, "Mar"),
+        (3, "Mié"),
+        (4, "Jue"),
+        (5, "Vie"),
+        (6, "Sáb"),
+        (7, "Dom")
+    };
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h2 class="fw-bold mb-1">Nuevo viaje</h2>
+            <p class="text-muted mb-0">Registrá un recorrido habitual</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-3">Volver</a>
+    </div>
+
+    <form asp-action="Crear" method="post" id="form-viaje">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <!-- Recorrido -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+            <div class="bg-light border-bottom px-4 py-3">
+                <h5 class="mb-1">Recorrido</h5>
+                <p class="text-muted small mb-0">Indicá desde dónde salís y a dónde vas.</p>
+            </div>
+            <div class="p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="OrigenDir" class="form-label">Origen</label>
+                        <input asp-for="OrigenDir" class="form-control" maxlength="150"
+                               placeholder="Ej.: Av. Cabildo 1234, CABA" />
+                        <div class="form-text">Punto de partida del viaje.</div>
+                        <span asp-validation-for="OrigenDir" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="DestinoDir" class="form-label">Destino</label>
+                        <input asp-for="DestinoDir" class="form-control" maxlength="150"
+                               placeholder="Ej.: Av. Hipólito Yrigoyen 5678, Lanús" />
+                        <div class="form-text">Punto de llegada del viaje.</div>
+                        <span asp-validation-for="DestinoDir" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Días y horarios -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+            <div class="bg-light border-bottom px-4 py-3">
+                <h5 class="mb-1">Días y horarios</h5>
+                <p class="text-muted small mb-0">Seleccioná los días y horarios en que hacés este recorrido.</p>
+            </div>
+            <div class="p-4">
+                <label class="form-label">Días de la semana</label>
+                <div class="d-flex flex-wrap gap-2" role="group" aria-label="Días de la semana">
+                    @foreach (var dia in dias)
+                    {
+                        var seleccionado = Model.DiasSemana.Contains(dia.Numero);
+                        <input class="btn-check" type="checkbox" name="DiasSemana" id="dia-@dia.Numero"
+                               value="@dia.Numero" autocomplete="off" @(seleccionado ? "checked" : "") />
+                        <label class="btn btn-outline-dark rounded-pill px-3" for="dia-@dia.Numero">@dia.Nombre</label>
+                    }
+                </div>
+                <span asp-validation-for="DiasSemana" class="text-danger d-block mt-2"></span>
+
+                <div class="row g-3 mt-3">
+                    <div class="col-md-6">
+                        <label asp-for="HoraSalida" class="form-label">Hora de salida</label>
+                        <input asp-for="HoraSalida" type="time" class="form-control" asp-format="{0:HH:mm}" />
+                        <span asp-validation-for="HoraSalida" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="HoraLlegada" class="form-label">Hora de llegada</label>
+                        <input asp-for="HoraLlegada" type="time" class="form-control" asp-format="{0:HH:mm}" />
+                        <div class="form-text">Debe ser posterior a la hora de salida.</div>
+                        <span asp-validation-for="HoraLlegada" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Capacidad y límites -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+            <div class="bg-light border-bottom px-4 py-3">
+                <h5 class="mb-1">Capacidad y límites</h5>
+                <p class="text-muted small mb-0">Definí cuánto podés llevar y cuánto desvío aceptás.</p>
+            </div>
+            <div class="p-4">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label asp-for="MaxPaquetes" class="form-label">Paquetes máximos</label>
+                        <input asp-for="MaxPaquetes" class="form-control" type="number" min="1" step="1" />
+                        <div class="form-text">Debe ser mayor que cero.</div>
+                        <span asp-validation-for="MaxPaquetes" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="PesoMaxKg" class="form-label">Peso máximo (kg)</label>
+                        <div class="input-group">
+                            <input asp-for="PesoMaxKg" class="form-control" type="number" min="0.01" step="0.01" />
+                            <span class="input-group-text">kg</span>
+                        </div>
+                        <div class="form-text">Debe ser mayor que cero.</div>
+                        <span asp-validation-for="PesoMaxKg" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="DesvioMaxKm" class="form-label">Desvío máximo (km)</label>
+                        <div class="input-group">
+                            <input asp-for="DesvioMaxKm" class="form-control" type="number" min="0" step="0.1" />
+                            <span class="input-group-text">km</span>
+                        </div>
+                        <div class="form-text">Si no querés desvíos, ingresá 0 km</div>
+                        <span asp-validation-for="DesvioMaxKm" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Paradas intermedias -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+            <div class="bg-light border-bottom px-4 py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <h5 class="mb-1">Paradas intermedias (opcional)</h5>
+                    <p class="text-muted small mb-0">Se recorren en el orden en que las agregás.</p>
+                </div>
+                <span class="badge rounded-pill text-bg-dark" id="contador-paradas">@Model.Paradas.Count</span>
+            </div>
+            <div class="p-4">
+                <div id="paradas-container" class="d-flex flex-column gap-3">
+                    @for (var i = 0; i < Model.Paradas.Count; i++)
+                    {
+                        <div class="card border rounded-4 p-3" data-parada-row>
+                            <div class="row g-2 align-items-center">
+                                <div class="col-auto">
+                                    <span class="badge rounded-pill text-bg-dark parada-numero">@(i + 1)</span>
+                                </div>
+                                <div class="col">
+                                    <input asp-for="Paradas[i].Direccion" class="form-control" maxlength="150"
+                                           placeholder="Ej.: Av. Rivadavia 5678, CABA" data-parada-direccion />
+                                    <span asp-validation-for="Paradas[i].Direccion" class="text-danger small d-block"></span>
+                                </div>
+                                <div class="col-auto">
+                                    <div class="btn-group" role="group" aria-label="Acciones de la parada">
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-mover-arriba
+                                                title="Mover arriba" aria-label="Mover parada arriba">&uarr;</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" data-mover-abajo
+                                                title="Mover abajo" aria-label="Mover parada abajo">&darr;</button>
+                                        <button type="button" class="btn btn-outline-danger btn-sm" data-eliminar-parada
+                                                title="Eliminar" aria-label="Eliminar parada">&times;</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <p id="paradas-vacio"
+                   class="text-muted small mb-0 @(Model.Paradas.Count > 0 ? "d-none" : "")">
+                    Todavía no agregaste paradas. El viaje puede guardarse solo con origen y destino.
+                </p>
+
+                <button type="button" class="btn btn-outline-dark rounded-pill px-3 mt-3" id="btn-agregar-parada">
+                    + Agregar parada
+                </button>
+            </div>
+        </div>
+
+        <!-- Ruta -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+            <div class="bg-light border-bottom px-4 py-3">
+                <h5 class="mb-1">Ruta del viaje</h5>
+                <p class="text-muted small mb-0">Visualizá y actualizá el recorrido cuando el servicio de mapas esté disponible.</p>
+            </div>
+            <div class="p-4">
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-outline-dark rounded-pill px-3" id="btn-mostrar-ruta"
+                            data-ruta-mensaje="Todavía no hay una ruta calculada. El servicio de mapas no está conectado en este entorno.">
+                        Mostrar ruta
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3" id="btn-actualizar-ruta"
+                            data-ruta-mensaje="No se pudo actualizar la ruta: el proveedor de mapas no está configurado.">
+                        Actualizar ruta
+                    </button>
+                </div>
+                <div id="ruta-aviso" class="alert alert-info border-start border-4 border-info rounded-3 mt-3 mb-0 d-none"
+                     role="status" aria-live="polite"></div>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mt-4">
+            <button type="submit" class="btn btn-dark rounded-pill px-4">Guardar viaje</button>
+            <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<!-- Plantilla para agregar paradas desde JavaScript -->
+<template id="plantilla-parada">
+    <div class="card border rounded-4 p-3" data-parada-row>
+        <div class="row g-2 align-items-center">
+            <div class="col-auto">
+                <span class="badge rounded-pill text-bg-dark parada-numero">1</span>
+            </div>
+            <div class="col">
+                <input class="form-control" type="text" name="Paradas[0].Direccion" id="Paradas_0__Direccion"
+                       placeholder="Ej.: Av. Rivadavia 5678, CABA" maxlength="150" data-parada-direccion
+                       data-val="true"
+                       data-val-required="La dirección de la parada es obligatoria."
+                       data-val-length="La dirección no puede superar los 150 caracteres."
+                       data-val-length-max="150" />
+                <span class="text-danger small d-block" data-valmsg-for="Paradas[0].Direccion" data-valmsg-replace="true"></span>
+            </div>
+            <div class="col-auto">
+                <div class="btn-group" role="group" aria-label="Acciones de la parada">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-mover-arriba
+                            title="Mover arriba" aria-label="Mover parada arriba">&uarr;</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-mover-abajo
+                            title="Mover abajo" aria-label="Mover parada abajo">&darr;</button>
+                    <button type="button" class="btn btn-outline-danger btn-sm" data-eliminar-parada
+                            title="Eliminar" aria-label="Eliminar parada">&times;</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/viaje-crear.js" asp-append-version="true"></script>
 }

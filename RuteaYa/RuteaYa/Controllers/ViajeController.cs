@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
 using RuteaYa.Servicios.Dtos;
+using System.Text.Json;
 
 
 namespace RuteaYa.Controllers
@@ -58,12 +59,12 @@ namespace RuteaYa.Controllers
         [HttpGet]
         public IActionResult Crear()
         {
-            return View();
+            return View(new CrearViajeDto());
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Crear(Viaje modelo)
+        public async Task<IActionResult> Crear(CrearViajeDto modelo)
         {
             if (!ModelState.IsValid)
             {
@@ -87,7 +88,27 @@ namespace RuteaYa.Controllers
                 }
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest)
                 {
-                    ModelState.AddModelError(string.Empty, "Error en los datos enviados a la API.");
+                    // Se muestra el detalle de validación devuelto por la API.
+                    ValidationProblemDetails? detalle = null;
+                    try
+                    {
+                        detalle = await respuesta.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+                    }
+                    catch (JsonException)
+                    {
+                    }
+
+                    var mensajes = detalle?.Errors
+                        .SelectMany(error => error.Value)
+                        .Where(mensaje => !string.IsNullOrWhiteSpace(mensaje))
+                        .Distinct()
+                        .ToList();
+
+                    ModelState.AddModelError(
+                        string.Empty,
+                        mensajes != null && mensajes.Count > 0
+                            ? string.Join(" ", mensajes)
+                            : "Error en los datos enviados a la API.");
                 }
                 else
                 {
