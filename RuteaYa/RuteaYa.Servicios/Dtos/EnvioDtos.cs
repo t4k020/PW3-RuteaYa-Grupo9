@@ -82,3 +82,14 @@ public sealed class ViajeAsociadoDto
     public List<string> DiasSemana { get; set; } = new();
     public string? NombreConductor { get; set; }
 }
+
+// DTO para recibir los datos cuando un usuario acepta y vincula un envío a su viaje
+public sealed class AsignarEnvioDto
+{
+    [Required(ErrorMessage = "El ID del viaje es obligatorio.")]
+    public int ViajeId { get; set; }
+
+    [Required(ErrorMessage = "La fecha del viaje es obligatoria.")]
+    [DataType(DataType.Date)]
+    public DateTime FechaViaje { get; set; }
+}

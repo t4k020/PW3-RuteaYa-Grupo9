@@ -1,0 +1,140 @@
+﻿@model RuteaYa.Servicios.Dtos.EnvioDto
+@{
+    ViewData["Title"] = "Detalle de oportunidad";
+    var misViajes = ViewBag.MisViajes as List<RuteaYa.Servicios.Dtos.ViajeListadoDto> ?? new List<RuteaYa.Servicios.Dtos.ViajeListadoDto>();
+
+    // Valores hardcodeados de geolocalización 
+    decimal distanciaHabitual = 18.4m;
+    decimal desvioKm = 3.0m;
+    decimal distanciaConEnvio = distanciaHabitual + desvioKm;
+    int tiempoHabitualMin = 55;
+    int tiempoAdicionalMin = 9;
+
+    // Cálculo estimado de ganancia por km adicional
+    decimal pagoPorKmAdicional = desvioKm > 0 ? Model.Monto / desvioKm : Model.Monto;
+}
+
+<div class="container mt-4">
+    <!-- Cabecera: Título y Botón Volver -->
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Detalle de oportunidad</h2>
+            <p class="text-muted mb-0 fs-5">@Model.OrigenDir &rarr; @Model.DestinoDir</p>
+        </div>
+        <a asp-action="Oportunidades" class="btn btn-outline-secondary rounded-pill px-4">
+            Volver
+        </a>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger rounded-4 mb-4">@TempData["Error"]</div>
+    }
+
+    <div class="row g-4 align-items-stretch">
+        <!-- Columna Izquierda: Tabla comparativa de Ruta habitual vs. con el envío -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <h5 class="fw-bold text-dark mb-4">Ruta habitual vs. con el envío</h5>
+
+                <div class="d-flex flex-column gap-3">
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-light-subtle">
+                        <span class="text-secondary">Distancia habitual</span>
+                        <span class="fw-bold text-dark">@distanciaHabitual.ToString("N1") km</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-light-subtle">
+                        <span class="text-secondary">Distancia con el envío</span>
+                        <span class="fw-bold text-dark">@distanciaConEnvio.ToString("N1") km</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-light-subtle">
+                        <span class="text-secondary">Desvío</span>
+                        <span class="fw-bold text-dark">@desvioKm.ToString("G") km</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-light-subtle">
+                        <span class="text-secondary">Tiempo habitual</span>
+                        <span class="fw-bold text-dark">@tiempoHabitualMin min</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-light-subtle">
+                        <span class="text-secondary">Tiempo adicional</span>
+                        <span class="fw-bold text-dark">+@tiempoAdicionalMin min</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-light-subtle">
+                        <span class="text-secondary">Peso</span>
+                        <span class="fw-bold text-dark">@Model.PesoKg.ToString("G") kg</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center py-2">
+                        <span class="text-secondary">Capacidad restante</span>
+                        <span class="fw-bold text-dark">2 kg &middot; 2 paquetes</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Derecha: Tarjeta de Pago y Confirmación de Asignación -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100 justify-content-between" style="background-color: #e8f5e9;">
+                <div>
+                    <span class="text-success fw-semibold d-block mb-2">Pago</span>
+                    <h1 class="display-4 fw-bold text-success mb-1">
+                        $@Model.Monto.ToString("N0")
+                    </h1>
+                    <p class="text-success small mb-4">
+                        $@pagoPorKmAdicional.ToString("N0") por km adicional
+                    </p>
+                </div>
+
+                <div>
+                    @if (!misViajes.Any())
+                    {
+                        <div class="alert alert-warning border-0 rounded-4 mb-3">
+                            No tienes viajes activos configurados para vincular este paquete.
+                        </div>
+                        <a asp-controller="Viaje" asp-action="Crear" class="btn btn-dark rounded-3 w-100 py-3 fw-bold">
+                            Crear un viaje
+                        </a>
+                    }
+                    else
+                    {
+                        <form asp-action="Vincular" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="envioId" value="@Model.Id" />
+
+                            <!-- Selección del viaje propio -->
+                            <div class="mb-3 text-start">
+                                <label for="viajeId" class="form-label text-dark small fw-semibold">Asignar a mi viaje:</label>
+                                <select name="viajeId" id="viajeId" class="form-select border-0 rounded-3 py-2 shadow-sm" required>
+                                    <option value="">-- Selecciona un viaje --</option>
+                                    @foreach (var viaje in misViajes)
+                                    {
+                                        <option value="@viaje.Id">
+                                            @viaje.OrigenDir &rarr; @viaje.DestinoDir
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- Selección de la fecha -->
+                            <div class="mb-4 text-start">
+                                <label for="fechaViaje" class="form-label text-dark small fw-semibold">Fecha del viaje:</label>
+                                <input type="date" id="fechaViaje" name="fechaViaje" class="form-control border-0 rounded-3 py-2 shadow-sm"
+                                       min="@DateTime.Today.ToString("yyyy-MM-dd")"
+                                       max="@Model.FechaLimite.ToString("yyyy-MM-dd")" required />
+                            </div>
+
+                            <!-- Botón principal según el diseño visual -->
+                            <button type="submit" class="btn btn-dark rounded-3 w-100 py-3 fw-bold fs-5 shadow-sm" style="background-color: #0b132b; border: none;">
+                                Aceptar envío
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

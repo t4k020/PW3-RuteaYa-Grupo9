@@ -194,6 +194,91 @@ public class ApiEnvioController : ControllerBase
         }
     }
 
+    [HttpPost("{id:int}/asignar")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> VincularEnvioApi(int id, [FromBody] AsignarEnvioDto solicitud)
+    {
+        if (!TryObtenerUsuarioId(out var usuarioId))
+        {
+            return Unauthorized();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        try
+        {
+            // Ejecuta la lógica de vinculación en el servicio
+            await _envioService.VincularEnvioAViajeAsync(
+                id,
+                solicitud.ViajeId,
+                solicitud.FechaViaje,
+                usuarioId);
+
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Maneja los errores de reglas de negocio exactamente igual que en CancelarEnvioApi
+            return BadRequest(new ProblemDetails
+            {
+                Title = "No se puede asignar el envío.",
+                Detail = ex.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Ocurrió un error interno al intentar vincular el envío.");
+        }
+    }
+
+    [HttpGet("oportunidades")]
+    [ProducesResponseType(typeof(IEnumerable<EnvioDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObtenerOportunidadesApi(CancellationToken cancellationToken)
+    {
+        if (!TryObtenerUsuarioId(out var usuarioId))
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+
+            var envios = await _envioService.ObtenerOportunidadesDisponiblesAsync(usuarioId);
+
+ 
+            var dtos = envios.Select(e => Mapear(e)).ToList();
+
+            return Ok(dtos);
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Ocurrió un error interno al obtener las oportunidades.");
+        }
+    }
+
+    [HttpGet("oportunidades/{id:int}")]
+    public async Task<IActionResult> ObtenerOportunidadPorIdApi(int id)
+    {
+        if (!TryObtenerUsuarioId(out var usuarioId))
+        {
+            return Unauthorized();
+        }
+
+        var envio = await _envioService.ObtenerDetalleOportunidadAsync(id, usuarioId);
+
+        return envio == null ? NotFound() : Ok(envio);
+    }
+
+
+
     /// <summary>
     /// Método privado: Extrae el ID del usuario desde el JWT (Claims).
     /// CLAVE: Nunca confiar en datos del cliente, siempre extraer desde tokens seguros.
