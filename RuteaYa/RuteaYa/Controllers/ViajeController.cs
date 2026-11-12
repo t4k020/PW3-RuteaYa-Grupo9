@@ -306,5 +306,69 @@ namespace RuteaYa.Controllers
             return RedirectToAction("Index");
         }
 
+        [HttpGet]
+        public async Task<IActionResult> MisTransportes()
+        {
+            var client = _httpClientFactory.CreateClient("ApiViaje");
+
+            try
+            {
+                HttpResponseMessage respuesta = await client.GetAsync($"{ApiRoute}/MisTransportes");
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    var opciones = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    // AHORA ESPERAMOS LA LISTA DE VIAJES CON DETALLE
+                    var transportes = await respuesta.Content.ReadFromJsonAsync<List<ViajeDetalleDto>>(opciones)
+                                      ?? new List<ViajeDetalleDto>();
+                    return View(transportes);
+                }
+                TempData["Error"] = "No se pudieron cargar tus transportes.";
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "No se pudo conectar con el servidor.";
+            }
+
+            return View(new List<ViajeDetalleDto>());
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarcarRetirado(int id) => await CambiarEstadoTransporte(id, "retirado");
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarcarEnCamino(int id) => await CambiarEstadoTransporte(id, "en-camino");
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarcarEntregado(int id) => await CambiarEstadoTransporte(id, "entregado");
+
+        // Método auxiliar 
+        private async Task<IActionResult> CambiarEstadoTransporte(int id, string accion)
+        {
+            var client = _httpClientFactory.CreateClient("ApiViaje");
+            try
+            {
+                var respuesta = await client.PostAsync($"{ApiRoute}/{id}/estado/{accion}", null);
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    TempData["Mensaje"] = "El estado del envío fue actualizado.";
+                }
+                else
+                {
+                    TempData["Error"] = "No se pudo actualizar el estado del envío.";
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "Error de conexión con la API.";
+            }
+
+            return RedirectToAction(nameof(MisTransportes));
+        }
+
     }
 }

@@ -14,4 +14,5 @@
         public List<string> DiasSemana { get; set; }
         public List<PaqueteDto> PaquetesAsignados { get; set; } = new();
     }
+
 }
