@@ -36,6 +36,37 @@ namespace RuteaYa.Tests
         }
 
         [Fact]
+        public async Task CuandoCreoUnViajeConParadasYDiasSePersistenCorrectamente()
+        {
+            // Arrange
+            using var context = new RuteaYaDbContext(CrearOpcionesMemoria());
+            var service = new ViajeService(context);
+            var nuevoViaje = CrearViajeValido(0);
+            nuevoViaje.Paradas.Add(new Parada { Orden = 1, Direccion = "Parada 1" });
+            nuevoViaje.Paradas.Add(new Parada { Orden = 2, Direccion = "Parada 2" });
+            nuevoViaje.ViajeDias.Add(new ViajeDia { DiaSemana = 1 });
+            nuevoViaje.ViajeDias.Add(new ViajeDia { DiaSemana = 3 });
+
+            // Act
+            var resultado = await service.CrearViajeAsync(nuevoViaje);
+
+            // Assert
+            var viajeEnDb = await context.Viajes
+                .Include(v => v.Paradas)
+                .Include(v => v.ViajeDias)
+                .FirstAsync(v => v.Id == resultado.Id, TestContext.Current.CancellationToken);
+
+            Assert.Equal(2, viajeEnDb.Paradas.Count);
+            Assert.Equal(2, viajeEnDb.ViajeDias.Count);
+            Assert.Equal(
+                new[] { "Parada 1", "Parada 2" },
+                viajeEnDb.Paradas.OrderBy(p => p.Orden).Select(p => p.Direccion));
+            Assert.Equal(
+                new byte[] { 1, 3 },
+                viajeEnDb.ViajeDias.OrderBy(d => d.DiaSemana).Select(d => d.DiaSemana));
+        }
+
+        [Fact]
         public async Task ObtenerPorIdAsync_DeberiaRetornarViaje_CuandoElIdExiste()
         {
             // Arrange

@@ -51,7 +51,7 @@ namespace RuteaYa.Tests
         {
             // Arrange
             ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.Created));
-            var nuevoViaje = CrearViajeValido(0);
+            var nuevoViaje = CrearViajeDtoValido();
 
             // Act
             var resultado = await _controller.Crear(nuevoViaje);
@@ -67,15 +67,40 @@ namespace RuteaYa.Tests
         {
             // Arrange
             SetHttpServerError(new HttpRequestException("Error de red"));
-            var nuevoViaje = CrearViajeValido(0);
+            var nuevoViaje = CrearViajeDtoValido();
 
             // Act
             var resultado = await _controller.Crear(nuevoViaje);
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(resultado);
-            var modeloRetornado = Assert.IsType<Viaje>(viewResult.Model);
+            var modeloRetornado = Assert.IsType<CrearViajeDto>(viewResult.Model);
             Assert.True(_controller.ModelState.ErrorCount > 0);
+        }
+
+        [Fact]
+        public async Task Crear_DeberiaMostrarDetalleDeValidacion_CuandoLaApiRespondeBadRequest()
+        {
+            // Arrange
+            var detalles = new ValidationProblemDetails(new Dictionary<string, string[]>
+            {
+                ["OrigenDir"] = new[] { "El origen es obligatorio." }
+            });
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = JsonContent.Create(detalles)
+            });
+            var nuevoViaje = CrearViajeDtoValido();
+
+            // Act
+            var resultado = await _controller.Crear(nuevoViaje);
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(resultado);
+            Assert.IsType<CrearViajeDto>(viewResult.Model);
+            Assert.Contains(
+                _controller.ModelState[string.Empty]!.Errors,
+                error => error.ErrorMessage.Contains("El origen es obligatorio."));
         }
 
         [Fact]
@@ -195,6 +220,25 @@ namespace RuteaYa.Tests
                     ItExpr.IsAny<CancellationToken>()
                 )
                 .ThrowsAsync(excepcion);
+        }
+
+        private CrearViajeDto CrearViajeDtoValido()
+        {
+            return new CrearViajeDto
+            {
+                OrigenDir = "Av. Corrientes 1234, CABA",
+                DestinoDir = "Av. Santa Fe 4321, CABA",
+                HoraSalida = new TimeOnly(8, 0),
+                HoraLlegada = new TimeOnly(10, 0),
+                DiasSemana = new List<byte> { 1, 3, 5 },
+                MaxPaquetes = 5,
+                PesoMaxKg = 50.0m,
+                DesvioMaxKm = 2.5m,
+                Paradas = new List<ParadaViajeDto>
+                {
+                    new() { Direccion = "Av. Callao 100, CABA" }
+                }
+            };
         }
 
         private Viaje CrearViajeValido(int id = 1)

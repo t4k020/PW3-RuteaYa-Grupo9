@@ -63,22 +63,31 @@ namespace RuteaYa.Servicios.Controllers
 
         
         [HttpPost]
-        public async Task<IActionResult> Crear([FromBody] Viaje viaje)
+        [ProducesResponseType(typeof(ViajeDetalleDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Crear([FromBody] CrearViajeDto solicitud)
         {
             if (!TryObtenerUsuarioId(out int usuarioId))
                 return Unauthorized();
 
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                var detalles = new ValidationProblemDetails(ModelState)
+                {
+                    Title = "Datos inválidos.",
+                    Status = StatusCodes.Status400BadRequest
+                };
+                return BadRequest(detalles);
             }
 
             try
             {
-                viaje.UsuarioId = usuarioId;
-                
+                var viaje = Mapear(solicitud, usuarioId);
                 var viajeCreado = await _viajeService.CrearViajeAsync(viaje);
-                return CreatedAtAction(nameof(ObtenerPorId), new { id = viajeCreado.Id }, viajeCreado);
+                var detalle = await _viajeService.ObtenerDetallePorIdAsync(viajeCreado.Id, usuarioId);
+
+                return CreatedAtAction(nameof(ObtenerPorId), new { id = viajeCreado.Id }, detalle);
             }
             catch (Exception)
             {
@@ -161,6 +170,47 @@ namespace RuteaYa.Servicios.Controllers
             {
                 return StatusCode(500, "Ocurrió un error interno al desactivar el viaje.");
             }
+        }
+
+        // Construye la entidad a partir del DTO. El usuario, las coordenadas y
+        // la distancia/duración los define el servidor, nunca el cliente.
+        private static Viaje Mapear(CrearViajeDto solicitud, int usuarioId)
+        {
+            var paradas = solicitud.Paradas ?? new List<ParadaViajeDto>();
+            var dias = solicitud.DiasSemana ?? new List<byte>();
+
+            return new Viaje
+            {
+                UsuarioId = usuarioId,
+                OrigenDir = solicitud.OrigenDir.Trim(),
+                OrigenLat = 0,
+                OrigenLng = 0,
+                DestinoDir = solicitud.DestinoDir.Trim(),
+                DestinoLat = 0,
+                DestinoLng = 0,
+                HoraSalida = solicitud.HoraSalida!.Value,
+                HoraLlegada = solicitud.HoraLlegada!.Value,
+                MaxPaquetes = solicitud.MaxPaquetes,
+                PesoMaxKg = solicitud.PesoMaxKg,
+                DesvioMaxKm = solicitud.DesvioMaxKm,
+                DistanciaKm = 0,
+                DuracionMin = 0,
+                Activo = true,
+                ViajeDias = dias
+                    .Distinct()
+                    .OrderBy(dia => dia)
+                    .Select(dia => new ViajeDia { DiaSemana = dia })
+                    .ToList(),
+                Paradas = paradas
+                    .Select((parada, indice) => new Parada
+                    {
+                        Orden = indice + 1,
+                        Direccion = parada.Direccion.Trim(),
+                        Lat = 0,
+                        Lng = 0
+                    })
+                    .ToList()
+            };
         }
 
         // Obtiene el ID del usuario autenticado desde el JWT
