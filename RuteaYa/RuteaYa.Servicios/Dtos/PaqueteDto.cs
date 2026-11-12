@@ -7,5 +7,7 @@
         public int Estado { get; set; }
         public DateTime FechaLimite { get; set; }
         public decimal Monto { get; set; }
+        public string OrigenDir { get; set; } = string.Empty;
+        public string DestinoDir { get; set; } = string.Empty;
     }
 }

@@ -1,0 +1,116 @@
+﻿@model IEnumerable<RuteaYa.Servicios.Dtos.ViajeDetalleDto>
+@{
+    ViewData["Title"] = "Mis transportes";
+}
+
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Mis transportes</h2>
+            <p class="text-muted mb-0">Paquetes que aceptaste llevar en tus viajes.</p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-4">
+            Volver a mis viajes
+        </a>
+    </div>
+
+    @if (TempData["Mensaje"] != null)
+    {
+        <div class="alert alert-success rounded-4">@TempData["Mensaje"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger rounded-4">@TempData["Error"]</div>
+    }
+
+    @if (Model != null && Model.Any())
+    {
+        foreach (var viaje in Model)
+        {
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <!-- Encabezado del Viaje -->
+                <div class="card-header bg-white border-bottom border-light-subtle p-3 rounded-top-4">
+                    <h5 class="mb-0 fw-bold text-dark">
+                        Viaje: @viaje.OrigenDir &rarr; @viaje.DestinoDir
+                    </h5>
+                    <small class="text-muted">Horario: @viaje.HoraSalida - @viaje.HoraLlegada</small>
+                </div>
+                <a asp-controller="Viaje" asp-action="Detalle" asp-route-id="@viaje.Id" class="btn btn-outline-secondary btn-sm rounded-pill px-3 bg-white">
+                    Ver viaje
+                </a>
+                <div class="card-body p-0">
+                    @foreach (var envio in viaje.PaquetesAsignados)
+                    {
+                        var estadoEnum = (RuteaYa.Entidades.EstadoEnvio)envio.Estado;
+
+                        var estadoTexto = System.Text.RegularExpressions.Regex.Replace(estadoEnum.ToString(), "([a-z])([A-Z])", "$1 $2");
+
+                        var badgeClass = estadoEnum switch
+                        {
+                            RuteaYa.Entidades.EstadoEnvio.ConductorAsignado or RuteaYa.Entidades.EstadoEnvio.Retirado => "bg-primary-subtle text-primary-emphasis",
+                            RuteaYa.Entidades.EstadoEnvio.EnCamino => "bg-info-subtle text-info-emphasis",
+                            RuteaYa.Entidades.EstadoEnvio.Entregado => "bg-success-subtle text-success-emphasis",
+                            _ => "bg-secondary-subtle text-secondary-emphasis"
+                        };
+
+                        <div class="d-flex justify-content-between align-items-center p-3 border-bottom border-light-subtle flex-wrap gap-3">
+
+ 
+                            <div>
+                                <h6 class="mb-1 fw-bold text-dark">@envio.Descripcion</h6>
+                                <p class="text-muted small mb-0">
+                                    @envio.OrigenDir &rarr; @envio.DestinoDir &middot; <span class="text-success fw-bold">$@envio.Monto.ToString("N0")</span>
+                                </p>
+                            </div>
+
+                            <!-- Acciones -->
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+
+                                <!-- Badge (Usa la variable badgeClass declarada arriba) -->
+                                <span class="badge @badgeClass px-3 py-2 rounded-pill fw-normal me-2">
+                                    @estadoTexto
+                                </span>
+
+                                <a asp-controller="Envio" asp-action="DetallesOportunidad" asp-route-id="@envio.Id" class="btn btn-outline-secondary btn-sm rounded-pill px-3 bg-white">
+                                    Ver envío
+                                </a>
+
+                                <!-- BOTONES  -->
+                                @if (estadoEnum == RuteaYa.Entidades.EstadoEnvio.ConductorAsignado)
+                                {
+                                    <form asp-action="MarcarRetirado" asp-route-id="@envio.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-dark btn-sm rounded-pill px-4 fw-semibold">Marcar retirado</button>
+                                    </form>
+                                }
+                                else if (estadoEnum == RuteaYa.Entidades.EstadoEnvio.Retirado)
+                                {
+                                    <form asp-action="MarcarEnCamino" asp-route-id="@envio.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-dark btn-sm rounded-pill px-4 fw-semibold">Marcar en camino</button>
+                                    </form>
+                                }
+                                else if (estadoEnum == RuteaYa.Entidades.EstadoEnvio.EnCamino)
+                                {
+                                    <form asp-action="MarcarEntregado" asp-route-id="@envio.Id" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-dark btn-sm rounded-pill px-4 fw-semibold">Marcar entregado</button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="card border-0 shadow-sm rounded-4 p-5 text-center text-muted">
+            <p class="mb-2">Aún no tienes transportes asignados.</p>
+            <a asp-controller="Envio" asp-action="Oportunidades" class="btn btn-dark rounded-pill px-4 mt-3">
+                Buscar oportunidades
+            </a>
+        </div>
+    }
+</div>

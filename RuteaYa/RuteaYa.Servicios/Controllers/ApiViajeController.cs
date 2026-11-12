@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
+using RuteaYa.Servicios.Dtos;
 using System.Security.Claims;
 
 namespace RuteaYa.Servicios.Controllers
@@ -169,6 +170,62 @@ namespace RuteaYa.Servicios.Controllers
                 User.FindFirstValue(ClaimTypes.NameIdentifier),
                 out usuarioId
             );
+        }
+
+        [HttpGet("MisTransportes")]
+        public async Task<IActionResult> ObtenerMisTransportes()
+        {
+            if (!TryObtenerUsuarioId(out int usuarioId))
+                return Unauthorized();
+
+            try
+            {
+
+                var viajes = await _viajeService.ObtenerParaListadoAsync(null, usuarioId);
+
+                var viajesConDetalle = new List<ViajeDetalleDto>();
+
+
+                foreach (var viaje in viajes)
+                {
+                    var detalle = await _viajeService.ObtenerDetallePorIdAsync(viaje.Id, usuarioId);
+                    if (detalle != null)
+                    {
+                        var paquetesValidos = detalle.PaquetesAsignados
+                            .Where(p => p.Estado != (byte)EstadoEnvio.Cancelado)
+                            .ToList();
+
+                        if (paquetesValidos.Any())
+                        {
+                            detalle.PaquetesAsignados = paquetesValidos;
+                            viajesConDetalle.Add(detalle);
+                        }
+                    }
+                }
+
+                return Ok(viajesConDetalle);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Ocurrió un error interno al obtener los transportes.");
+            }
+        }
+
+        [HttpPost("{id:int}/estado/{accion}")]
+        public async Task<IActionResult> CambiarEstadoTransporte(int id, string accion)
+        {
+            if (!TryObtenerUsuarioId(out var usuarioId)) return Unauthorized();
+
+            try
+            {
+ 
+                var actualizado = await _viajeService.CambiarEstadoTransporteAsync(id, accion, usuarioId);
+                return actualizado ? NoContent() : NotFound();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ProblemDetails { Detail = ex.Message });
+            }
         }
     }
 }

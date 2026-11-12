@@ -15,6 +15,8 @@ namespace RuteaYa.Servicios
         Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync(bool? soloActivo, int usuarioId);
         Task<bool> DesactivarViajeAsync(int id, int usuarioId);
         Task<ViajeDetalleDto?> ObtenerDetallePorIdAsync(int id, int usuarioId);
+        Task<List<Envio>> ObtenerTransportesAsignadosAsync(int usuarioId);
+        Task<bool> CambiarEstadoTransporteAsync(int envioId, string accion, int usuarioId);
     }
 
     public class ViajeService : IViajeService
@@ -157,15 +159,12 @@ namespace RuteaYa.Servicios
 
         public async Task<ViajeDetalleDto?> ObtenerDetallePorIdAsync(int id, int usuarioId)
         {
-            // Buscamos el viaje incluyendo los días y las asignaciones con sus envíos correspondientes
+            
             var viaje = await _context.Viajes
-                .Where(v =>
-                v.Id == id &&
-                v.UsuarioId == usuarioId
-                )
+                .Where(v => v.Id == id && v.UsuarioId == usuarioId)
                 .Include(v => v.ViajeDias)
                 .Include(v => v.Asignaciones)
-                    .ThenInclude(a => a.Envio)
+                    .ThenInclude(a => a.Envio) 
                 .FirstOrDefaultAsync();
 
             if (viaje == null) return null;
@@ -191,11 +190,70 @@ namespace RuteaYa.Servicios
                     Descripcion = a.Envio.Descripcion,
                     Estado = a.Envio.Estado,
                     FechaLimite = a.Envio.FechaLimite,
-                    Monto = a.Envio.Monto
+                    Monto = a.Envio.Monto,
+                    OrigenDir = a.Envio.OrigenDir,
+                    DestinoDir = a.Envio.DestinoDir
                 }).ToList()
             };
 
             return detalleDto;
+        }
+
+        public async Task<List<Envio>> ObtenerTransportesAsignadosAsync(int usuarioId)
+        {
+            // Buscamos envíos donde el viaje asociado pertenezca al usuario logueado
+            return await _context.Envios
+                .AsNoTracking()
+                .Where(e => _context.Asignaciones.Any(a => a.EnvioId == e.Id && a.Viaje.UsuarioId == usuarioId))
+                // Excluimos los que están cancelados o buscando conductor
+                .Where(e => e.Estado != (byte)EstadoEnvio.BuscandoConductor && e.Estado != (byte)EstadoEnvio.Cancelado)
+                .OrderByDescending(e => e.CreadoEn)
+                .ToListAsync();
+        }
+
+        public async Task<bool> CambiarEstadoTransporteAsync(int envioId, string accion, int usuarioId)
+        {
+            // Validar que el envío pertenezca a un viaje de este usuario
+            var envio = await _context.Envios
+                .FirstOrDefaultAsync(e => e.Id == envioId &&
+                    _context.Asignaciones.Any(a => a.EnvioId == e.Id && a.Viaje.UsuarioId == usuarioId));
+
+            if (envio == null) throw new InvalidOperationException("Envío no encontrado o no te pertenece.");
+
+            var estadoActual = (EstadoEnvio)envio.Estado;
+            byte nuevoEstado = 0;
+
+            switch (accion.ToLower())
+            {
+                case "retirado":
+                    if (estadoActual != EstadoEnvio.ConductorAsignado) throw new InvalidOperationException("El paquete no está listo para retirar.");
+                    nuevoEstado = (byte)EstadoEnvio.Retirado;
+                    break;
+                case "en-camino":
+                    if (estadoActual != EstadoEnvio.Retirado) throw new InvalidOperationException("Primero debes marcar el paquete como retirado.");
+                    nuevoEstado = (byte)EstadoEnvio.EnCamino;
+                    break;
+                case "entregado":
+                    if (estadoActual != EstadoEnvio.EnCamino) throw new InvalidOperationException("El paquete debe estar en camino para entregarse.");
+                    nuevoEstado = (byte)EstadoEnvio.Entregado;
+                    break;
+                default:
+                    throw new InvalidOperationException("Acción no válida.");
+            }
+
+            var estadoAnterior = envio.Estado;
+            envio.Estado = nuevoEstado;
+
+            _context.EnvioEstadoHistoriales.Add(new EnvioEstadoHistorial
+            {
+                EnvioId = envio.Id,
+                EstadoAnterior = estadoAnterior,
+                EstadoNuevo = nuevoEstado,
+                Fecha = DateTime.Now
+            });
+
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }
