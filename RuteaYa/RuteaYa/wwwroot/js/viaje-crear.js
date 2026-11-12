@@ -13,6 +13,32 @@
     const contador = document.getElementById('contador-paradas');
     const rutaAviso = document.getElementById('ruta-aviso');
 
+    // Aviso general de validación: se muestra solo al intentar guardar.
+    const avisoValidacion = document.getElementById('aviso-validacion');
+
+    const mostrarAvisoValidacion = () => {
+        if (!avisoValidacion) {
+            return;
+        }
+
+        avisoValidacion.classList.remove('d-none');
+        avisoValidacion.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    const jquery = window.jQuery;
+    const validacionDisponible = jquery && jquery.validator;
+
+    if (validacionDisponible) {
+        // jQuery Validate dispara este evento únicamente al intentar enviar un formulario inválido.
+        jquery(form).on('invalid-form.validate', mostrarAvisoValidacion);
+    } else {
+        form.addEventListener('submit', () => {
+            if (!form.checkValidity()) {
+                mostrarAvisoValidacion();
+            }
+        });
+    }
+
     const obtenerFilas = () => Array.from(contenedor.querySelectorAll('[data-parada-row]'));
 
     const reparsearValidacion = () => {

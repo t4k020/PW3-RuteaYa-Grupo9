@@ -16,6 +16,16 @@
 }
 
 <div class="container mt-4">
+    @* Aviso general: se muestra al intentar guardar con datos inválidos. *@
+    <div id="aviso-validacion"
+         class="alert alert-danger rounded-4 shadow-sm mb-4 @(ViewData.ModelState.IsValid ? "d-none" : string.Empty)"
+         role="alert" aria-live="assertive">
+        <div class="d-flex align-items-start gap-2">
+            <span aria-hidden="true">⚠️</span>
+            <span>Datos incorrectos, revisá los datos.</span>
+        </div>
+    </div>
+
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
             <h2 class="fw-bold mb-1">Nuevo viaje</h2>
@@ -39,14 +49,14 @@
                     <div class="col-md-6">
                         <label asp-for="OrigenDir" class="form-label">Origen</label>
                         <input asp-for="OrigenDir" class="form-control" maxlength="150"
-                               placeholder="Ej.: Av. Cabildo 1234, CABA" />
+                               placeholder="Ej.: CABA" />
                         <div class="form-text">Punto de partida del viaje.</div>
                         <span asp-validation-for="OrigenDir" class="text-danger"></span>
                     </div>
                     <div class="col-md-6">
                         <label asp-for="DestinoDir" class="form-label">Destino</label>
                         <input asp-for="DestinoDir" class="form-control" maxlength="150"
-                               placeholder="Ej.: Av. Hipólito Yrigoyen 5678, Lanús" />
+                               placeholder="Ej.: Lanús" />
                         <div class="form-text">Punto de llegada del viaje.</div>
                         <span asp-validation-for="DestinoDir" class="text-danger"></span>
                     </div>
@@ -145,7 +155,7 @@
                                 </div>
                                 <div class="col">
                                     <input asp-for="Paradas[i].Direccion" class="form-control" maxlength="150"
-                                           placeholder="Ej.: Av. Rivadavia 5678, CABA" data-parada-direccion />
+                                           placeholder="Ej.: Chacarita" data-parada-direccion />
                                     <span asp-validation-for="Paradas[i].Direccion" class="text-danger small d-block"></span>
                                 </div>
                                 <div class="col-auto">
@@ -212,7 +222,7 @@
             </div>
             <div class="col">
                 <input class="form-control" type="text" name="Paradas[0].Direccion" id="Paradas_0__Direccion"
-                       placeholder="Ej.: Av. Rivadavia 5678, CABA" maxlength="150" data-parada-direccion
+                       placeholder="Ej.: Chacarita" maxlength="150" data-parada-direccion
                        data-val="true"
                        data-val-required="La dirección de la parada es obligatoria."
                        data-val-length="La dirección no puede superar los 150 caracteres."
