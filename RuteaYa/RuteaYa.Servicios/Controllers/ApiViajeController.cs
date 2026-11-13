@@ -172,6 +172,33 @@ namespace RuteaYa.Servicios.Controllers
             }
         }
 
+        //volver a activar un viaje desactivado
+        [HttpPost("{id}/activar")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> Activar(int id)
+        {
+            if (!TryObtenerUsuarioId(out int usuarioId))
+                return Unauthorized();
+
+            try
+            {
+                var activado = await _viajeService.ActivarViajeAsync(id, usuarioId);
+
+                if (!activado)
+                {
+                    return NotFound();
+                }
+
+                return NoContent(); // 204 No Content
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Ocurrió un error interno al activar el viaje.");
+            }
+        }
+
         // Construye la entidad a partir del DTO. El usuario, las coordenadas y
         // la distancia/duración los define el servidor, nunca el cliente.
         private static Viaje Mapear(CrearViajeDto solicitud, int usuarioId)

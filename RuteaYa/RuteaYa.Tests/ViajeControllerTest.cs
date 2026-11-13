@@ -198,6 +198,50 @@ namespace RuteaYa.Tests
         }
 
 
+        [Fact]
+        public async Task Activar_DeberiaRedireccionarAIndexConMensajeExito_CuandoLaApiRespondeOk()
+        {
+            // Arrange
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NoContent));
+
+            // Act
+            var resultado = await _controller.Activar(1);
+
+            // Assert
+            var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirectToActionResult.ActionName);
+            Assert.Equal("¡Viaje activado con éxito!", _controller.TempData["Mensaje"]);
+        }
+
+        [Fact]
+        public async Task Activar_DeberiaRedireccionarAIndexConError_CuandoLaApiRetornaNotFound()
+        {
+            // Arrange
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            // Act
+            var resultado = await _controller.Activar(999);
+
+            // Assert
+            var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirectToActionResult.ActionName);
+            Assert.Equal("No se encontró el viaje a activar.", _controller.TempData["Error"]);
+        }
+
+        [Fact]
+        public void Paquete_DeberiaDevolverLaVistaDePlaceholderConLosIds()
+        {
+            // Act
+            var resultado = _controller.Paquete(5, 12);
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(resultado);
+            // Sin ViewName explícito: MVC resuelve Views/Viaje/Paquete.cshtml por convención.
+            Assert.Null(viewResult.ViewName);
+            Assert.Equal(5, _controller.ViewData["ViajeId"]);
+            Assert.Equal(12, _controller.ViewData["EnvioId"]);
+        }
+
         private void ConfigurarRespuestaHttp(HttpResponseMessage respuesta)
         {
             _httpMessageHandlerMock

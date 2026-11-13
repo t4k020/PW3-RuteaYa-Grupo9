@@ -163,7 +163,7 @@ namespace RuteaYa.Tests
         }
 
         [Fact]
-        public async Task EliminarViajeAsync_DeberiaRetornarTrue_CuandoElViajeExiste()
+        public async Task EliminarViajeAsync_DeberiaHacerBorradoLogico_CuandoElViajeExiste()
         {
             // Arrange
             var options = CrearOpcionesMemoria();
@@ -182,9 +182,157 @@ namespace RuteaYa.Tests
 
                 // Assert
                 Assert.True(resultado);
+            }
+
+            // Assert: la fila se conserva en la base para no perder el historial,
+            // pero deja de devolverse en los listados y en el detalle.
+            using (var context = new RuteaYaDbContext(options))
+            {
+                var viajeEnDb = await context.Viajes
+                    .IgnoreQueryFilters()
+                    .FirstOrDefaultAsync(v => v.Id == 1, TestContext.Current.CancellationToken);
+                Assert.NotNull(viajeEnDb);
+                Assert.NotNull(viajeEnDb.EliminadoEn);
+
+                var service = new ViajeService(context);
+                Assert.Null(await service.ObtenerDetallePorIdAsync(1, 1));
+                Assert.Empty(await service.ObtenerParaListadoAsync(null, 1));
+            }
+        }
+
+        [Fact]
+        public async Task EliminarViajeAsync_DeberiaRetornarFalse_CuandoElViajeEsDeOtroUsuario()
+        {
+            // Arrange
+            var options = CrearOpcionesMemoria();
+
+            using (var context = new RuteaYaDbContext(options))
+            {
+                context.Viajes.Add(CrearViajeValido(1));
+                await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            }
+
+            // Act
+            using (var context = new RuteaYaDbContext(options))
+            {
+                var service = new ViajeService(context);
+                var resultado = await service.EliminarViajeAsync(1, 99);
+
+                // Assert
+                Assert.False(resultado);
+            }
+        }
+
+        [Fact]
+        public async Task ActivarViajeAsync_DeberiaVolverActivoElViaje()
+        {
+            // Arrange
+            var options = CrearOpcionesMemoria();
+            var viajeDesactivado = CrearViajeValido(1);
+            viajeDesactivado.Activo = false;
+
+            using (var context = new RuteaYaDbContext(options))
+            {
+                context.Viajes.Add(viajeDesactivado);
+                await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            }
+
+            // Act
+            using (var context = new RuteaYaDbContext(options))
+            {
+                var service = new ViajeService(context);
+                var resultado = await service.ActivarViajeAsync(1, 1);
+
+                // Assert
+                Assert.True(resultado);
 
                 var viajeEnDb = await context.Viajes.FindAsync(new object[] { 1 }, TestContext.Current.CancellationToken);
-                Assert.Null(viajeEnDb);
+                Assert.NotNull(viajeEnDb);
+                Assert.True(viajeEnDb.Activo);
+            }
+        }
+
+        [Fact]
+        public async Task ActivarViajeAsync_DeberiaRetornarFalse_CuandoElViajeNoExiste()
+        {
+            // Arrange
+            using var context = new RuteaYaDbContext(CrearOpcionesMemoria());
+            var service = new ViajeService(context);
+
+            // Act
+            var resultado = await service.ActivarViajeAsync(999, 1);
+
+            // Assert
+            Assert.False(resultado);
+        }
+
+        [Fact]
+        public async Task ObtenerDetallePorIdAsync_DeberiaDevolverParadasOrdenadasYEstadoLegible()
+        {
+            // Arrange
+            var options = CrearOpcionesMemoria();
+
+            using (var context = new RuteaYaDbContext(options))
+            {
+                context.Usuarios.Add(new Usuario
+                {
+                    Id = 1,
+                    Nombre = "Ana",
+                    Apellido = "Paz",
+                    Email = "ana@example.com",
+                    PasswordHash = "hash-de-prueba"
+                });
+
+                var viaje = CrearViajeValido(1);
+                viaje.Paradas.Add(new Parada { Orden = 2, Direccion = "Parada 2" });
+                viaje.Paradas.Add(new Parada { Orden = 1, Direccion = "Parada 1" });
+
+                context.Viajes.Add(viaje);
+                context.Envios.Add(new Envio
+                {
+                    Id = 10,
+                    UsuarioId = 2,
+                    OrigenDir = "Origen del paquete",
+                    DestinoDir = "Destino del paquete",
+                    FechaLimite = DateTime.Today.AddDays(2),
+                    PesoKg = 1.5m,
+                    Tamano = 1,
+                    Descripcion = "Caja de libros",
+                    Monto = 2500m,
+                    Estado = (byte)EstadoEnvio.Retirado,
+                    CreadoEn = DateTime.Now
+                });
+                context.Asignaciones.Add(new Asignacion
+                {
+                    EnvioId = 10,
+                    ViajeId = 1,
+                    FechaViaje = DateTime.Today,
+                    DesvioKm = 1m,
+                    TiempoExtraMin = 5,
+                    Ganancia = 500m,
+                    AsignadoEn = DateTime.Now
+                });
+
+                await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            }
+
+            // Act
+            using (var context = new RuteaYaDbContext(options))
+            {
+                var service = new ViajeService(context);
+                var detalle = await service.ObtenerDetallePorIdAsync(1, 1);
+
+                // Assert
+                Assert.NotNull(detalle);
+                Assert.Equal(
+                    new[] { "Parada 1", "Parada 2" },
+                    detalle!.Paradas.Select(p => p.Direccion));
+                Assert.Equal(15.0m, detalle.DistanciaKm);
+                Assert.Equal(60, detalle.DuracionMin);
+
+                var paquete = Assert.Single(detalle.PaquetesAsignados);
+                Assert.Equal("Caja de libros", paquete.Descripcion);
+                Assert.Equal("Retirado", paquete.EstadoNombre);
             }
         }
 

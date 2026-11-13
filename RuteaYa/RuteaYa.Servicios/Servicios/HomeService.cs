@@ -142,7 +142,7 @@ public class HomeService : IHomeService
                 FechaLimite = e.FechaLimite,
                 Monto = e.Monto,
                 Estado = e.Estado,
-                EstadoNombre = ObtenerNombreEstado(e.Estado)
+                EstadoNombre = ((EstadoEnvio)e.Estado).ObtenerNombre()
             }).ToList(),
             Oportunidades = oportunidades.Select(e => new HomeOportunidadDto
             {
@@ -252,16 +252,5 @@ public class HomeService : IHomeService
         6 => "Sáb",
         7 => "Dom",
         _ => "Día"
-    };
-
-    private static string ObtenerNombreEstado(byte estado) => (EstadoEnvio)estado switch
-    {
-        EstadoEnvio.BuscandoConductor => "Buscando conductor",
-        EstadoEnvio.ConductorAsignado => "Conductor asignado",
-        EstadoEnvio.Retirado => "Retirado",
-        EstadoEnvio.EnCamino => "En camino",
-        EstadoEnvio.Entregado => "Entregado",
-        EstadoEnvio.Cancelado => "Cancelado",
-        _ => "Estado desconocido"
     };
 }

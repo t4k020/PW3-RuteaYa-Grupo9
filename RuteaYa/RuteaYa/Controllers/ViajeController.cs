@@ -160,6 +160,18 @@ namespace RuteaYa.Controllers
             return RedirectToAction("Index");
         }
 
+        // GET: Viaje/Paquete/{viajeId}/{envioId}
+        // Placeholder: la vista real del paquete asignado se implementa en la próxima iteración.
+        // Los datos se van a pedir a la API validando que el viaje pertenezca al usuario.
+        [HttpGet]
+        [Route("Viaje/Paquete/{viajeId:int}/{envioId:int}")]
+        public IActionResult Paquete(int viajeId, int envioId)
+        {
+            ViewData["ViajeId"] = viajeId;
+            ViewData["EnvioId"] = envioId;
+            return View();
+        }
+
         [HttpGet]
         public async Task<IActionResult> Editar(int id)
         {
@@ -288,6 +300,42 @@ namespace RuteaYa.Controllers
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
                     TempData["Error"] = "No se encontró el viaje a desactivar.";
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    TempData["Error"] = "No tienes autorización para realizar esta acción.";
+                }
+                else
+                {
+                    TempData["Error"] = "Ocurrió un error inesperado al comunicarse con el servidor.";
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "No se pudo conectar con el servidor de la API.";
+            }
+
+            return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Activar(int id)
+        {
+            var client = _httpClientFactory.CreateClient("ApiViaje");
+
+            try
+            {
+                HttpResponseMessage respuesta = await client.PostAsync($"{ApiRoute}/{id}/activar", null);
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    TempData["Mensaje"] = "¡Viaje activado con éxito!";
+                    return RedirectToAction("Index");
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    TempData["Error"] = "No se encontró el viaje a activar.";
                 }
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
