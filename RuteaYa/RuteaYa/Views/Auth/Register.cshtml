@@ -1,4 +1,5 @@
-﻿@{
+﻿@model RuteaYa.Entidades.RegisterViewModel
+@{
     ViewData["Title"] = "Crear cuenta";
     Layout = "_AuthLayout";
 }
@@ -30,54 +31,47 @@
 
             @if (!ViewData.ModelState.IsValid)
             {
-                <div class="message error">
+                <div class="message error" style="@(ViewData.ModelState.Where(m => string.IsNullOrEmpty(m.Key)).SelectMany(m => m.Value.Errors).Any() ? "" : "display: none;")">
                     <div asp-validation-summary="ModelOnly"></div>
                 </div>
             }
 
             <div class="name-fields">
                 <div class="field">
-                    <label for="nombre">Nombre</label>
-
-                    <input id="nombre"
-                           name="nombre"
-                           autocomplete="given-name"
-                           placeholder="Tu nombre"
-                           required />
+                    <label asp-for="Nombre">Nombre</label>
+                    <input asp-for="Nombre" placeholder="Tu nombre" required />
                 </div>
 
                 <div class="field">
-                    <label for="apellido">Apellido</label>
-
-                    <input id="apellido"
-                           name="apellido"
-                           autocomplete="family-name"
-                           placeholder="Tu apellido"
-                           required />
+                    <label asp-for="Apellido">Apellido</label>
+                    <input asp-for="Apellido" placeholder="Tu apellido" required />
                 </div>
             </div>
 
             <div class="field">
-                <label for="email">Correo electrónico</label>
-
-                <input id="email"
-                       name="email"
-                       type="email"
-                       autocomplete="email"
-                       placeholder="usuario@correo.com"
-                       required />
+                <label asp-for="Email">Correo electrónico</label>
+                <input asp-for="Email" type="email" placeholder="usuario@correo.com" required />
             </div>
 
             <div class="field">
-                <label for="passwordHash">Contraseña</label>
+                <label asp-for="Password">Contraseña</label>
+                <input asp-for="Password" type="password" placeholder="Mínimo 8 caracteres" minlength="8" required />
+                <span asp-validation-for="Password" style="color: #dc3545; font-size: 0.875em;"></span>
+            </div>
 
-                <input id="passwordHash"
-                       name="passwordHash"
+ 
+            <div class="field">
+                <label asp-for="RepetirPassword">Repetir contraseña</label>
+
+                <input asp-for="RepetirPassword"
                        type="password"
-                       autocomplete="new-password"
-                       placeholder="Mínimo 8 caracteres"
+                       placeholder="Volvé a escribir tu contraseña"
                        minlength="8"
-                       required />
+                       required
+                       onblur="validarCoincidencia()" /> <!-- Usamos onblur en vez de oninput -->
+                <!-- Mensaje de error del Servidor (C#) - Se muestra al hacer clic en Registrarme -->
+                <span asp-validation-for="RepetirPassword" style="color: #dc3545; font-size: 0.875em;"></span>
+
             </div>
 
             <button type="submit" class="btn">Registrarme</button>
@@ -88,4 +82,37 @@
             </p>
         </form>
     </main>
+
 </div>
+<script>
+    function validarCoincidencia() {
+        const pass1 = document.getElementById('Password').value;
+        const pass2 = document.getElementById('RepetirPassword').value;
+
+        const errorSpanServidor = document.querySelector('span[data-valmsg-for="RepetirPassword"]');
+
+        if (pass2.length > 0 && pass1 !== pass2) {
+
+            if (errorSpanServidor) {
+                errorSpanServidor.innerText = "Las contraseñas no coinciden.";
+                errorSpanServidor.style.display = "block";
+            }
+        } else {
+
+            if (errorSpanServidor) {
+                errorSpanServidor.innerText = "";
+                errorSpanServidor.style.display = "none";
+            }
+        }
+    }
+
+    document.querySelector('form').addEventListener('submit', function (e) {
+        const pass1 = document.getElementById('Password').value;
+        const pass2 = document.getElementById('RepetirPassword').value;
+
+        if (pass1 !== pass2) {
+            e.preventDefault(); 
+            validarCoincidencia(); 
+        }
+    });
+</script>

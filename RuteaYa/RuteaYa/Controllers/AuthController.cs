@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RuteaYa.Entidades;
 using System.Net;
 using System.Security.Claims;
 using System.Text.Json;
@@ -145,31 +146,34 @@ namespace RuteaYa.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(
-            string nombre,
-            string apellido,
-            string email,
-            string passwordHash,
+            RegisterViewModel modelo,
             CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(nombre) ||
-                string.IsNullOrWhiteSpace(apellido) ||
-                string.IsNullOrWhiteSpace(email) ||
-                string.IsNullOrWhiteSpace(passwordHash))
+            if (!ModelState.IsValid)
             {
-                ModelState.AddModelError(
-                    string.Empty,
-                    "Todos los campos son obligatorios.");
-
-                return View();
+                return View(modelo); 
             }
 
-            if (passwordHash.Length < 8)
+            if (string.IsNullOrWhiteSpace(modelo.Nombre) ||
+                string.IsNullOrWhiteSpace(modelo.Apellido) ||
+                string.IsNullOrWhiteSpace(modelo.Email) ||
+                string.IsNullOrWhiteSpace(modelo.Password) ||
+                string.IsNullOrWhiteSpace(modelo.RepetirPassword))
             {
-                ModelState.AddModelError(
-                    string.Empty,
-                    "La contraseña debe tener al menos 8 caracteres.");
+                ModelState.AddModelError(string.Empty, "Todos los campos son obligatorios.");
+                return View(modelo);
+            }
 
-                return View();
+            if (modelo.Password != modelo.RepetirPassword)
+            {
+                ModelState.AddModelError(nameof(modelo.RepetirPassword), "Las contraseñas no coinciden.");
+                return View(modelo);
+            }
+
+            if (modelo.Password.Length < 8)
+            {
+                ModelState.AddModelError(nameof(modelo.Password), "La contraseña debe tener al menos 8 caracteres.");
+                return View(modelo);
             }
 
             try
@@ -178,48 +182,38 @@ namespace RuteaYa.Controllers
                     "Api/Auth/Register",
                     new
                     {
-                        nombre,
-                        apellido,
-                        email,
-                        password = passwordHash
+                        nombre = modelo.Nombre,
+                        apellido = modelo.Apellido,
+                        email = modelo.Email,
+                        password = modelo.Password 
                     },
                     cancellationToken);
 
                 if (respuesta.IsSuccessStatusCode)
                 {
-                    TempData["RegisterSuccess"] =
-                        "¡Cuenta creada correctamente! Ya podés iniciar sesión.";
-
+                    TempData["RegisterSuccess"] = "¡Cuenta creada correctamente! Ya podés iniciar sesión.";
                     return RedirectToAction("Login", "Auth");
                 }
 
                 if (respuesta.StatusCode == HttpStatusCode.BadRequest)
                 {
-                    ModelState.AddModelError(
-                        string.Empty,
-                        "Los datos enviados no son válidos.");
+                    ModelState.AddModelError(string.Empty, "Los datos enviados no son válidos.");
                 }
                 else if (respuesta.StatusCode == HttpStatusCode.Conflict)
                 {
-                    ModelState.AddModelError(
-                        string.Empty,
-                        "Ese correo electrónico ya está registrado. Probá con otro.");
+                    ModelState.AddModelError(string.Empty, "Ese correo electrónico ya está registrado. Probá con otro.");
                 }
                 else
                 {
-                    ModelState.AddModelError(
-                        string.Empty,
-                        "Ocurrió un error al comunicarse con el servidor.");
+                    ModelState.AddModelError(string.Empty, "Ocurrió un error al comunicarse con el servidor.");
                 }
             }
             catch (HttpRequestException)
             {
-                ModelState.AddModelError(
-                    string.Empty,
-                    "No se pudo conectar con el servidor de la API.");
+                ModelState.AddModelError(string.Empty, "No se pudo conectar con el servidor de la API.");
             }
 
-            return View();
+            return View(modelo); 
         }
 
         // POST: Auth/Logout
