@@ -47,5 +47,25 @@ namespace RuteaYa.Controllers
                 NombreUsuario = User.Identity?.Name ?? string.Empty
             });
         }
+
+        public async Task<IActionResult> Historial(CancellationToken cancellationToken)
+        {
+            var client = _httpClientFactory.CreateClient("ApiHome");
+            try
+            {
+                var response = await client.GetAsync("api/ApiHome/historial", cancellationToken);
+                if (response.IsSuccessStatusCode)
+                {
+                    // Recibimos el HomeDashboardDto que ya conocemos
+                    var historial = await response.Content.ReadFromJsonAsync<HomeDashboardDto>(cancellationToken);
+                    if (historial is not null) return View(historial);
+                }
+            }
+            catch (HttpRequestException) { }
+
+            return View(new HomeDashboardDto());
+        }
     }
+
+
 }

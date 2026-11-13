@@ -35,4 +35,16 @@ public class ApiHomeController : ControllerBase
 
         return Ok(dashboard);
     }
+
+    [HttpGet("historial")]
+    public async Task<IActionResult> ObtenerHistorial(CancellationToken cancellationToken)
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var usuarioId))
+            return Unauthorized();
+
+        var historial = await _homeService.ObtenerHistorialAsync(usuarioId, cancellationToken);
+        return Ok(historial);
+    }
 }
+
+

@@ -8,6 +8,7 @@ namespace RuteaYa.Servicios.Servicios;
 public interface IHomeService
 {
     Task<HomeDashboardDto> ObtenerDashboardAsync(int usuarioId, DateTime fechaActual, CancellationToken cancellationToken);
+    Task<HomeDashboardDto> ObtenerHistorialAsync(int usuarioId, CancellationToken cancellationToken);
 }
 
 public class HomeService : IHomeService
@@ -152,6 +153,91 @@ public class HomeService : IHomeService
                 FechaLimite = e.FechaLimite,
                 Monto = e.Monto,
                 PesoKg = e.PesoKg
+            }).ToList()
+        };
+    }
+
+    public async Task<HomeDashboardDto> ObtenerHistorialAsync(int usuarioId, CancellationToken cancellationToken)
+    {
+        var totalViajes = await _context.Viajes
+            .AsNoTracking()
+            .CountAsync(v => v.UsuarioId == usuarioId, cancellationToken);
+
+
+        var totalEnvios = await _context.Asignaciones
+            .AsNoTracking()
+            .Include(a => a.Viaje)
+            .Include(a => a.Envio)
+            .CountAsync(a => a.Viaje!.UsuarioId == usuarioId
+                          && a.Envio!.Estado == (byte)EstadoEnvio.Entregado,
+                          cancellationToken);
+
+
+        var gananciaTotal = await _context.Asignaciones
+            .AsNoTracking()
+            .Include(a => a.Viaje)
+            .Include(a => a.Envio)
+            .Where(a => a.Viaje!.UsuarioId == usuarioId
+                     && a.Envio!.Estado == (byte)EstadoEnvio.Entregado)
+            .SumAsync(a => (decimal?)a.Ganancia, cancellationToken) ?? 0m;
+
+
+        var ultimosViajes = await _context.Viajes
+            .AsNoTracking()
+            .Where(v => v.UsuarioId == usuarioId)
+            .OrderByDescending(v => v.Id)
+            .Take(5)
+            .Include(v => v.ViajeDias)
+            .Include(v => v.Asignaciones)
+                .ThenInclude(a => a.Envio) 
+            .ToListAsync(cancellationToken);
+
+
+        var ultimosEnvios = await _context.Asignaciones
+            .AsNoTracking()
+            .Include(a => a.Viaje)
+            .Include(a => a.Envio)
+            .Where(a => a.Viaje!.UsuarioId == usuarioId
+                     && a.Envio!.Estado == (byte)EstadoEnvio.Entregado)
+            .OrderByDescending(a => a.AsignadoEn) // Usamos la fecha de asignación como referencia
+            .Take(5)
+            .Select(a => a.Envio!) // Seleccionamos directamente el Envio
+            .ToListAsync(cancellationToken);
+
+
+        return new HomeDashboardDto
+        {
+
+            CantidadViajes = totalViajes,
+            CantidadEnvios = totalEnvios,
+            GananciaEfectivaMes = gananciaTotal,
+
+
+            Viajes = ultimosViajes.Select(v => new HomeViajeDto
+            {
+                Id = v.Id,
+                Origen = v.OrigenDir,
+                Destino = v.DestinoDir,
+                HoraSalida = v.HoraSalida,
+                HoraLlegada = v.HoraLlegada,
+                Activo = v.Activo,
+                DiasSemana = new List<string> {
+                $"{v.Asignaciones.Count(a => a.Envio != null && a.Envio.Estado == (byte)EstadoEnvio.Entregado)} paquetes entregados",
+                $"${v.Asignaciones.Where(a => a.Envio != null && a.Envio.Estado == (byte)EstadoEnvio.Entregado).Sum(a => a.Ganancia):N0}"
+            }
+            }).ToList(),
+
+
+            Envios = ultimosEnvios.Select(e => new HomeEnvioDto
+            {
+                Id = e.Id,
+                Origen = e.OrigenDir,
+                Destino = e.DestinoDir,
+                Descripcion = e.Descripcion ?? string.Empty,
+                FechaLimite = e.CreadoEn,
+                Monto = e.Monto,
+                Estado = e.Estado,
+                EstadoNombre = "Entregado"
             }).ToList()
         };
     }
