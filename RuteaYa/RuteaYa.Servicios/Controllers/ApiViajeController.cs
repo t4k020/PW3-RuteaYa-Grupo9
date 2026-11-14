@@ -62,6 +62,48 @@ namespace RuteaYa.Servicios.Controllers
         }
 
         
+        /// <summary>
+        /// Obtiene el detalle de un envío asignado a un viaje del usuario autenticado.
+        /// </summary>
+        /// <param name="viajeId">Identificador del viaje.</param>
+        /// <param name="envioId">Identificador del envío asignado.</param>
+        /// <param name="cancellationToken">Token para cancelar la operación.</param>
+        [HttpGet("{viajeId:int}/paquetes/{envioId:int}")]
+        [ProducesResponseType(typeof(PaqueteDetalleDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ObtenerPaqueteAsignado(
+            int viajeId,
+            int envioId,
+            CancellationToken cancellationToken = default)
+        {
+            if (!TryObtenerUsuarioId(out int usuarioId))
+                return Unauthorized();
+
+            try
+            {
+                var paquete = await _viajeService.ObtenerPaqueteAsignadoAsync(
+                    viajeId,
+                    envioId,
+                    usuarioId,
+                    cancellationToken);
+
+                // Se responde 404 tanto si el viaje no es del usuario como si la
+                // asignación no existe, para no revelar la existencia del recurso.
+                return paquete is null ? NotFound() : Ok(paquete);
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+                {
+                    Title = "Error interno.",
+                    Detail = "Ocurrió un error interno al obtener el paquete asignado.",
+                    Status = StatusCodes.Status500InternalServerError
+                });
+            }
+        }
+
         [HttpPost]
         [ProducesResponseType(typeof(ViajeDetalleDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

@@ -6,6 +6,7 @@ using Moq;
 using Moq.Protected;
 using RuteaYa.Controllers;
 using RuteaYa.Entidades;
+using RuteaYa.Models;
 using RuteaYa.Servicios;
 using RuteaYa.Servicios.Dtos;
 using System.Net;
@@ -229,17 +230,125 @@ namespace RuteaYa.Tests
         }
 
         [Fact]
-        public void Paquete_DeberiaDevolverLaVistaDePlaceholderConLosIds()
+        public async Task Paquete_DeberiaRetornarVistaConModelo_CuandoLaApiRespondeOk()
         {
+            // Arrange
+            var paquetePrueba = CrearPaqueteDetalleDto();
+            var respuestaHttp = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(paquetePrueba)
+            };
+            ConfigurarRespuestaHttp(respuestaHttp);
+
             // Act
-            var resultado = _controller.Paquete(5, 12);
+            var resultado = await _controller.Paquete(5, 12);
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(resultado);
             // Sin ViewName explícito: MVC resuelve Views/Viaje/Paquete.cshtml por convención.
             Assert.Null(viewResult.ViewName);
-            Assert.Equal(5, _controller.ViewData["ViajeId"]);
-            Assert.Equal(12, _controller.ViewData["EnvioId"]);
+            var modeloRetornado = Assert.IsType<PaqueteDetalleViewModel>(viewResult.Model);
+            Assert.Equal(12, modeloRetornado.Paquete.EnvioId);
+            Assert.Equal("Bruno Remitente", modeloRetornado.Paquete.NombreRemitente);
+            Assert.False(modeloRetornado.VolverAMisTransportes);
+        }
+
+        [Fact]
+        public async Task Paquete_DeberiaVolverAMisTransportes_CuandoOrigenEsMisTransportes()
+        {
+            // Arrange
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(CrearPaqueteDetalleDto())
+            });
+
+            // Act
+            var resultado = await _controller.Paquete(
+                5,
+                12,
+                OrigenNavegacionPaquete.MisTransportes);
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(resultado);
+            var modeloRetornado = Assert.IsType<PaqueteDetalleViewModel>(viewResult.Model);
+            Assert.True(modeloRetornado.VolverAMisTransportes);
+        }
+
+        [Fact]
+        public async Task Paquete_DeberiaVolverADetalleViaje_CuandoOrigenEsDetalleViaje()
+        {
+            // Arrange
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(CrearPaqueteDetalleDto())
+            });
+
+            // Act
+            var resultado = await _controller.Paquete(
+                5,
+                12,
+                OrigenNavegacionPaquete.DetalleViaje);
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(resultado);
+            var modeloRetornado = Assert.IsType<PaqueteDetalleViewModel>(viewResult.Model);
+            Assert.False(modeloRetornado.VolverAMisTransportes);
+        }
+
+        [Fact]
+        public async Task Paquete_DeberiaRedireccionarADetalleConError_CuandoLaApiRetornaNotFound()
+        {
+            // Arrange
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            // Act
+            var resultado = await _controller.Paquete(5, 99);
+
+            // Assert
+            var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Detalle", redirectToActionResult.ActionName);
+            Assert.Equal(5, redirectToActionResult.RouteValues!["id"]);
+            Assert.Equal(
+                "No se encontró el paquete asignado a este viaje.",
+                _controller.TempData["Error"]);
+        }
+
+        [Fact]
+        public async Task Paquete_DeberiaRedireccionarAMisTransportesConError_CuandoOrigenEsMisTransportesYLaApiRetornaNotFound()
+        {
+            // Arrange
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            // Act
+            var resultado = await _controller.Paquete(
+                5,
+                99,
+                OrigenNavegacionPaquete.MisTransportes);
+
+            // Assert
+            var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("MisTransportes", redirectToActionResult.ActionName);
+            Assert.Equal(
+                "No se encontró el paquete asignado a este viaje.",
+                _controller.TempData["Error"]);
+        }
+
+        [Fact]
+        public async Task Paquete_DeberiaRedireccionarADetalleConError_CuandoOcurreHttpRequestException()
+        {
+            // Arrange
+            SetHttpServerError(new HttpRequestException("Error de red"));
+
+            // Act
+            var resultado = await _controller.Paquete(5, 12);
+
+            // Assert
+            var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Detalle", redirectToActionResult.ActionName);
+            Assert.Equal(5, redirectToActionResult.RouteValues!["id"]);
+            Assert.Equal(
+                "No se pudo conectar con el servidor de la API.",
+                _controller.TempData["Error"]);
         }
 
         private void ConfigurarRespuestaHttp(HttpResponseMessage respuesta)
@@ -264,6 +373,31 @@ namespace RuteaYa.Tests
                     ItExpr.IsAny<CancellationToken>()
                 )
                 .ThrowsAsync(excepcion);
+        }
+
+        private PaqueteDetalleDto CrearPaqueteDetalleDto()
+        {
+            return new PaqueteDetalleDto
+            {
+                EnvioId = 12,
+                ViajeId = 5,
+                Descripcion = "Caja de libros",
+                Estado = (byte)EstadoEnvio.Retirado,
+                EstadoNombre = "Retirado",
+                FechaLimite = DateTime.Today.AddDays(1),
+                Monto = 3200m,
+                PesoKg = 4.5m,
+                Tamano = 2,
+                TamanoNombre = "Mediano",
+                OrigenDir = "Origen del paquete",
+                DestinoDir = "Destino del paquete",
+                CreadoEn = DateTime.Today,
+                NombreRemitente = "Bruno Remitente",
+                FechaViaje = DateTime.Today,
+                DesvioKm = 1.5m,
+                TiempoExtraMin = 7,
+                Ganancia = 3200m
+            };
         }
 
         private CrearViajeDto CrearViajeDtoValido()

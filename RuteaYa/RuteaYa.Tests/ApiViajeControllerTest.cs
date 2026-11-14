@@ -363,6 +363,88 @@ namespace RuteaYa.Tests
             Assert.IsType<UnauthorizedResult>(resultado);
         }
 
+        [Fact]
+        public async Task ObtenerPaqueteAsignado_DeberiaRetornarUnauthorized_CuandoUsuarioNoEstaAutenticado()
+        {
+            // Arrange
+            ConfigurarUsuarioNoAutenticado();
+
+            // Act
+            var resultado = await _controller.ObtenerPaqueteAsignado(
+                1, 10, TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.IsType<UnauthorizedResult>(resultado);
+        }
+
+        [Fact]
+        public async Task ObtenerPaqueteAsignado_DeberiaRetornarOkConElDto_CuandoExiste()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+            var paquete = new PaqueteDetalleDto
+            {
+                EnvioId = 10,
+                ViajeId = 1,
+                Descripcion = "Caja de libros",
+                Estado = (byte)EstadoEnvio.Retirado,
+                EstadoNombre = "Retirado",
+                NombreRemitente = "Bruno Remitente"
+            };
+
+            _viajeServiceMock
+                .Setup(s => s.ObtenerPaqueteAsignadoAsync(1, 10, 1, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(paquete);
+
+            // Act
+            var resultado = await _controller.ObtenerPaqueteAsignado(
+                1, 10, TestContext.Current.CancellationToken);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(resultado);
+            Assert.Same(paquete, okResult.Value);
+            _viajeServiceMock.Verify(
+                s => s.ObtenerPaqueteAsignadoAsync(1, 10, 1, It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task ObtenerPaqueteAsignado_DeberiaRetornarNotFound_CuandoNoExisteLaAsignacion()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+
+            _viajeServiceMock
+                .Setup(s => s.ObtenerPaqueteAsignadoAsync(1, 999, 1, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((PaqueteDetalleDto?)null);
+
+            // Act
+            var resultado = await _controller.ObtenerPaqueteAsignado(
+                1, 999, TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(resultado);
+        }
+
+        [Fact]
+        public async Task ObtenerPaqueteAsignado_DeberiaRetornarStatusCode500_CuandoOcurreUnaExcepcion()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+
+            _viajeServiceMock
+                .Setup(s => s.ObtenerPaqueteAsignadoAsync(1, 10, 1, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new Exception("Error crítico de base de datos"));
+
+            // Act
+            var resultado = await _controller.ObtenerPaqueteAsignado(
+                1, 10, TestContext.Current.CancellationToken);
+
+            // Assert
+            var statusCodeResult = Assert.IsType<ObjectResult>(resultado);
+            Assert.Equal(500, statusCodeResult.StatusCode);
+        }
+
         private void ConfigurarUsuarioAutenticado()
         {
             var user = new ClaimsPrincipal(new ClaimsIdentity(new[]

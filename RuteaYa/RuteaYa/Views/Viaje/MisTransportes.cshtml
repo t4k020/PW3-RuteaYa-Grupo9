@@ -1,4 +1,5 @@
 ﻿@model IEnumerable<RuteaYa.Servicios.Dtos.ViajeDetalleDto>
+@using RuteaYa.Models
 @{
     ViewData["Title"] = "Mis transportes";
 }
@@ -62,8 +63,13 @@
                                     @envio.EstadoNombre
                                 </span>
 
-                                <a asp-controller="Envio" asp-action="DetallesOportunidad" asp-route-id="@envio.Id" class="btn btn-outline-secondary btn-sm rounded-pill px-3 bg-white">
-                                    Ver envío
+                                <a asp-controller="Viaje"
+                                   asp-action="Paquete"
+                                   asp-route-viajeId="@viaje.Id"
+                                   asp-route-envioId="@envio.Id"
+                                   asp-route-origen="@OrigenNavegacionPaquete.MisTransportes"
+                                   class="btn btn-outline-secondary btn-sm rounded-pill px-3 bg-white">
+                                    Ver envio
                                 </a>
 
                                 <!-- BOTONES  -->

@@ -2,6 +2,7 @@
 @using System.Globalization
 @using RuteaYa.Entidades
 @using RuteaYa.Helpers
+@using RuteaYa.Models
 @{
     ViewData["Title"] = "Detalle del viaje";
 
@@ -213,6 +214,7 @@
                                         <a asp-action="Paquete"
                                            asp-route-viajeId="@Model.Id"
                                            asp-route-envioId="@paquete.Id"
+                                           asp-route-origen="@OrigenNavegacionPaquete.DetalleViaje"
                                            class="btn btn-outline-dark btn-sm rounded-pill px-3">
                                             Ver paquete
                                         </a>
