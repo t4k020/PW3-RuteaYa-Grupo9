@@ -16,6 +16,11 @@ namespace RuteaYa.Servicios
         Task<bool> DesactivarViajeAsync(int id, int usuarioId);
         Task<bool> ActivarViajeAsync(int id, int usuarioId);
         Task<ViajeDetalleDto?> ObtenerDetallePorIdAsync(int id, int usuarioId);
+        Task<PaqueteDetalleDto?> ObtenerPaqueteAsignadoAsync(
+            int viajeId,
+            int envioId,
+            int usuarioId,
+            CancellationToken cancellationToken = default);
         Task<List<Envio>> ObtenerTransportesAsignadosAsync(int usuarioId);
         Task<bool> CambiarEstadoTransporteAsync(int envioId, string accion, int usuarioId);
     }
@@ -240,6 +245,66 @@ namespace RuteaYa.Servicios
 
             return detalleDto;
         }
+
+        public async Task<PaqueteDetalleDto?> ObtenerPaqueteAsignadoAsync(
+            int viajeId,
+            int envioId,
+            int usuarioId,
+            CancellationToken cancellationToken = default)
+        {
+            // La consulta valida en un solo paso que el viaje sea del usuario y que
+            // el envío esté realmente asignado a ese viaje. Si algo no coincide,
+            // devolvemos null para que la API responda 404 sin revelar información.
+            var paquete = await (
+                from asignacion in _context.Asignaciones.AsNoTracking()
+                join viaje in _context.Viajes on asignacion.ViajeId equals viaje.Id
+                join envio in _context.Envios on asignacion.EnvioId equals envio.Id
+                join usuario in _context.Usuarios on envio.UsuarioId equals usuario.Id
+                where asignacion.ViajeId == viajeId
+                      && asignacion.EnvioId == envioId
+                      && viaje.UsuarioId == usuarioId
+                select new PaqueteDetalleDto
+                {
+                    EnvioId = envio.Id,
+                    ViajeId = viaje.Id,
+                    Descripcion = envio.Descripcion ?? string.Empty,
+                    Estado = envio.Estado,
+                    FechaLimite = envio.FechaLimite,
+                    Monto = envio.Monto,
+                    PesoKg = envio.PesoKg,
+                    Tamano = envio.Tamano,
+                    OrigenDir = envio.OrigenDir,
+                    DestinoDir = envio.DestinoDir,
+                    CreadoEn = envio.CreadoEn,
+                    NombreRemitente = usuario.Nombre + " " + usuario.Apellido,
+                    FechaViaje = asignacion.FechaViaje,
+                    DesvioKm = asignacion.DesvioKm,
+                    TiempoExtraMin = asignacion.TiempoExtraMin,
+                    Ganancia = asignacion.Ganancia
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (paquete is null)
+            {
+                return null;
+            }
+
+            // Los nombres legibles se calculan en memoria para no depender de
+            // funciones que el proveedor de base de datos no sepa traducir.
+            paquete.EstadoNombre = ((EstadoEnvio)paquete.Estado).ObtenerNombre();
+            paquete.TamanoNombre = ObtenerNombreTamano(paquete.Tamano);
+            paquete.NombreRemitente = paquete.NombreRemitente.Trim();
+
+            return paquete;
+        }
+
+        private static string ObtenerNombreTamano(byte tamano) => tamano switch
+        {
+            1 => "Pequeño",
+            2 => "Mediano",
+            3 => "Grande",
+            _ => "No especificado"
+        };
 
         public async Task<List<Envio>> ObtenerTransportesAsignadosAsync(int usuarioId)
         {

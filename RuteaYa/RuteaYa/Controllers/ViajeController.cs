@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
+using RuteaYa.Models;
 using RuteaYa.Servicios.Dtos;
 using System.Text.Json;
 
@@ -161,15 +162,69 @@ namespace RuteaYa.Controllers
         }
 
         // GET: Viaje/Paquete/{viajeId}/{envioId}
-        // Placeholder: la vista real del paquete asignado se implementa en la próxima iteración.
-        // Los datos se van a pedir a la API validando que el viaje pertenezca al usuario.
         [HttpGet]
         [Route("Viaje/Paquete/{viajeId:int}/{envioId:int}")]
-        public IActionResult Paquete(int viajeId, int envioId)
+        public async Task<IActionResult> Paquete(
+            int viajeId,
+            int envioId,
+            OrigenNavegacionPaquete? origen = null)
         {
-            ViewData["ViajeId"] = viajeId;
-            ViewData["EnvioId"] = envioId;
-            return View();
+            var client = _httpClientFactory.CreateClient("ApiViaje");
+
+            try
+            {
+                HttpResponseMessage respuesta = await client.GetAsync(
+                    $"{ApiRoute}/{viajeId}/paquetes/{envioId}");
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    var paquete = await respuesta.Content.ReadFromJsonAsync<PaqueteDetalleDto>();
+
+                    if (paquete is not null)
+                    {
+                        return View(new PaqueteDetalleViewModel
+                        {
+                            Paquete = paquete,
+                            VolverAMisTransportes =
+                                origen == OrigenNavegacionPaquete.MisTransportes
+                        });
+                    }
+
+                    TempData["Error"] = "La API devolvió una respuesta vacía para el paquete.";
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    TempData["Error"] = "No se encontró el paquete asignado a este viaje.";
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    TempData["Error"] = "No tienes autorización para ver este paquete.";
+                }
+                else
+                {
+                    TempData["Error"] = "No se pudo cargar el detalle del paquete.";
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "No se pudo conectar con el servidor de la API.";
+            }
+            catch (JsonException)
+            {
+                TempData["Error"] = "La respuesta del servidor no es válida.";
+            }
+
+            return RedirigirSegunOrigen(viajeId, origen);
+        }
+
+        // Vuelve a la pantalla desde la que se abrió el detalle del paquete.
+        private IActionResult RedirigirSegunOrigen(
+            int viajeId,
+            OrigenNavegacionPaquete? origen)
+        {
+            return origen == OrigenNavegacionPaquete.MisTransportes
+                ? RedirectToAction(nameof(MisTransportes))
+                : RedirectToAction(nameof(Detalle), new { id = viajeId });
         }
 
         [HttpGet]

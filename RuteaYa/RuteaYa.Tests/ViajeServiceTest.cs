@@ -351,7 +351,185 @@ namespace RuteaYa.Tests
                 Assert.False(resultado);
             }
         }
-    
+
+        [Fact]
+        public async Task ObtenerPaqueteAsignadoAsync_DeberiaDevolverElDetalle_CuandoElViajeEsDelUsuario()
+        {
+            // Arrange
+            var options = CrearOpcionesMemoria();
+
+            using (var context = new RuteaYaDbContext(options))
+            {
+                await SembrarPaqueteAsignadoAsync(context);
+            }
+
+            // Act
+            using (var context = new RuteaYaDbContext(options))
+            {
+                var service = new ViajeService(context);
+                var paquete = await service.ObtenerPaqueteAsignadoAsync(
+                    1, 10, 1, TestContext.Current.CancellationToken);
+
+                // Assert
+                Assert.NotNull(paquete);
+                Assert.Equal(10, paquete!.EnvioId);
+                Assert.Equal(1, paquete.ViajeId);
+                Assert.Equal("Caja de libros", paquete.Descripcion);
+                Assert.Equal("Retirado", paquete.EstadoNombre);
+                Assert.Equal("Mediano", paquete.TamanoNombre);
+                Assert.Equal("Bruno Remitente", paquete.NombreRemitente);
+                Assert.Equal(4.5m, paquete.PesoKg);
+                Assert.Equal(1.5m, paquete.DesvioKm);
+                Assert.Equal(7, paquete.TiempoExtraMin);
+                Assert.Equal(3200m, paquete.Ganancia);
+            }
+        }
+
+        [Fact]
+        public async Task ObtenerPaqueteAsignadoAsync_DeberiaRetornarNull_CuandoElViajeEsDeOtroUsuario()
+        {
+            // Arrange
+            var options = CrearOpcionesMemoria();
+
+            using (var context = new RuteaYaDbContext(options))
+            {
+                await SembrarPaqueteAsignadoAsync(context);
+            }
+
+            // Act
+            using (var context = new RuteaYaDbContext(options))
+            {
+                var service = new ViajeService(context);
+                var paquete = await service.ObtenerPaqueteAsignadoAsync(
+                    1, 10, 99, TestContext.Current.CancellationToken);
+
+                // Assert
+                Assert.Null(paquete);
+            }
+        }
+
+        [Fact]
+        public async Task ObtenerPaqueteAsignadoAsync_DeberiaRetornarNull_CuandoElEnvioNoEstaAsignadoAlViaje()
+        {
+            // Arrange
+            var options = CrearOpcionesMemoria();
+
+            using (var context = new RuteaYaDbContext(options))
+            {
+                await SembrarPaqueteAsignadoAsync(context);
+            }
+
+            // Act
+            using (var context = new RuteaYaDbContext(options))
+            {
+                var service = new ViajeService(context);
+                var paquete = await service.ObtenerPaqueteAsignadoAsync(
+                    1, 999, 1, TestContext.Current.CancellationToken);
+
+                // Assert
+                Assert.Null(paquete);
+            }
+        }
+
+        [Fact]
+        public async Task ObtenerPaqueteAsignadoAsync_DeberiaRetornarNull_CuandoElViajeNoExiste()
+        {
+            // Arrange
+            var options = CrearOpcionesMemoria();
+
+            using (var context = new RuteaYaDbContext(options))
+            {
+                await SembrarPaqueteAsignadoAsync(context);
+            }
+
+            // Act
+            using (var context = new RuteaYaDbContext(options))
+            {
+                var service = new ViajeService(context);
+                var paquete = await service.ObtenerPaqueteAsignadoAsync(
+                    999, 10, 1, TestContext.Current.CancellationToken);
+
+                // Assert
+                Assert.Null(paquete);
+            }
+        }
+
+        [Fact]
+        public async Task ObtenerPaqueteAsignadoAsync_DeberiaDevolverUnEnvioCancelado_CuandoConservaLaAsignacion()
+        {
+            // Arrange
+            var options = CrearOpcionesMemoria();
+
+            using (var context = new RuteaYaDbContext(options))
+            {
+                await SembrarPaqueteAsignadoAsync(context, (byte)EstadoEnvio.Cancelado);
+            }
+
+            // Act
+            using (var context = new RuteaYaDbContext(options))
+            {
+                var service = new ViajeService(context);
+                var paquete = await service.ObtenerPaqueteAsignadoAsync(
+                    1, 10, 1, TestContext.Current.CancellationToken);
+
+                // Assert
+                Assert.NotNull(paquete);
+                Assert.Equal("Cancelado", paquete!.EstadoNombre);
+            }
+        }
+
+        private async Task SembrarPaqueteAsignadoAsync(
+            RuteaYaDbContext context,
+            byte estado = (byte)EstadoEnvio.Retirado)
+        {
+            context.Usuarios.AddRange(
+                new Usuario
+                {
+                    Id = 1,
+                    Nombre = "Ana",
+                    Apellido = "Paz",
+                    Email = "ana@example.com",
+                    PasswordHash = "hash-de-prueba"
+                },
+                new Usuario
+                {
+                    Id = 2,
+                    Nombre = "Bruno",
+                    Apellido = "Remitente",
+                    Email = "bruno@example.com",
+                    PasswordHash = "hash-de-prueba"
+                });
+
+            context.Viajes.Add(CrearViajeValido(1));
+
+            context.Envios.Add(new Envio
+            {
+                Id = 10,
+                UsuarioId = 2,
+                OrigenDir = "Origen del paquete",
+                DestinoDir = "Destino del paquete",
+                FechaLimite = DateTime.Today.AddDays(2),
+                PesoKg = 4.5m,
+                Tamano = 2,
+                Descripcion = "Caja de libros",
+                Monto = 3200m,
+                Estado = estado,
+                CreadoEn = DateTime.Today.AddDays(-1)
+            });
+
+            context.Asignaciones.Add(new Asignacion
+            {
+                EnvioId = 10,
+                ViajeId = 1,
+                FechaViaje = DateTime.Today,
+                DesvioKm = 1.5m,
+                TiempoExtraMin = 7,
+                Ganancia = 3200m,
+                AsignadoEn = DateTime.Now
+            });
+
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
 
         private Viaje CrearViajeValido(int id = 1)
         {

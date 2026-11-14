@@ -1,35 +1,127 @@
+@model RuteaYa.Models.PaqueteDetalleViewModel
+@using RuteaYa.Entidades
+@using RuteaYa.Helpers
 @{
     ViewData["Title"] = "Detalle del paquete";
 
-    int viajeId = ViewData["ViajeId"] is int idViaje ? idViaje : 0;
-    int envioId = ViewData["EnvioId"] is int idEnvio ? idEnvio : 0;
+    var paquete = Model.Paquete;
+    var estado = (EstadoEnvio)paquete.Estado;
+    var claseEstado = EstadoEnvioBadge.ObtenerClase(estado);
+    var descripcion = string.IsNullOrWhiteSpace(paquete.Descripcion)
+        ? "Sin descripción"
+        : paquete.Descripcion;
 }
 
 <div class="container my-4">
-    <!-- Cabecera: título y regreso al viaje -->
+    <!-- Cabecera: título y regreso a la pantalla de origen -->
     <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
         <div>
             <h2 class="fw-bold mb-1">Detalle del paquete</h2>
-            <p class="text-muted mb-0">Paquete asignado al viaje #@viajeId</p>
+            <p class="text-muted mb-0">@descripcion</p>
         </div>
 
-        <a asp-action="Detalle" asp-route-id="@viajeId" class="btn btn-outline-secondary rounded-pill px-3">
-            Volver al viaje
-        </a>
+        @if (Model.VolverAMisTransportes)
+        {
+            <a asp-action="MisTransportes" class="btn btn-outline-secondary rounded-pill px-3">
+                Volver
+            </a>
+        }
+        else
+        {
+            <a asp-action="Detalle"
+               asp-route-id="@paquete.ViajeId"
+               class="btn btn-outline-secondary rounded-pill px-3">
+                Volver
+            </a>
+        }
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4 p-4">
-        <div class="text-center py-5">
-            <span class="fs-1 d-block mb-2" aria-hidden="true">📦</span>
-            <h5 class="fw-semibold mb-2">Vista en desarrollo</h5>
-            <p class="text-muted mb-0">
-                Acá se va a mostrar la información completa del paquete asignado:
-                descripción, recorrido, estado, fecha límite y monto.
-            </p>
+    <div class="row g-4">
+        <!-- Columna izquierda: información del paquete y recorrido -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <h4 class="fw-bold mb-0">Información del paquete</h4>
+                    <span class="badge @claseEstado px-3 py-2 rounded-pill fw-normal">
+                        @paquete.EstadoNombre
+                    </span>
+                </div>
+
+                <div class="row row-cols-2 g-3">
+                    <div class="col">
+                        <span class="text-muted small d-block">Peso</span>
+                        <span class="fw-medium">@paquete.PesoKg.ToString("0.##") kg</span>
+                    </div>
+                    <div class="col">
+                        <span class="text-muted small d-block">Tamaño</span>
+                        <span class="fw-medium">@paquete.TamanoNombre</span>
+                    </div>
+                    <div class="col">
+                        <span class="text-muted small d-block">Fecha límite</span>
+                        <span class="fw-medium">@paquete.FechaLimite.ToString("dd/MM/yyyy")</span>
+                    </div>
+                    <div class="col">
+                        <span class="text-muted small d-block">Monto ofrecido</span>
+                        <span class="fw-bold text-success">$@paquete.Monto.ToString("N0")</span>
+                    </div>
+                    <div class="col">
+                        <span class="text-muted small d-block">Publicado</span>
+                        <span class="fw-medium">@paquete.CreadoEn.ToString("dd/MM/yyyy HH:mm")</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 p-4 mt-4">
+                <h4 class="fw-bold mb-1">Recorrido</h4>
+                <p class="text-muted small mb-4">Trayecto que debe cubrir el envío.</p>
+
+                <div class="d-flex flex-column flex-md-row align-items-md-center gap-3">
+                    <div class="flex-grow-1">
+                        <span class="text-muted small d-block">Origen</span>
+                        <span class="fw-semibold">@paquete.OrigenDir</span>
+                    </div>
+
+                    <span class="fs-4 text-muted" aria-hidden="true">&rarr;</span>
+
+                    <div class="flex-grow-1">
+                        <span class="text-muted small d-block">Destino</span>
+                        <span class="fw-semibold">@paquete.DestinoDir</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna derecha: remitente y datos de la asignación -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4">
+                <h4 class="fw-bold mb-1">Remitente</h4>
+                <p class="text-muted small mb-3">Usuario que publicó el envío.</p>
+
+                <div class="d-flex align-items-center gap-3">
+                    <span class="fs-2" aria-hidden="true">👤</span>
+                    <div>
+                        <span class="fw-semibold d-block">@paquete.NombreRemitente</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 p-4 mt-4">
+                <h4 class="fw-bold mb-1">Asignación al viaje</h4>
+                <p class="text-muted small mb-3">Datos del paquete dentro de este recorrido.</p>
+
+                <div class="row row-cols-2 g-3">
+                    <div class="col">
+                        <span class="text-muted small d-block">Fecha del viaje</span>
+                        <span class="fw-medium">@paquete.FechaViaje.ToString("dd/MM/yyyy")</span>
+                    </div>
+                    <div class="col">
+                        <span class="text-muted small d-block">Desvío</span>
+                        <span class="fw-medium">@paquete.DesvioKm.ToString("0.##") km</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <p class="text-muted small text-center mt-3 mb-0">
-        Viaje #@viajeId &middot; Envío #@envioId
-    </p>
+    
 </div>
