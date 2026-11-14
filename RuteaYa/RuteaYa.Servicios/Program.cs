@@ -31,10 +31,20 @@ var app = builder.Build();
 // Inicializar la base de datos y cargar los datos de prueba
 using (var scope = app.Services.CreateScope())
 {
-    var context = scope.ServiceProvider
-        .GetRequiredService<RuteaYaDbContext>();
+    var services = scope.ServiceProvider;
 
-    DbInitializer.Initialize(context);
+    try
+    {
+        var context = services.GetRequiredService<RuteaYaDbContext>();
+
+        DbInitializer.Initialize(context);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+
+        logger.LogError(ex, "Ocurrió un error al poblar la base de datos.");
+    }
 }
 
 // Configure the HTTP request pipeline.

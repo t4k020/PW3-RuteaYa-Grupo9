@@ -75,6 +75,8 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+}
+
 // Pipeline HTTP
 if (!app.Environment.IsDevelopment())
 {
