@@ -310,26 +310,12 @@ public class ApiEnvioController : ControllerBase
             Monto = envio.Monto,
             Estado = envio.Estado,
             CreadoEn = envio.CreadoEn,
-            EstadoNombre = ObtenerNombreEstado((EstadoEnvio)envio.Estado),
+            EstadoNombre = ((EstadoEnvio)envio.Estado).ObtenerNombre(),
             // CLAVE: Calcular permisos en la API (no confiar en cliente)
             PuedeCancelar = (EstadoEnvio)envio.Estado is
                 EstadoEnvio.BuscandoConductor or EstadoEnvio.ConductorAsignado,
             PuedeEliminar = (EstadoEnvio)envio.Estado is EstadoEnvio.Cancelado
         };
     }
-
-    /// <summary>
-    /// Convierte un enum EstadoEnvio a su nombre legible
-    /// </summary>
-    private static string ObtenerNombreEstado(EstadoEnvio estado) => estado switch
-    {
-        EstadoEnvio.BuscandoConductor => "Buscando conductor",
-        EstadoEnvio.ConductorAsignado => "Conductor asignado",
-        EstadoEnvio.Retirado => "Retirado",
-        EstadoEnvio.EnCamino => "En camino",
-        EstadoEnvio.Entregado => "Entregado",
-        EstadoEnvio.Cancelado => "Cancelado",
-        _ => "Estado desconocido"
-    };
 
 }

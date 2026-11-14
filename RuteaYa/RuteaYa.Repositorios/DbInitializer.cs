@@ -109,6 +109,25 @@ namespace RuteaYa.Repositorios
                     DistanciaKm = 18.20m,
                     DuracionMin = 50,
                     Activo = true
+                },
+                new Viaje
+                {
+                    // Viaje desactivado: permite probar los botones Activar y Eliminar.
+                    UsuarioId = usuarios[0].Id, // Admin
+                    OrigenDir = "Av. La Plata 1500, CABA",
+                    OrigenLat = -34.626500m,
+                    OrigenLng = -58.426300m,
+                    DestinoDir = "Av. Directorio 3000, CABA",
+                    DestinoLat = -34.641200m,
+                    DestinoLng = -58.478900m,
+                    HoraSalida = new TimeOnly(7, 15),
+                    HoraLlegada = new TimeOnly(8, 30),
+                    MaxPaquetes = 4,
+                    PesoMaxKg = 25.00m,
+                    DesvioMaxKm = 2.00m,
+                    DistanciaKm = 9.40m,
+                    DuracionMin = 35,
+                    Activo = false
                 }
             };
 
@@ -120,7 +139,8 @@ namespace RuteaYa.Repositorios
             {
                 new ViajeDia { ViajeId = viajes[0].Id, DiaSemana = 1 }, // Lunes
                 new ViajeDia { ViajeId = viajes[1].Id, DiaSemana = 3 }, // Miércoles
-                new ViajeDia { ViajeId = viajes[2].Id, DiaSemana = 5 }  // Viernes
+                new ViajeDia { ViajeId = viajes[2].Id, DiaSemana = 5 }, // Viernes
+                new ViajeDia { ViajeId = viajes[3].Id, DiaSemana = 2 }  // Martes
             };
 
             context.ViajeDias.AddRange(viajeDias);
@@ -200,7 +220,7 @@ namespace RuteaYa.Repositorios
                     FechaLimite = DateTime.Now.AddDays(4),
                     PesoKg = 3.00m,
                     Tamano = 1,
-                    Descripcion = "Paquete asignado a conductor",
+                    Descripcion = "Caja de herramientas",
                     Monto = 2200.00m,
                     Estado = (byte)EstadoEnvio.Retirado,
                     CreadoEn = DateTime.Now
@@ -217,7 +237,7 @@ namespace RuteaYa.Repositorios
                     FechaLimite = DateTime.Now.AddDays(-1),
                     PesoKg = 1.50m,
                     Tamano = 1,
-                    Descripcion = "Paquete entregado",
+                    Descripcion = "Sobre con documentación",
                     Monto = 1800.00m,
                     Estado = (byte)EstadoEnvio.Entregado,
                     CreadoEn = DateTime.Now.AddDays(-3)
@@ -234,7 +254,7 @@ namespace RuteaYa.Repositorios
                     FechaLimite = DateTime.Now.AddDays(2),
                     PesoKg = 4.00m,
                     Tamano = 2,
-                    Descripcion = "Paquete cancelado",
+                    Descripcion = "Repuestos de bicicleta",
                     Monto = 2800.00m,
                     Estado = (byte)EstadoEnvio.Cancelado,
                     CreadoEn = DateTime.Now.AddDays(-1)
@@ -251,7 +271,7 @@ namespace RuteaYa.Repositorios
                     FechaLimite = DateTime.Now.AddDays(1),
                     PesoKg = 2.00m,
                     Tamano = 1,
-                    Descripcion = "Paquete en camino",
+                    Descripcion = "Caja de libros",
                     Monto = 2100.00m,
                     Estado = (byte)EstadoEnvio.EnCamino,
                     CreadoEn = DateTime.Now.AddDays(-1)

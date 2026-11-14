@@ -1,104 +1,234 @@
 ﻿@model RuteaYa.Servicios.Dtos.ViajeDetalleDto
+@using System.Globalization
+@using RuteaYa.Entidades
+@using RuteaYa.Helpers
 @{
     ViewData["Title"] = "Detalle del viaje";
+
+    var dias = Model.DiasSemana.Any() ? string.Join(", ", Model.DiasSemana) : "Sin días especificados";
+    var paquetes = Model.PaquetesAsignados ?? new List<RuteaYa.Servicios.Dtos.PaqueteDto>();
 }
+
 <div class="container my-4">
-    <!-- Cabecera superior: Título y Botones de acción -->
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <!-- Cabecera superior: título y acciones -->
+    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
         <div>
             <h2 class="fw-bold mb-1">Detalle del viaje</h2>
-            <p class="text-muted mb-0">@Model.OrigenDir → @Model.DestinoDir</p>
+            <p class="text-muted mb-0">@Model.OrigenDir &rarr; @Model.DestinoDir</p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap">
             <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-3">Volver</a>
-            <a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-outline-secondary rounded-pill px-3">Editar</a>
 
-            <form asp-action="Desactivar" asp-route-id="@Model.Id" method="post" style="display:inline;" onsubmit="return confirm('¿Estás seguro de desactivar este viaje?');">
-                <button type="submit" class="btn btn-outline-danger rounded-pill px-3">Desactivar</button>
-            </form>
+            @if (Model.Activo)
+            {
+                <form asp-action="Desactivar" asp-route-id="@Model.Id" method="post" class="d-inline"
+                      onsubmit="return confirm('¿Estás seguro de desactivar este viaje?');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-danger rounded-pill px-3">Desactivar</button>
+                </form>
+            }
+            else
+            {
+                <form asp-action="Activar" asp-route-id="@Model.Id" method="post" class="d-inline"
+                      onsubmit="return confirm('¿Querés volver a activar este viaje?');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-success rounded-pill px-3">Activar</button>
+                </form>
+            }
 
-            <a href="#" class="btn btn-dark rounded-pill px-4">Ver oportunidades</a>
+            <a asp-controller="Envio" asp-action="Oportunidades" class="btn btn-dark rounded-pill px-4">Ver oportunidades</a>
         </div>
     </div>
 
-    <!-- Contenido principal en dos columnas (Recorrido y Paquetes) -->
     <div class="row g-4">
-        <!-- Columna Izquierda: Datos del Recorrido -->
-        <div class="col-lg-6">
+        <!-- Columna izquierda: itinerario con las paradas -->
+        <div class="col-lg-7">
             <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
-                <h4 class="fw-bold mb-4">Recorrido</h4>
-
-                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <span class="text-muted">Estado</span>
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
+                    <h4 class="fw-bold mb-0">Itinerario</h4>
                     @if (Model.Activo)
                     {
-                        <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill">Activo</span>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">Activo</span>
                     }
                     else
                     {
-                        <span class="badge bg-danger-subtle text-danger px-3 py-2 rounded-pill">Inactivo</span>
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 rounded-pill">Inactivo</span>
                     }
                 </div>
+                <p class="text-muted small mb-4">
+                    @Model.Paradas.Count parada(s) intermedia(s) entre el origen y el destino.
+                </p>
 
-                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <span class="text-muted">Días</span>
-                    <span class="fw-medium">@(Model.DiasSemana.Any() ? string.Join(", ", Model.DiasSemana) : "Sin días especificados")</span>
-                </div>
+                @* Fase 2: cuando el modelo incluya contacto/cliente y estado de la parada,
+                   se agregan como una línea más dentro de cada nodo de esta timeline. *@
+                <ol class="timeline list-unstyled mb-0" aria-label="Itinerario del viaje">
+                    <!-- Origen -->
+                    <li class="timeline-nodo"
+                        data-lat="@Model.OrigenLat.ToString(CultureInfo.InvariantCulture)"
+                        data-lng="@Model.OrigenLng.ToString(CultureInfo.InvariantCulture)"
+                        data-orden="0">
+                        <span class="timeline-marcador text-bg-success" aria-hidden="true"></span>
+                        <div class="timeline-contenido">
+                            <span class="timeline-etiqueta text-success">Origen</span>
+                            <h6 class="fw-bold mb-1">@Model.OrigenDir</h6>
+                            <small class="text-muted">Salida @Model.HoraSalida.ToString("HH:mm")</small>
+                        </div>
+                    </li>
 
-                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <span class="text-muted">Horarios</span>
-                    <span class="fw-medium">@Model.HoraSalida.ToString(@"hh\:mm") – @Model.HoraLlegada.ToString(@"hh\:mm")</span>
-                </div>
+                    <!-- Paradas intermedias -->
+                    @foreach (var parada in Model.Paradas)
+                    {
+                        <li class="timeline-nodo"
+                            data-lat="@parada.Lat.ToString(CultureInfo.InvariantCulture)"
+                            data-lng="@parada.Lng.ToString(CultureInfo.InvariantCulture)"
+                            data-orden="@parada.Orden">
+                            <span class="timeline-marcador" aria-hidden="true">@parada.Orden</span>
+                            <div class="timeline-contenido">
+                                <span class="timeline-etiqueta">Parada intermedia</span>
+                                <h6 class="fw-semibold mb-1">@parada.Direccion</h6>
+                            </div>
+                        </li>
+                    }
 
-                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <span class="text-muted">Capacidad</span>
-                    <span class="fw-medium">@Model.MaxPaquetes paquetes</span>
-                </div>
+                    <!-- Destino -->
+                    <li class="timeline-nodo"
+                        data-lat="@Model.DestinoLat.ToString(CultureInfo.InvariantCulture)"
+                        data-lng="@Model.DestinoLng.ToString(CultureInfo.InvariantCulture)"
+                        data-orden="@(Model.Paradas.Count + 1)">
+                        <span class="timeline-marcador text-bg-dark" aria-hidden="true"></span>
+                        <div class="timeline-contenido">
+                            <span class="timeline-etiqueta">Destino</span>
+                            <h6 class="fw-bold mb-1">@Model.DestinoDir</h6>
+                            <small class="text-muted">Llegada @Model.HoraLlegada.ToString("HH:mm")</small>
+                        </div>
+                    </li>
+                </ol>
 
-                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <span class="text-muted">Peso máximo</span>
-                    <span class="fw-medium">@Model.PesoMaximoKg kg</span>
-                </div>
+                <hr class="my-4" />
 
-                <div class="d-flex justify-content-between align-items-center py-2">
-                    <span class="text-muted">Desvío máximo</span>
-                    <span class="fw-medium">@Model.DesvioMaxKm km</span>
+                <!-- Datos del recorrido -->
+                <div class="row row-cols-2 row-cols-md-3 g-3">
+                    <div class="col">
+                        <span class="text-muted small d-block">Días</span>
+                        <span class="fw-medium">@dias</span>
+                    </div>
+                    <div class="col">
+                        <span class="text-muted small d-block">Horario</span>
+                        <span class="fw-medium">@Model.HoraSalida.ToString("HH:mm") &ndash; @Model.HoraLlegada.ToString("HH:mm")</span>
+                    </div>
+                    <div class="col">
+                        <span class="text-muted small d-block">Capacidad</span>
+                        <span class="fw-medium">@Model.MaxPaquetes paquete(s)</span>
+                    </div>
+                    <div class="col">
+                        <span class="text-muted small d-block">Peso máximo</span>
+                        <span class="fw-medium">@Model.PesoMaximoKg kg</span>
+                    </div>
+                    <div class="col">
+                        <span class="text-muted small d-block">Desvío máximo</span>
+                        <span class="fw-medium">@Model.DesvioMaxKm km</span>
+                    </div>
+                    <div class="col">
+                        <span class="text-muted small d-block">Distancia</span>
+                        <span class="fw-medium">@(Model.DistanciaKm > 0 ? Model.DistanciaKm.ToString("0.#") + " km" : "Sin calcular")</span>
+                    </div>
+                    <div class="col">
+                        <span class="text-muted small d-block">Duración estimada</span>
+                        <span class="fw-medium">@(Model.DuracionMin > 0 ? Model.DuracionMin + " min" : "Sin calcular")</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Columna Derecha: Paquetes Asignados (Envíos) -->
-        <div class="col-lg-6">
-            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
-                <h4 class="fw-bold mb-4">Paquetes asignados</h4>
+        <!-- Columna derecha: espacio reservado para el mapa -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 mapa-panel">
+                <h4 class="fw-bold mb-1">Mapa del recorrido</h4>
+                <p class="text-muted small mb-3">Acá vas a ver el trazado completo con sus paradas.</p>
 
-                @if (Model.PaquetesAsignados != null && Model.PaquetesAsignados.Any())
-                {
-                    @foreach (var paquete in Model.PaquetesAsignados)
+                @* Espacio reservado para la Fase 2: la API de mapas debe inicializarse sobre
+                   este mismo contenedor leyendo los atributos data-*, sin tocar el layout. *@
+                <div id="mapa-viaje"
+                     class="mapa-placeholder"
+                     role="group"
+                     aria-label="Mapa del recorrido en desarrollo"
+                     data-origen-lat="@Model.OrigenLat.ToString(CultureInfo.InvariantCulture)"
+                     data-origen-lng="@Model.OrigenLng.ToString(CultureInfo.InvariantCulture)"
+                     data-destino-lat="@Model.DestinoLat.ToString(CultureInfo.InvariantCulture)"
+                     data-destino-lng="@Model.DestinoLng.ToString(CultureInfo.InvariantCulture)">
+                    <span class="mapa-placeholder__icono" aria-hidden="true">🗺️</span>
+                    <p class="fw-semibold mb-1">Mapa en desarrollo</p>
+                    <p class="small mb-0">El servicio de mapas todavía no está conectado en este entorno.</p>
+                </div>
+
+                <p class="text-muted small mb-0 mt-3">
+                    @Model.Paradas.Count parada(s) intermedia(s)
+                    @if (Model.DistanciaKm > 0)
                     {
-                        <div class="card border rounded-3 p-3 mb-3 shadow-sm">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <div>
+                        <span>&middot; @Model.DistanciaKm.ToString("0.#") km</span>
+                    }
+                    @if (Model.DuracionMin > 0)
+                    {
+                        <span>&middot; @Model.DuracionMin min</span>
+                    }
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paquetes asignados -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mt-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h4 class="fw-bold mb-0">Paquetes asignados</h4>
+            <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">@paquetes.Count</span>
+        </div>
+
+        @if (paquetes.Any())
+        {
+            @* Un paquete por fila: la tarjeta horizontal deja lugar para el acceso al detalle. *@
+            <div class="row row-cols-1 g-3">
+                @foreach (var paquete in paquetes)
+                {
+                    var estado = (EstadoEnvio)paquete.Estado;
+
+                    <div class="col">
+                        <div class="card border rounded-3 p-3">
+                            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                                <!-- Descripción y recorrido del paquete -->
+                                <div class="flex-grow-1">
                                     <h6 class="fw-bold mb-1">@paquete.Descripcion</h6>
-                                    <small class="text-muted">
-                                        Estado: @paquete.Estado · Fecha límite: @paquete.FechaLimite.ToString("dd/MM/yyyy")
-                                    </small>
+                                    <small class="text-muted">@paquete.OrigenDir &rarr; @paquete.DestinoDir</small>
                                 </div>
-                                <span class="fw-bold text-success fs-5">$@paquete.Monto</span>
-                            </div>
-                            <div class="text-end mt-2">
-                                <a href="#" class="btn btn-outline-dark btn-sm rounded-pill px-3">Ver paquete</a>
+
+                                <!-- Estado, fecha límite, monto y acceso al detalle -->
+                                <div class="d-flex flex-column align-items-start align-items-md-end gap-2">
+                                    <span class="badge @EstadoEnvioBadge.ObtenerClase(estado) px-3 py-2 rounded-pill fw-normal">
+                                        @paquete.EstadoNombre
+                                    </span>
+
+                                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                                        <small class="text-muted">Fecha límite: @paquete.FechaLimite.ToString("dd/MM/yyyy")</small>
+                                        <span class="fw-bold text-success fs-5">$@paquete.Monto.ToString("N0")</span>
+
+                                        <a asp-action="Paquete"
+                                           asp-route-viajeId="@Model.Id"
+                                           asp-route-envioId="@paquete.Id"
+                                           class="btn btn-outline-dark btn-sm rounded-pill px-3">
+                                            Ver paquete
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    }
-                }
-                else
-                {
-                    <div class="text-center text-muted my-auto py-5">
-                        <p class="mb-0">No hay paquetes asignados a este viaje actualmente.</p>
                     </div>
                 }
             </div>
-        </div>
+        }
+        else
+        {
+            <div class="text-center text-muted py-5">
+                <p class="mb-0">No hay paquetes asignados a este viaje actualmente.</p>
+            </div>
+        }
     </div>
 </div>

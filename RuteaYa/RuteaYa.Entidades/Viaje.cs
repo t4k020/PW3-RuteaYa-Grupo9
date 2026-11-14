@@ -84,6 +84,11 @@ namespace RuteaYa.Entidades
         [Display(Name = "Activo")]
         public bool Activo { get; set; } = true; // bool[cite: 3]
 
+        // Borrado lógico: el viaje deja de mostrarse pero se conserva la fila
+        // para no perder el historial de envíos y asignaciones asociados.
+        [Display(Name = "Eliminado En")]
+        public DateTime? EliminadoEn { get; set; }
+
         // Colecciones de navegación para las relaciones
         public ICollection<Parada> Paradas { get; set; } = new List<Parada>();
         public ICollection<ViajeDia> ViajeDias { get; set; } = new List<ViajeDia>();

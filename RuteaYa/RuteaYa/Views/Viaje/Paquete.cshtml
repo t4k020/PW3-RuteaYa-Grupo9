@@ -1,0 +1,35 @@
+@{
+    ViewData["Title"] = "Detalle del paquete";
+
+    int viajeId = ViewData["ViajeId"] is int idViaje ? idViaje : 0;
+    int envioId = ViewData["EnvioId"] is int idEnvio ? idEnvio : 0;
+}
+
+<div class="container my-4">
+    <!-- Cabecera: título y regreso al viaje -->
+    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+        <div>
+            <h2 class="fw-bold mb-1">Detalle del paquete</h2>
+            <p class="text-muted mb-0">Paquete asignado al viaje #@viajeId</p>
+        </div>
+
+        <a asp-action="Detalle" asp-route-id="@viajeId" class="btn btn-outline-secondary rounded-pill px-3">
+            Volver al viaje
+        </a>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4">
+        <div class="text-center py-5">
+            <span class="fs-1 d-block mb-2" aria-hidden="true">📦</span>
+            <h5 class="fw-semibold mb-2">Vista en desarrollo</h5>
+            <p class="text-muted mb-0">
+                Acá se va a mostrar la información completa del paquete asignado:
+                descripción, recorrido, estado, fecha límite y monto.
+            </p>
+        </div>
+    </div>
+
+    <p class="text-muted small text-center mt-3 mb-0">
+        Viaje #@viajeId &middot; Envío #@envioId
+    </p>
+</div>

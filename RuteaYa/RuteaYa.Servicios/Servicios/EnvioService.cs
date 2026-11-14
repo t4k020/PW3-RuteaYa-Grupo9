@@ -390,17 +390,6 @@ namespace RuteaYa.Servicios
                 .ToListAsync();
         }
 
-        private static string ObtenerNombreEstado(EstadoEnvio estado) => estado switch
-        {
-            EstadoEnvio.BuscandoConductor => "Buscando conductor",
-            EstadoEnvio.ConductorAsignado => "Conductor asignado",
-            EstadoEnvio.Retirado => "Retirado",
-            EstadoEnvio.Entregado => "Entregado",
-            EstadoEnvio.Cancelado => "Cancelado",
-            EstadoEnvio.EnCamino => "En camino",
-            _ => "Estado desconocido"
-        };
-
         private static string ObtenerNombreDia(byte dia) => dia switch
         {
             1 => "Lun",
@@ -438,7 +427,7 @@ namespace RuteaYa.Servicios
                 Viaje = CrearViajeDto(asignacion, estadoEnvio),
                 PuedeCancelar = estadoEnvio is EstadoEnvio.BuscandoConductor or EstadoEnvio.ConductorAsignado,
                 PuedeEliminar = estadoEnvio is EstadoEnvio.Cancelado,
-                EstadoNombre = ObtenerNombreEstado(estadoEnvio)
+                EstadoNombre = estadoEnvio.ObtenerNombre()
             };
         }
 

@@ -252,6 +252,9 @@ namespace RuteaYa.Repositorios.Migrations
                     b.Property<int>("DuracionMin")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("EliminadoEn")
+                        .HasColumnType("datetime2");
+
                     b.Property<TimeOnly>("HoraLlegada")
                         .HasColumnType("time");
 

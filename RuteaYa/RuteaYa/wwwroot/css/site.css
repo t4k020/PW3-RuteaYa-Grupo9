@@ -155,3 +155,98 @@ html[data-bs-theme="dark"] body {
     --bs-btn-active-bg: #ea868f;
     --bs-btn-active-border-color: #ea868f;
 }
+/* ===== Detalle del viaje: timeline de paradas ===== */
+
+.timeline {
+    position: relative;
+}
+
+.timeline::before {
+    content: "";
+    position: absolute;
+    top: .6rem;
+    bottom: .6rem;
+    left: 1.05rem;
+    width: 2px;
+    background-color: var(--bs-border-color);
+}
+
+.timeline-nodo {
+    position: relative;
+    padding-left: 2.75rem;
+    padding-bottom: 1.5rem;
+}
+
+.timeline-nodo:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-marcador {
+    position: absolute;
+    left: .35rem;
+    top: .1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    border: 2px solid var(--bs-border-color);
+    border-radius: 50%;
+    background-color: var(--bs-body-bg);
+    font-size: .7rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.timeline-marcador.text-bg-success,
+.timeline-marcador.text-bg-dark {
+    border-color: transparent;
+}
+
+.timeline-etiqueta {
+    display: block;
+    margin-bottom: .15rem;
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+
+/* ===== Detalle del viaje: espacio reservado para el mapa ===== */
+
+.mapa-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .15rem;
+    aspect-ratio: 4 / 3;
+    min-height: 300px;
+    padding: 1.5rem;
+    text-align: center;
+    border: 1px dashed var(--bs-border-color);
+    border-radius: 1rem;
+    background-color: var(--bs-tertiary-bg);
+    background-image: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 12px,
+        rgba(127, 127, 127, .08) 12px,
+        rgba(127, 127, 127, .08) 24px
+    );
+    color: var(--bs-secondary-color);
+}
+
+.mapa-placeholder__icono {
+    font-size: 2.25rem;
+    line-height: 1;
+}
+
+/* El panel del mapa acompaña el scroll en pantallas grandes. */
+@media (min-width: 992px) {
+    .mapa-panel {
+        position: sticky;
+        top: 1rem;
+    }
+}

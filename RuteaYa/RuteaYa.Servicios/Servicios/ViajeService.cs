@@ -14,6 +14,7 @@ namespace RuteaYa.Servicios
         Task<IEnumerable<Viaje>> ObtenerTodosAsync();
         Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync(bool? soloActivo, int usuarioId);
         Task<bool> DesactivarViajeAsync(int id, int usuarioId);
+        Task<bool> ActivarViajeAsync(int id, int usuarioId);
         Task<ViajeDetalleDto?> ObtenerDetallePorIdAsync(int id, int usuarioId);
         Task<List<Envio>> ObtenerTransportesAsignadosAsync(int usuarioId);
         Task<bool> CambiarEstadoTransporteAsync(int envioId, string accion, int usuarioId);
@@ -83,7 +84,10 @@ namespace RuteaYa.Servicios
                 return false;
             }
 
-            _context.Viajes.Remove(viaje);
+            // Borrado lógico: el viaje desaparece de los listados pero se conserva
+            // para no romper el historial de envíos y asignaciones.
+            viaje.EliminadoEn = DateTime.Now;
+            _context.Viajes.Update(viaje);
             await _context.SaveChangesAsync();
 
             return true;
@@ -157,12 +161,27 @@ namespace RuteaYa.Servicios
             return true;
         }
 
+        //Vuelve a poner en curso un viaje que había sido desactivado
+        public async Task<bool> ActivarViajeAsync(int id, int usuarioId)
+        {
+            var viaje = await _context.Viajes.FirstOrDefaultAsync(v => v.Id == id && v.UsuarioId == usuarioId);
+            if (viaje == null)
+            {
+                return false;
+            }
+            viaje.Activo = true;
+            _context.Viajes.Update(viaje);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<ViajeDetalleDto?> ObtenerDetallePorIdAsync(int id, int usuarioId)
         {
             
             var viaje = await _context.Viajes
                 .Where(v => v.Id == id && v.UsuarioId == usuarioId)
                 .Include(v => v.ViajeDias)
+                .Include(v => v.Paradas)
                 .Include(v => v.Asignaciones)
                     .ThenInclude(a => a.Envio) 
                 .FirstOrDefaultAsync();
@@ -174,21 +193,44 @@ namespace RuteaYa.Servicios
             {
                 Id = viaje.Id,
                 OrigenDir = viaje.OrigenDir,
+                OrigenLat = viaje.OrigenLat,
+                OrigenLng = viaje.OrigenLng,
                 DestinoDir = viaje.DestinoDir,
+                DestinoLat = viaje.DestinoLat,
+                DestinoLng = viaje.DestinoLng,
                 HoraSalida = viaje.HoraSalida,
                 HoraLlegada = viaje.HoraLlegada,
                 Activo = viaje.Activo,
                 MaxPaquetes = viaje.MaxPaquetes,
                 PesoMaximoKg = viaje.PesoMaxKg,
                 DesvioMaxKm = viaje.DesvioMaxKm,
-                DiasSemana = viaje.ViajeDias.Select(vd => ObtenerNombreDia(vd.DiaSemana)).ToList(),
+                DistanciaKm = viaje.DistanciaKm,
+                DuracionMin = viaje.DuracionMin,
+                DiasSemana = viaje.ViajeDias
+                    .OrderBy(vd => vd.DiaSemana)
+                    .Select(vd => ObtenerNombreDia(vd.DiaSemana))
+                    .ToList(),
+
+                // Las paradas se muestran en el orden del recorrido.
+                Paradas = viaje.Paradas
+                    .OrderBy(p => p.Orden)
+                    .Select(p => new ParadaDto
+                    {
+                        Id = p.Id,
+                        Orden = p.Orden,
+                        Direccion = p.Direccion,
+                        Lat = p.Lat,
+                        Lng = p.Lng
+                    })
+                    .ToList(),
 
                 // Mapeamos los envíos (paquetes) asignados a este viaje
                 PaquetesAsignados = viaje.Asignaciones.Select(a => new PaqueteDto
                 {
                     Id = a.Envio.Id,
-                    Descripcion = a.Envio.Descripcion,
+                    Descripcion = a.Envio.Descripcion ?? string.Empty,
                     Estado = a.Envio.Estado,
+                    EstadoNombre = ((EstadoEnvio)a.Envio.Estado).ObtenerNombre(),
                     FechaLimite = a.Envio.FechaLimite,
                     Monto = a.Envio.Monto,
                     OrigenDir = a.Envio.OrigenDir,

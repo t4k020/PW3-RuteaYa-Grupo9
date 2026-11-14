@@ -317,6 +317,52 @@ namespace RuteaYa.Tests
             Assert.Equal(500, statusCodeResult.StatusCode);
         }
 
+        [Fact]
+        public async Task Activar_DeberiaRetornarNoContent_CuandoElViajeExiste()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+
+            _viajeServiceMock
+                .Setup(s => s.ActivarViajeAsync(1, 1))
+                .ReturnsAsync(true);
+
+            // Act
+            var resultado = await _controller.Activar(1);
+
+            // Assert
+            Assert.IsType<NoContentResult>(resultado);
+        }
+
+        [Fact]
+        public async Task Activar_DeberiaRetornarNotFound_CuandoElViajeNoExiste()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+
+            _viajeServiceMock
+                .Setup(s => s.ActivarViajeAsync(999, 1))
+                .ReturnsAsync(false);
+
+            // Act
+            var resultado = await _controller.Activar(999);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(resultado);
+        }
+
+        [Fact]
+        public async Task Activar_DeberiaRetornarUnauthorized_CuandoUsuarioNoEstaAutenticado()
+        {
+            ConfigurarUsuarioNoAutenticado();
+
+            // Act
+            var resultado = await _controller.Activar(1);
+
+            // Assert
+            Assert.IsType<UnauthorizedResult>(resultado);
+        }
+
         private void ConfigurarUsuarioAutenticado()
         {
             var user = new ClaimsPrincipal(new ClaimsIdentity(new[]
