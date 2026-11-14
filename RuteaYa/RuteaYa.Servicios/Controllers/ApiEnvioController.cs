@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
 using RuteaYa.Servicios;
 
 namespace RuteaYa.Servicios.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class ApiEnvioController : Controller
@@ -18,10 +20,10 @@ namespace RuteaYa.Servicios.Controllers
         [HttpPost]
         public async Task<IActionResult> CrearEnvio([FromBody] Envio envio)
         {
-            if (!User.Identity?.IsAuthenticated ?? true)
+            /*if (!User.Identity?.IsAuthenticated ?? true)
             {
                 return Unauthorized();
-            }
+            }*/
 
             if (!ModelState.IsValid)
             {
@@ -51,10 +53,10 @@ namespace RuteaYa.Servicios.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> ObtenerPorId(int id)
         {
-            if (!User.Identity?.IsAuthenticated ?? true)
+            /*if (!User.Identity?.IsAuthenticated ?? true)
             {
                 return Unauthorized();
-            }
+            }*/
 
             try
             {
@@ -77,10 +79,10 @@ namespace RuteaYa.Servicios.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> EliminarEnvio(int id)
         {
-            if (!User.Identity?.IsAuthenticated ?? true)
+            /*if (!User.Identity?.IsAuthenticated ?? true)
             {
                 return Unauthorized();
-            }
+            }*/
 
             try
             {

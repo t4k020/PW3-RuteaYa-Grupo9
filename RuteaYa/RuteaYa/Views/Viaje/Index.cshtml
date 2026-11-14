@@ -22,11 +22,20 @@
         <div class="alert alert-danger">@TempData["Error"]</div>
     }
 
-    <!-- Filtros visuales (opcionales según tu diseño) -->
+    <!-- Filtros visuales -->
     <div class="mb-4">
-        <span class="badge rounded-pill bg-dark px-3 py-2 me-1">Activos</span>
-        <span class="badge rounded-pill bg-light text-dark border px-3 py-2 me-1">Inactivos</span>
-        <span class="badge rounded-pill bg-light text-dark border px-3 py-2">Todos</span>
+        <a asp-action="Index" asp-route-filtro="activos"
+           class="badge rounded-pill @(ViewBag.FiltroActual == "activos" ? "bg-dark" : "bg-light text-dark border") px-3 py-2 me-1 text-decoration-none">
+            Activos
+        </a>
+        <a asp-action="Index" asp-route-filtro="inactivos"
+           class="badge rounded-pill @(ViewBag.FiltroActual == "inactivos" ? "bg-dark" : "bg-light text-dark border") px-3 py-2 me-1 text-decoration-none">
+            Inactivos
+        </a>
+        <a asp-action="Index" asp-route-filtro="todos"
+           class="badge rounded-pill @(ViewBag.FiltroActual == "todos" ? "bg-dark" : "bg-light text-dark border") px-3 py-2 text-decoration-none">
+            Todos
+        </a>
     </div>
 
     @if (Model != null && Model.Any())
@@ -63,13 +72,13 @@
                                 <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-3 py-2 rounded-pill">Inactivo</span>
                             }
 
-                            <a asp-action="Detalles" asp-route-id="@item.Id" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Ver detalle</a>
+                            <a asp-action="Detalle" asp-route-id="@item.Id" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Ver detalle</a>
 
                             <!-- Botón Oportunidades (si lo usás en tu lógica) -->
                             <a href="#" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Oportunidades</a>
 
                             <!-- Formulario o botón para Desactivar / Eliminar -->
-                            <form asp-action="Eliminar" asp-route-id="@item.Id" method="post" style="display:inline;" onsubmit="return confirm('¿Estás seguro de desactivar este viaje?');">
+                            <form asp-action="Desactivar" asp-route-id="@item.Id" method="post" style="display:inline;" onsubmit="return confirm('¿Estás seguro de desactivar este viaje?');">
                                 <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">Desactivar</button>
                             </form>
                         </div>
