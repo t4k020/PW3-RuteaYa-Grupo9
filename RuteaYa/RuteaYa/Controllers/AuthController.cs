@@ -75,10 +75,22 @@ namespace RuteaYa.Controllers
 
                 var root = json.RootElement;
 
-                var id = root.GetProperty("id").ToString();
-                var nombre = root.GetProperty("nombre").GetString();
-                var correo = root.GetProperty("email").GetString();
-                var token = root.GetProperty("token").GetString();
+                if (!root.TryGetProperty("id", out var idElement) ||
+                    !root.TryGetProperty("nombre", out var nombreElement) ||
+                    !root.TryGetProperty("email", out var correoElement) ||
+                    !root.TryGetProperty("token", out var tokenElement))
+                {
+                    ModelState.AddModelError(
+                        string.Empty,
+                        "La respuesta de la API está incompleta.");
+
+                    return View();
+                }
+
+                var id = idElement.ToString();
+                var nombre = nombreElement.GetString();
+                var correo = correoElement.GetString();
+                var token = tokenElement.GetString();
 
                 if (string.IsNullOrWhiteSpace(id) ||
                     string.IsNullOrWhiteSpace(nombre) ||
