@@ -72,8 +72,8 @@ namespace RuteaYa.Repositorios.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Descripcion")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasMaxLength(70)
+                        .HasColumnType("nvarchar(70)");
 
                     b.Property<string>("DestinoDir")
                         .IsRequired()
@@ -251,6 +251,9 @@ namespace RuteaYa.Repositorios.Migrations
 
                     b.Property<int>("DuracionMin")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("EliminadoEn")
+                        .HasColumnType("datetime2");
 
                     b.Property<TimeOnly>("HoraLlegada")
                         .HasColumnType("time");

@@ -3,10 +3,8 @@ using Moq;
 using RuteaYa.Entidades;
 using RuteaYa.Servicios;
 using RuteaYa.Servicios.Controllers;
-using System;
-using System.Collections.Generic;
+using RuteaYa.Servicios.Dtos;
 using System.Security.Claims;
-using System.Text;
 using Xunit;
 
 namespace RuteaYa.Tests
@@ -16,238 +14,236 @@ namespace RuteaYa.Tests
         private readonly Mock<IEnvioService> _envioServiceMock;
         private readonly ApiEnvioController _controller;
 
-
-
         public ApiEnvioControllerTest()
         {
-            //mock
             _envioServiceMock = new Mock<IEnvioService>();
-            _controller = new ApiEnvioController(_envioServiceMock.Object);
-
-            // Inicializamos un contexto HTTP por defecto para evitar NullReferenceException
-            // al acceder a User o HttpContext
-            _controller.ControllerContext = new ControllerContext
+            _controller = new ApiEnvioController(_envioServiceMock.Object)
             {
-                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext()
+                }
             };
         }
 
-
-
         [Fact]
-        public async Task CuandoSeCreaUnEnvioCorrectamentePeroElUsuarioNoTieneCredencialesSeRecibeUn401()
+        public async Task CrearEnvio_DeberiaRetornarUnauthorized_CuandoUsuarioNoEstaAutenticado()
         {
-            // Preparacion
-            var envio = new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" };
+            var resultado = await _controller.CrearEnvio(CrearSolicitudValida());
 
-            // Simulamos que el usuario no está autorizado (puedes ajustar el controlador para validar esto con [Authorize]).
-            _controller.ControllerContext = new ControllerContext
-            {
-                HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext() // Sin usuario autenticado
-            };
-
-            // Procedimiento
-            var resultado = await _controller.CrearEnvio(envio);
-
-            // Verificacion
-            // Verificamos que devuelva 401 Unauthorized si no hay sesión/autorización
             Assert.IsType<UnauthorizedResult>(resultado);
         }
 
         [Fact]
-        public async Task CuandoSeCreaUnEnvioYSuModelStateEsInvalidoSeRecibeUn400()
+        public async Task CrearEnvio_DeberiaRetornarBadRequest_CuandoModelStateEsInvalido()
         {
-            // Preparacion
-            var envio = new Envio(); // objeto vacio
-            ConfigurarUsuarioAutenticado(); 
-
-            // Se fuerza un error en el modelState
+            ConfigurarUsuarioAutenticado();
             _controller.ModelState.AddModelError("OrigenDir", "La dirección de origen es obligatoria.");
 
-            // Procedimiento
-            var resultado = await _controller.CrearEnvio(envio);
+            var resultado = await _controller.CrearEnvio(CrearSolicitudValida());
 
-            // Verificacion
-            var badRequestResult = Assert.IsType<BadRequestObjectResult>(resultado);
+            var badRequestResult = Assert.IsType<ObjectResult>(resultado);
             Assert.NotNull(badRequestResult.Value);
         }
 
         [Fact]
-        public async Task CuandoSeCreaUnEnvioYElEstadoDelObjetoEsInvalidoSeRecibeUn400()
+        public async Task CrearEnvio_DeberiaRetornarBadRequest_CuandoElServicioRechazaLaOperacion()
         {
-            // Preparacion
-            var envio = new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" };
-            ConfigurarUsuarioAutenticado(); 
-
-            // Configuramos el mock para que lance la excepción de regla de negocio
-            _envioServiceMock.Setup(s => s.CrearEnvioAsync(It.IsAny<Envio>()))
+            ConfigurarUsuarioAutenticado();
+            _envioServiceMock
+                .Setup(s => s.CrearEnvioAsync(It.IsAny<Envio>(), 1))
                 .ThrowsAsync(new InvalidOperationException("El usuario asociado no existe."));
 
-            // Procedimiento
-            var resultado = await _controller.CrearEnvio(envio);
+            var resultado = await _controller.CrearEnvio(CrearSolicitudValida());
 
-            // Verificacion
             Assert.IsType<BadRequestObjectResult>(resultado);
         }
 
         [Fact]
-        public async Task CuandoSeCreaUnEnvioYHayUnErrorInternoSeRecibeUn500()
+        public async Task CrearEnvio_DeberiaRetornarCreated_CuandoLaOperacionEsCorrecta()
         {
-            // Preparacion
-            var envio = new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" };
-            ConfigurarUsuarioAutenticado(); // Reutilizamos el método auxiliar
+            ConfigurarUsuarioAutenticado();
+            var envioCreado = new Envio
+            {
+                Id = 1,
+                OrigenDir = "Mitre 1000",
+                DestinoDir = "Belgrano 500"
+            };
+            _envioServiceMock
+                .Setup(s => s.CrearEnvioAsync(It.IsAny<Envio>(), 1))
+                .ReturnsAsync(envioCreado);
 
-            // Simulamos un error inesperado de base de datos o sistema
-            _envioServiceMock.Setup(s => s.CrearEnvioAsync(It.IsAny<Envio>()))
-                .ThrowsAsync(new Exception("Error crítico de conexión a la BD"));
+            var resultado = await _controller.CrearEnvio(CrearSolicitudValida());
 
-            // Procedimiento
-            var resultado = await _controller.CrearEnvio(envio);
-
-            // Verificacion
-            var statusCodeResult = Assert.IsType<ObjectResult>(resultado);
-            Assert.Equal(500, statusCodeResult.StatusCode);
+            var createdResult = Assert.IsType<CreatedAtActionResult>(resultado);
+            Assert.Equal(201, createdResult.StatusCode);
+            var envioRetornado = Assert.IsType<EnvioDto>(createdResult.Value);
+            Assert.Equal(envioCreado.Id, envioRetornado.Id);
+            Assert.Equal(envioCreado.OrigenDir, envioRetornado.OrigenDir);
+            Assert.Equal(envioCreado.DestinoDir, envioRetornado.DestinoDir);
         }
 
-
-        //tests para get por id 
-
         [Fact]
-        public async Task ObtenerPorId_DeberiaRetornarUnauthorized_CuandoUsuarioNoEstaAutenticado()
+        public async Task ObtenerPorIdApi_DeberiaRetornarUnauthorized_CuandoUsuarioNoEstaAutenticado()
         {
-            // Act (El HttpContext por defecto no tiene un usuario autenticado, por lo que IsAuthenticated será falso)
-            var resultado = await _controller.ObtenerPorId(1);
+            var resultado = await _controller.ObtenerPorIdApi(1);
 
-            // Assert
             Assert.IsType<UnauthorizedResult>(resultado);
         }
 
         [Fact]
-        public async Task ObtenerPorId_DeberiaRetornarOkConEnvio_CuandoElEnvioExiste()
+        public async Task ObtenerPorIdApi_DeberiaRetornarOkConDto_CuandoElEnvioExiste()
         {
-            // Arrange
             ConfigurarUsuarioAutenticado();
-            var envioMock = new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" };
-
             _envioServiceMock
-                .Setup(s => s.ObtenerPorIdAsync(1))
-                .ReturnsAsync(envioMock);
+                .Setup(s => s.ObtenerDetalleDtoAsync(
+                    1,
+                    1,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new EnvioDto
+                {
+                    Id = 1,
+                    OrigenDir = "Mitre 1000",
+                    DestinoDir = "Belgrano 500"
+                });
 
-            // Act
-            var resultado = await _controller.ObtenerPorId(1);
+            var resultado = await _controller.ObtenerPorIdApi(1);
 
-            // Assert
             var okResult = Assert.IsType<OkObjectResult>(resultado);
-            var envioRetornado = Assert.IsType<Envio>(okResult.Value);
+            var envioRetornado = Assert.IsType<EnvioDto>(okResult.Value);
             Assert.Equal(1, envioRetornado.Id);
             Assert.Equal("Mitre 1000", envioRetornado.OrigenDir);
         }
 
         [Fact]
-        public async Task ObtenerPorId_DeberiaRetornarNotFound_CuandoElEnvioNoExiste()
+        public async Task ObtenerPorIdApi_DeberiaRetornarNotFound_CuandoElEnvioNoExiste()
         {
-            // Arrange
             ConfigurarUsuarioAutenticado();
-
             _envioServiceMock
-                .Setup(s => s.ObtenerPorIdAsync(999))
-                .ReturnsAsync((Envio?)null);
+                .Setup(s => s.ObtenerDetalleDtoAsync(
+                    999,
+                    1,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync((EnvioDto?)null);
 
-            // Act
-            var resultado = await _controller.ObtenerPorId(999);
+            var resultado = await _controller.ObtenerPorIdApi(999);
 
-            // Assert
             Assert.IsType<NotFoundResult>(resultado);
         }
 
         [Fact]
-        public async Task ObtenerPorId_DeberiaRetornarStatusCode500_CuandoOcurreUnaExcepcion()
+        public async Task ObtenerPorIdApi_DeberiaRetornarStatusCode500_CuandoOcurreUnaExcepcion()
         {
-            // Arrange
             ConfigurarUsuarioAutenticado();
-
             _envioServiceMock
-                .Setup(s => s.ObtenerPorIdAsync(It.IsAny<int>()))
+                .Setup(s => s.ObtenerDetalleDtoAsync(
+                    It.IsAny<int>(),
+                    1,
+                    It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("Error de base de datos"));
 
-            // Act
-            var resultado = await _controller.ObtenerPorId(1);
+            var resultado = await _controller.ObtenerPorIdApi(1);
 
-            // Assert
             var statusCodeResult = Assert.IsType<ObjectResult>(resultado);
             Assert.Equal(500, statusCodeResult.StatusCode);
         }
 
-
-        //eliminar envio tests 
         [Fact]
-        public async Task EliminarEnvio_DeberiaRetornarUnauthorized_CuandoUsuarioNoEstaAutenticado()
+        public async Task EliminarEnvioApi_DeberiaRetornarUnauthorized_CuandoUsuarioNoEstaAutenticado()
         {
-            // Act 
-            var resultado = await _controller.EliminarEnvio(1);
+            var resultado = await _controller.EliminarEnvioApi(1);
 
-            // Assert
             Assert.IsType<UnauthorizedResult>(resultado);
         }
 
         [Fact]
-        public async Task EliminarEnvio_DeberiaRetornarNoContent_CuandoElEnvioExisteYSeElimina()
+        public async Task EliminarEnvioApi_DeberiaRetornarNoContent_CuandoElEnvioExisteYSeElimina()
         {
-            // Arrange
             ConfigurarUsuarioAutenticado();
-
             _envioServiceMock
-                .Setup(s => s.EliminarEnvioAsync(1))
+                .Setup(s => s.EliminarEnvioAsync(1, 1))
                 .ReturnsAsync(true);
 
-            // Act
-            var resultado = await _controller.EliminarEnvio(1);
+            var resultado = await _controller.EliminarEnvioApi(1);
 
-            // Assert
-            Assert.IsType<NoContentResult>(resultado); // Código 204
+            Assert.IsType<NoContentResult>(resultado);
         }
 
         [Fact]
-        public async Task EliminarEnvio_DeberiaRetornarNotFound_CuandoElEnvioNoExiste()
+        public async Task EliminarEnvioApi_DeberiaRetornarNotFound_CuandoElEnvioNoExiste()
         {
-            // Arrange
             ConfigurarUsuarioAutenticado();
-
             _envioServiceMock
-                .Setup(s => s.EliminarEnvioAsync(999))
+                .Setup(s => s.EliminarEnvioAsync(999, 1))
                 .ReturnsAsync(false);
 
-            // Act
-            var resultado = await _controller.EliminarEnvio(999);
+            var resultado = await _controller.EliminarEnvioApi(999);
 
-            // Assert
-            Assert.IsType<NotFoundResult>(resultado); // Código 404
+            Assert.IsType<NotFoundResult>(resultado);
         }
 
         [Fact]
-        public async Task EliminarEnvio_DeberiaRetornarStatusCode500_CuandoOcurreUnaExcepcion()
+        public async Task EliminarEnvioApi_DeberiaRetornarStatusCode500_CuandoOcurreUnaExcepcion()
         {
-            // Arrange
             ConfigurarUsuarioAutenticado();
-
             _envioServiceMock
-                .Setup(s => s.EliminarEnvioAsync(It.IsAny<int>()))
+                .Setup(s => s.EliminarEnvioAsync(It.IsAny<int>(), 1))
                 .ThrowsAsync(new Exception("Error de base de datos"));
 
-            // Act
-            var resultado = await _controller.EliminarEnvio(1);
+            var resultado = await _controller.EliminarEnvioApi(1);
 
-            // Assert
             var statusCodeResult = Assert.IsType<ObjectResult>(resultado);
             Assert.Equal(500, statusCodeResult.StatusCode);
+        }
+
+        [Fact]
+        public async Task CancelarEnvioApi_DeberiaRetornarNoContent_CuandoElServicioCancela()
+        {
+            ConfigurarUsuarioAutenticado();
+            _envioServiceMock
+                .Setup(s => s.CancelarEnvioAsync(1, 1))
+                .ReturnsAsync(true);
+
+            var resultado = await _controller.CancelarEnvioApi(1);
+
+            Assert.IsType<NoContentResult>(resultado);
+        }
+
+        [Fact]
+        public async Task CancelarEnvioApi_DeberiaRetornarBadRequest_CuandoElEstadoNoPermiteCancelar()
+        {
+            ConfigurarUsuarioAutenticado();
+            _envioServiceMock
+                .Setup(s => s.CancelarEnvioAsync(1, 1))
+                .ThrowsAsync(new InvalidOperationException("No se puede cancelar."));
+
+            var resultado = await _controller.CancelarEnvioApi(1);
+
+            var badRequest = Assert.IsType<BadRequestObjectResult>(resultado);
+            Assert.Equal(400, badRequest.StatusCode);
+        }
+
+        private static CrearEnvioDto CrearSolicitudValida()
+        {
+            return new CrearEnvioDto
+            {
+                OrigenDir = "Mitre 1000",
+                DestinoDir = "Belgrano 500",
+                FechaLimite = DateTime.Today.AddDays(1),
+                PesoKg = 2,
+                Tamano = 1,
+                Descripcion = "Documentacion",
+                Monto = 4000
+            };
         }
 
         private void ConfigurarUsuarioAutenticado()
         {
             var user = new ClaimsPrincipal(new ClaimsIdentity(new[]
             {
-            new Claim(ClaimTypes.Name, "usuario_test")
-        }, "mock"));
+                new Claim(ClaimTypes.NameIdentifier, "1"),
+                new Claim(ClaimTypes.Name, "usuario_test")
+            }, "mock"));
 
             _controller.ControllerContext.HttpContext.User = user;
         }

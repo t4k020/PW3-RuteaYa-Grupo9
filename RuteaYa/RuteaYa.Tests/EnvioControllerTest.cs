@@ -7,6 +7,7 @@ using Moq.Protected;
 using RuteaYa.Controllers;
 using RuteaYa.Entidades;
 using RuteaYa.Servicios;
+using RuteaYa.Servicios.Dtos;
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
@@ -66,7 +67,7 @@ namespace RuteaYa.Tests
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(resultado);
-            var modeloRetornado = Assert.IsType<List<Envio>>(viewResult.Model);
+            var modeloRetornado = Assert.IsType<List<EnvioDto>>(viewResult.Model);
             Assert.Equal(2, modeloRetornado.Count);
             Assert.Equal("Mitre 1000", modeloRetornado[0].OrigenDir);
         }
@@ -82,7 +83,7 @@ namespace RuteaYa.Tests
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(resultado);
-            var modeloRetornado = Assert.IsType<List<Envio>>(viewResult.Model);
+            var modeloRetornado = Assert.IsType<List<EnvioDto>>(viewResult.Model);
             Assert.Empty(modeloRetornado);
             Assert.Equal("No se pudo conectar con el servidor de la API.", _controller.TempData["Error"]);
         }
@@ -91,7 +92,11 @@ namespace RuteaYa.Tests
         public async Task CuandoSeCreaUnEnvioCorrectamenteRedirigeAlIndex()
         {
             // Arrange
-            var envio = new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" };
+            var nuevoEnvio = new CrearEnvioDto 
+            { 
+                OrigenDir = "Mitre 1000", 
+                DestinoDir = "Belgrano 500" 
+            };
 
             // Simulamos que la API responde exitosamente con un código 201 Created
             _httpMessageHandlerMock
@@ -104,11 +109,11 @@ namespace RuteaYa.Tests
                 .ReturnsAsync(new HttpResponseMessage
                 {
                     StatusCode = HttpStatusCode.Created,
-                    Content = JsonContent.Create(envio)
+                    Content = JsonContent.Create(nuevoEnvio)
                 });
 
             // Act
-            var resultado = await _controller.Crear(envio);
+            var resultado = await _controller.Crear(nuevoEnvio);
 
             // Assert
             var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
@@ -119,29 +124,37 @@ namespace RuteaYa.Tests
         public async Task CuandoLaApiDevuelveUnauthorizedAgregaErrorAlModelState()
         {
             // Arrange
-            var envio = new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" };
+            var nuevoEnvio = new CrearEnvioDto 
+            { 
+                OrigenDir = "Mitre 1000", 
+                DestinoDir = "Belgrano 500" 
+            };
 
             ConfigurarRespuestaHttp(new HttpResponseMessage { StatusCode = HttpStatusCode.Unauthorized });
 
             // Act
-            var resultado = await _controller.Crear(envio);
+            var resultado = await _controller.Crear(nuevoEnvio);
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(resultado);
             Assert.False(_controller.ModelState.IsValid);
-            Assert.Contains(_controller.ModelState[string.Empty]!.Errors, e => e.ErrorMessage.Contains("autorización"));
+            Assert.Contains(_controller.ModelState[string.Empty]!.Errors, e => e.ErrorMessage.Contains("autorizaci\u00f3n"));
         }
 
         [Fact]
         public async Task CuandoLaApiDevuelveBadRequestAgregaErrorAlModelState()
         {
             // Arrange
-            var envio = new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" };
+            var nuevoEnvio = new CrearEnvioDto 
+            { 
+                OrigenDir = "Mitre 1000", 
+                DestinoDir = "Belgrano 500" 
+            };
 
             ConfigurarRespuestaHttp(new HttpResponseMessage { StatusCode = HttpStatusCode.BadRequest });
 
             // Act
-            var resultado = await _controller.Crear(envio);
+            var resultado = await _controller.Crear(nuevoEnvio);
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(resultado);
@@ -153,12 +166,16 @@ namespace RuteaYa.Tests
         public async Task CuandoLaApiDevuelveErrorInesperadoAgregaErrorAlModelState()
         {
             // Arrange
-            var envio = new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" };
+            var nuevoEnvio = new CrearEnvioDto 
+            { 
+                OrigenDir = "Mitre 1000", 
+                DestinoDir = "Belgrano 500" 
+            };
 
             ConfigurarRespuestaHttp(new HttpResponseMessage { StatusCode = HttpStatusCode.InternalServerError });
 
             // Act
-            var resultado = await _controller.Crear(envio);
+            var resultado = await _controller.Crear(nuevoEnvio);
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(resultado);
@@ -170,12 +187,16 @@ namespace RuteaYa.Tests
         public async Task CuandoOcurreUnErrorEnElServerApiSeDevuelveUnMensajeDeErrorAlModelState()
         {
             // Arrange
-            var envio = new Envio { Id = 1, OrigenDir = "Mitre 1000", DestinoDir = "Belgrano 500" };
+            var nuevoEnvio = new CrearEnvioDto 
+            { 
+                OrigenDir = "Mitre 1000", 
+                DestinoDir = "Belgrano 500" 
+            };
 
             SetHttpServerError(new HttpRequestException("Fallo de red"));
 
             // Act
-            var resultado = await _controller.Crear(envio);
+            var resultado = await _controller.Crear(nuevoEnvio);
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(resultado);
@@ -200,7 +221,7 @@ namespace RuteaYa.Tests
 
             // Assert
             var viewResult = Assert.IsType<ViewResult>(resultado);
-            var modeloRetornado = Assert.IsType<Envio>(viewResult.Model);
+            var modeloRetornado = Assert.IsType<EnvioDto>(viewResult.Model);
             Assert.Equal(1, modeloRetornado.Id);
             Assert.Equal("Mitre 1000", modeloRetornado.OrigenDir);
         }
@@ -312,6 +333,7 @@ namespace RuteaYa.Tests
             Assert.Equal("No se pudo conectar con el servidor de la API.", _controller.TempData["Error"]);
         }
 
+        // Métodos auxiliares
         private void ConfigurarRespuestaHttp(HttpResponseMessage respuesta)
         {
             _httpMessageHandlerMock

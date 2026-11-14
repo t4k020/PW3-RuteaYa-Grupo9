@@ -1,0 +1,84 @@
+﻿@model RuteaYa.Servicios.Dtos.HomeDashboardDto
+@{
+    ViewData["Title"] = "Historial";
+}
+
+<div class="container mt-5">
+    <div class="mb-4">
+        <h2 class="fw-bold text-dark mb-1">Historial</h2>
+        <p class="text-muted">Operaciones anteriores.</p>
+    </div>
+
+    <!-- Tarjetas -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <p class="text-muted mb-1 fw-semibold">Viajes realizados</p>
+                <h2 class="display-5 fw-bold text-dark mb-0">@Model.CantidadViajes</h2>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <p class="text-muted mb-1 fw-semibold">Envíos transportados</p>
+                <h2 class="display-5 fw-bold text-dark mb-0">@Model.CantidadEnvios</h2>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 rounded-4 p-4 h-100" style="background-color: #d1f2e3;">
+                <p class="text-success mb-1 fw-semibold">Ganancia efectiva</p>
+                <h2 class="display-5 fw-bold text-success mb-0">$@Model.GananciaEfectivaMes.ToString("N0")</h2>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="card border-0 shadow-sm rounded-4 p-2">
+
+
+        @if (Model.Viajes.Any())
+        {
+            <h6 class="text-muted fw-bold px-3 pt-3 mb-1">Últimos viajes</h6>
+            <div class="list-group list-group-flush mb-3">
+                @foreach (var viaje in Model.Viajes)
+                {
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-3 py-3 border-light-subtle">
+                        <div>
+                            <h6 class="mb-1 fw-bold text-dark">@viaje.Origen &rarr; @viaje.Destino</h6>
+                            <small class="text-muted">@viaje.DiasSemana[0]</small>
+                        </div>
+                        <div class="fw-bold text-success fs-5">
+                            @viaje.DiasSemana[1]
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+
+        @if (Model.Envios.Any())
+        {
+            <h6 class="text-muted fw-bold px-3 pt-3 mb-1">Últimos envíos entregados</h6>
+            <div class="list-group list-group-flush">
+                @foreach (var envio in Model.Envios)
+                {
+                    <div class="list-group-item d-flex justify-content-between align-items-center px-3 py-3 border-light-subtle">
+                        <div>
+                            <h6 class="mb-1 fw-bold text-dark">@envio.Origen &rarr; @envio.Destino</h6>
+                            <small class="text-muted">@envio.EstadoNombre</small>
+                        </div>
+                        <div class="fw-bold text-dark fs-5">
+                            $@envio.Monto.ToString("N0")
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (!Model.Viajes.Any() && !Model.Envios.Any())
+        {
+            <div class="text-center text-muted p-5">
+                <p class="mb-0">No tienes operaciones registradas aún.</p>
+            </div>
+        }
+    </div>
+</div>

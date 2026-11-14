@@ -55,20 +55,21 @@ namespace RuteaYa.Entidades
 
         [Required(ErrorMessage = "El peso es obligatorio.")]
         [Column(TypeName = "decimal(18, 2)")]
-        [Range(0.1, 1000.0, ErrorMessage = "El peso debe ser un valor válido.")]
+        [Range(0.01, 1000.0, ErrorMessage = "El peso debe ser mayor que cero.")]
         [Display(Name = "Peso (Kg)")]
         public decimal PesoKg { get; set; }
 
-        [Required]
+        [Range(1, 3, ErrorMessage = "Seleccioná un tamaño válido.")]
         [Display(Name = "Tamaño")]
         public byte Tamano { get; set; } // Mapea el tipo tinyint de SQL
 
-        [StringLength(300, ErrorMessage = "La descripción no puede superar los 300 caracteres.")]
+        [StringLength(70, ErrorMessage = "La descripción no puede superar los 70 caracteres.")]
         [Display(Name = "Descripción")]
         public string? Descripcion { get; set; }
 
         [Required(ErrorMessage = "El monto es obligatorio.")]
         [Column(TypeName = "decimal(18, 2)")]
+        [Range(0.01, 100000000, ErrorMessage = "El monto ofrecido debe ser mayor que cero.")]
         [Display(Name = "Monto")]
         public decimal Monto { get; set; }
 

@@ -3,59 +3,79 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
     <title>@ViewData["Title"] - RuteaYa</title>
+    <partial name="_ThemeInit" />
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/RuteaYa.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container">
-                <a class="navbar-brand" asp-controller="Home" asp-action="Index">RuteaYa</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Viaje" asp-action="Index">Mis viajes</a>
-                        </li>
+    <div class="d-flex min-vh-100">
 
-                    </ul>
+        <!-- Barra lateral (Sidebar) -->
+        <aside class="sidebar d-flex flex-column p-3 text-white">
+            <a class="navbar-brand text-white fs-4 fw-bold mb-4 px-2 text-decoration-none" asp-controller="Home" asp-action="Index">
+                RuteaYa
+            </a>
+
+            <ul class="nav nav-pills flex-column mb-auto">
+                <li class="nav-item mb-1">
+                    <!-- Clase 'active-link' para el ítem seleccionado -->
+                    <a class="nav-link active-link text-white" asp-controller="Home" asp-action="Index">Inicio</a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link text-white opacity-75" asp-controller="Viaje" asp-action="Index">Mis viajes</a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link text-white opacity-75" asp-controller="Envio" asp-action="Index">Mis envíos</a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link text-white opacity-75" asp-controller="Envio" asp-action="Oportunidades">Oportunidades</a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link text-white opacity-75" href="#">Optimizador</a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link text-white opacity-75" asp-controller="Viaje" asp-action="MisTransportes">Mis transportes</a>
+                </li>
+                <li class="nav-item mb-1">
+                    <a class="nav-link text-white opacity-75" asp-controller="Home" asp-action="Historial">Historial</a>
+                </li>
+            </ul>
+
+            <!-- Sección de Usuario Inferior -->
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                <div class="mt-auto user-profile-box p-3 rounded">
+                    <div class="fw-bold"> @User.Identity?.Name</div>
+                    <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0 p-0 mt-1">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-danger btn-sm w-100 mt-2 fw-semibold">
+                            Cerrar sesión
+                        </button>
+                    </form>
                 </div>
-                @if (User.Identity?.IsAuthenticated == true)
-{
-    <form asp-controller="Auth" asp-action="Logout" method="post">
-        @Html.AntiForgeryToken()
-        <button type="submit" class="btn btn-outline-danger">
-            Cerrar sesión
-        </button>
-    </form>
-}
-            </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
+            }
+        </aside>
+
+        <!-- Contenido Principal -->
+        <div class="main-content flex-grow-1 d-flex flex-column">
+            <header class="topbar d-flex justify-content-end align-items-center px-4 py-2">
+                <button type="button" data-theme-toggle class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                    🌙 Modo oscuro
+                </button>
+            </header>
+
+            <main role="main" class="p-4 pb-3 flex-grow-1">
+                @RenderBody()
+            </main>
+        </div>
+
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - RuteaYa - <a asp-area="" asp-page="/Privacy">Privacy</a>
-        </div>
-    </footer>
-
+    <script src="~/js/theme.js" asp-append-version="true"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

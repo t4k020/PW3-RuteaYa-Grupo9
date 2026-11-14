@@ -1,0 +1,21 @@
+<script>
+    (function () {
+        var root = document.documentElement;
+        var saved = null;
+
+        try {
+            saved = localStorage.getItem("theme");
+        } catch (e) {
+            saved = null;
+        }
+
+        var valid = saved === "light" || saved === "dark";
+        var prefersDark = window.matchMedia
+            && window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+        root.setAttribute(
+            "data-bs-theme",
+            valid ? saved : (prefersDark ? "dark" : "light")
+        );
+    })();
+</script>

@@ -73,6 +73,11 @@ namespace RuteaYa.Repositorios
                 .WithMany()
                 .HasForeignKey(h => h.EnvioId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // 7. Borrado lógico: los viajes eliminados no se devuelven en ninguna consulta.
+            //    Si se necesita auditar uno, hay que usar IgnoreQueryFilters() de forma explícita.
+            modelBuilder.Entity<Viaje>()
+                .HasQueryFilter(v => v.EliminadoEn == null);
         }
 
     }

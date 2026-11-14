@@ -58,9 +58,17 @@ builder.Services.AddHttpClient("ApiViaje", client =>
     client.BaseAddress = new Uri("https://localhost:7224/");
 }).AddHttpMessageHandler<JwtAuthorizationHandler>();
 
+builder.Services.AddHttpClient("ApiHome", client =>
+{
+    client.BaseAddress = new Uri(
+        builder.Configuration["ApiSettings:BaseUrl"]!);
+}).AddHttpMessageHandler<JwtAuthorizationHandler>();
+
 var app = builder.Build();
 
 // Carga inicial de la base de datos
+//Aviso: suele dar error en consola esta parte.
+
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;

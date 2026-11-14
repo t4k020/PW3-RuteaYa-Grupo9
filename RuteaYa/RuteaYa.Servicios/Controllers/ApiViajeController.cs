@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
+using RuteaYa.Servicios.Dtos;
 using System.Security.Claims;
 
 namespace RuteaYa.Servicios.Controllers
@@ -61,23 +62,74 @@ namespace RuteaYa.Servicios.Controllers
         }
 
         
+        /// <summary>
+        /// Obtiene el detalle de un envío asignado a un viaje del usuario autenticado.
+        /// </summary>
+        /// <param name="viajeId">Identificador del viaje.</param>
+        /// <param name="envioId">Identificador del envío asignado.</param>
+        /// <param name="cancellationToken">Token para cancelar la operación.</param>
+        [HttpGet("{viajeId:int}/paquetes/{envioId:int}")]
+        [ProducesResponseType(typeof(PaqueteDetalleDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ObtenerPaqueteAsignado(
+            int viajeId,
+            int envioId,
+            CancellationToken cancellationToken = default)
+        {
+            if (!TryObtenerUsuarioId(out int usuarioId))
+                return Unauthorized();
+
+            try
+            {
+                var paquete = await _viajeService.ObtenerPaqueteAsignadoAsync(
+                    viajeId,
+                    envioId,
+                    usuarioId,
+                    cancellationToken);
+
+                // Se responde 404 tanto si el viaje no es del usuario como si la
+                // asignación no existe, para no revelar la existencia del recurso.
+                return paquete is null ? NotFound() : Ok(paquete);
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+                {
+                    Title = "Error interno.",
+                    Detail = "Ocurrió un error interno al obtener el paquete asignado.",
+                    Status = StatusCodes.Status500InternalServerError
+                });
+            }
+        }
+
         [HttpPost]
-        public async Task<IActionResult> Crear([FromBody] Viaje viaje)
+        [ProducesResponseType(typeof(ViajeDetalleDto), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Crear([FromBody] CrearViajeDto solicitud)
         {
             if (!TryObtenerUsuarioId(out int usuarioId))
                 return Unauthorized();
 
             if (!ModelState.IsValid)
             {
-                return BadRequest(ModelState);
+                var detalles = new ValidationProblemDetails(ModelState)
+                {
+                    Title = "Datos inválidos.",
+                    Status = StatusCodes.Status400BadRequest
+                };
+                return BadRequest(detalles);
             }
 
             try
             {
-                viaje.UsuarioId = usuarioId;
-                
+                var viaje = Mapear(solicitud, usuarioId);
                 var viajeCreado = await _viajeService.CrearViajeAsync(viaje);
-                return CreatedAtAction(nameof(ObtenerPorId), new { id = viajeCreado.Id }, viajeCreado);
+                var detalle = await _viajeService.ObtenerDetallePorIdAsync(viajeCreado.Id, usuarioId);
+
+                return CreatedAtAction(nameof(ObtenerPorId), new { id = viajeCreado.Id }, detalle);
             }
             catch (Exception)
             {
@@ -162,6 +214,74 @@ namespace RuteaYa.Servicios.Controllers
             }
         }
 
+        //volver a activar un viaje desactivado
+        [HttpPost("{id}/activar")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> Activar(int id)
+        {
+            if (!TryObtenerUsuarioId(out int usuarioId))
+                return Unauthorized();
+
+            try
+            {
+                var activado = await _viajeService.ActivarViajeAsync(id, usuarioId);
+
+                if (!activado)
+                {
+                    return NotFound();
+                }
+
+                return NoContent(); // 204 No Content
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Ocurrió un error interno al activar el viaje.");
+            }
+        }
+
+        // Construye la entidad a partir del DTO. El usuario, las coordenadas y
+        // la distancia/duración los define el servidor, nunca el cliente.
+        private static Viaje Mapear(CrearViajeDto solicitud, int usuarioId)
+        {
+            var paradas = solicitud.Paradas ?? new List<ParadaViajeDto>();
+            var dias = solicitud.DiasSemana ?? new List<byte>();
+
+            return new Viaje
+            {
+                UsuarioId = usuarioId,
+                OrigenDir = solicitud.OrigenDir.Trim(),
+                OrigenLat = 0,
+                OrigenLng = 0,
+                DestinoDir = solicitud.DestinoDir.Trim(),
+                DestinoLat = 0,
+                DestinoLng = 0,
+                HoraSalida = solicitud.HoraSalida!.Value,
+                HoraLlegada = solicitud.HoraLlegada!.Value,
+                MaxPaquetes = solicitud.MaxPaquetes,
+                PesoMaxKg = solicitud.PesoMaxKg,
+                DesvioMaxKm = solicitud.DesvioMaxKm,
+                DistanciaKm = 0,
+                DuracionMin = 0,
+                Activo = true,
+                ViajeDias = dias
+                    .Distinct()
+                    .OrderBy(dia => dia)
+                    .Select(dia => new ViajeDia { DiaSemana = dia })
+                    .ToList(),
+                Paradas = paradas
+                    .Select((parada, indice) => new Parada
+                    {
+                        Orden = indice + 1,
+                        Direccion = parada.Direccion.Trim(),
+                        Lat = 0,
+                        Lng = 0
+                    })
+                    .ToList()
+            };
+        }
+
         // Obtiene el ID del usuario autenticado desde el JWT
         private bool TryObtenerUsuarioId(out int usuarioId)
         {
@@ -169,6 +289,62 @@ namespace RuteaYa.Servicios.Controllers
                 User.FindFirstValue(ClaimTypes.NameIdentifier),
                 out usuarioId
             );
+        }
+
+        [HttpGet("MisTransportes")]
+        public async Task<IActionResult> ObtenerMisTransportes()
+        {
+            if (!TryObtenerUsuarioId(out int usuarioId))
+                return Unauthorized();
+
+            try
+            {
+
+                var viajes = await _viajeService.ObtenerParaListadoAsync(null, usuarioId);
+
+                var viajesConDetalle = new List<ViajeDetalleDto>();
+
+
+                foreach (var viaje in viajes)
+                {
+                    var detalle = await _viajeService.ObtenerDetallePorIdAsync(viaje.Id, usuarioId);
+                    if (detalle != null)
+                    {
+                        var paquetesValidos = detalle.PaquetesAsignados
+                            .Where(p => p.Estado != (byte)EstadoEnvio.Cancelado)
+                            .ToList();
+
+                        if (paquetesValidos.Any())
+                        {
+                            detalle.PaquetesAsignados = paquetesValidos;
+                            viajesConDetalle.Add(detalle);
+                        }
+                    }
+                }
+
+                return Ok(viajesConDetalle);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Ocurrió un error interno al obtener los transportes.");
+            }
+        }
+
+        [HttpPost("{id:int}/estado/{accion}")]
+        public async Task<IActionResult> CambiarEstadoTransporte(int id, string accion)
+        {
+            if (!TryObtenerUsuarioId(out var usuarioId)) return Unauthorized();
+
+            try
+            {
+ 
+                var actualizado = await _viajeService.CambiarEstadoTransporteAsync(id, accion, usuarioId);
+                return actualizado ? NoContent() : NotFound();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ProblemDetails { Detail = ex.Message });
+            }
         }
     }
 }

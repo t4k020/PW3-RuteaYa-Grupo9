@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
+using RuteaYa.Models;
 using RuteaYa.Servicios.Dtos;
+using System.Text.Json;
 
 
 namespace RuteaYa.Controllers
@@ -58,12 +60,12 @@ namespace RuteaYa.Controllers
         [HttpGet]
         public IActionResult Crear()
         {
-            return View();
+            return View(new CrearViajeDto());
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Crear(Viaje modelo)
+        public async Task<IActionResult> Crear(CrearViajeDto modelo)
         {
             if (!ModelState.IsValid)
             {
@@ -87,7 +89,27 @@ namespace RuteaYa.Controllers
                 }
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest)
                 {
-                    ModelState.AddModelError(string.Empty, "Error en los datos enviados a la API.");
+                    // Se muestra el detalle de validación devuelto por la API.
+                    ValidationProblemDetails? detalle = null;
+                    try
+                    {
+                        detalle = await respuesta.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+                    }
+                    catch (JsonException)
+                    {
+                    }
+
+                    var mensajes = detalle?.Errors
+                        .SelectMany(error => error.Value)
+                        .Where(mensaje => !string.IsNullOrWhiteSpace(mensaje))
+                        .Distinct()
+                        .ToList();
+
+                    ModelState.AddModelError(
+                        string.Empty,
+                        mensajes != null && mensajes.Count > 0
+                            ? string.Join(" ", mensajes)
+                            : "Error en los datos enviados a la API.");
                 }
                 else
                 {
@@ -137,6 +159,72 @@ namespace RuteaYa.Controllers
             }
 
             return RedirectToAction("Index");
+        }
+
+        // GET: Viaje/Paquete/{viajeId}/{envioId}
+        [HttpGet]
+        [Route("Viaje/Paquete/{viajeId:int}/{envioId:int}")]
+        public async Task<IActionResult> Paquete(
+            int viajeId,
+            int envioId,
+            OrigenNavegacionPaquete? origen = null)
+        {
+            var client = _httpClientFactory.CreateClient("ApiViaje");
+
+            try
+            {
+                HttpResponseMessage respuesta = await client.GetAsync(
+                    $"{ApiRoute}/{viajeId}/paquetes/{envioId}");
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    var paquete = await respuesta.Content.ReadFromJsonAsync<PaqueteDetalleDto>();
+
+                    if (paquete is not null)
+                    {
+                        return View(new PaqueteDetalleViewModel
+                        {
+                            Paquete = paquete,
+                            VolverAMisTransportes =
+                                origen == OrigenNavegacionPaquete.MisTransportes
+                        });
+                    }
+
+                    TempData["Error"] = "La API devolvió una respuesta vacía para el paquete.";
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    TempData["Error"] = "No se encontró el paquete asignado a este viaje.";
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    TempData["Error"] = "No tienes autorización para ver este paquete.";
+                }
+                else
+                {
+                    TempData["Error"] = "No se pudo cargar el detalle del paquete.";
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "No se pudo conectar con el servidor de la API.";
+            }
+            catch (JsonException)
+            {
+                TempData["Error"] = "La respuesta del servidor no es válida.";
+            }
+
+            return RedirigirSegunOrigen(viajeId, origen);
+        }
+
+        // Vuelve a la pantalla desde la que se abrió el detalle del paquete.
+        private IActionResult RedirigirSegunOrigen(
+            int viajeId,
+            OrigenNavegacionPaquete? origen)
+        {
+            return origen == OrigenNavegacionPaquete.MisTransportes
+                ? RedirectToAction(nameof(MisTransportes))
+                : RedirectToAction(nameof(Detalle), new { id = viajeId });
         }
 
         [HttpGet]
@@ -283,6 +371,106 @@ namespace RuteaYa.Controllers
             }
 
             return RedirectToAction("Index");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Activar(int id)
+        {
+            var client = _httpClientFactory.CreateClient("ApiViaje");
+
+            try
+            {
+                HttpResponseMessage respuesta = await client.PostAsync($"{ApiRoute}/{id}/activar", null);
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    TempData["Mensaje"] = "¡Viaje activado con éxito!";
+                    return RedirectToAction("Index");
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    TempData["Error"] = "No se encontró el viaje a activar.";
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    TempData["Error"] = "No tienes autorización para realizar esta acción.";
+                }
+                else
+                {
+                    TempData["Error"] = "Ocurrió un error inesperado al comunicarse con el servidor.";
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "No se pudo conectar con el servidor de la API.";
+            }
+
+            return RedirectToAction("Index");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> MisTransportes()
+        {
+            var client = _httpClientFactory.CreateClient("ApiViaje");
+
+            try
+            {
+                HttpResponseMessage respuesta = await client.GetAsync($"{ApiRoute}/MisTransportes");
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    var opciones = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    // AHORA ESPERAMOS LA LISTA DE VIAJES CON DETALLE
+                    var transportes = await respuesta.Content.ReadFromJsonAsync<List<ViajeDetalleDto>>(opciones)
+                                      ?? new List<ViajeDetalleDto>();
+                    return View(transportes);
+                }
+                TempData["Error"] = "No se pudieron cargar tus transportes.";
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "No se pudo conectar con el servidor.";
+            }
+
+            return View(new List<ViajeDetalleDto>());
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarcarRetirado(int id) => await CambiarEstadoTransporte(id, "retirado");
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarcarEnCamino(int id) => await CambiarEstadoTransporte(id, "en-camino");
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarcarEntregado(int id) => await CambiarEstadoTransporte(id, "entregado");
+
+        // Método auxiliar 
+        private async Task<IActionResult> CambiarEstadoTransporte(int id, string accion)
+        {
+            var client = _httpClientFactory.CreateClient("ApiViaje");
+            try
+            {
+                var respuesta = await client.PostAsync($"{ApiRoute}/{id}/estado/{accion}", null);
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    TempData["Mensaje"] = "El estado del envío fue actualizado.";
+                }
+                else
+                {
+                    TempData["Error"] = "No se pudo actualizar el estado del envío.";
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "Error de conexión con la API.";
+            }
+
+            return RedirectToAction(nameof(MisTransportes));
         }
 
     }

@@ -14,7 +14,15 @@ namespace RuteaYa.Servicios
         Task<IEnumerable<Viaje>> ObtenerTodosAsync();
         Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync(bool? soloActivo, int usuarioId);
         Task<bool> DesactivarViajeAsync(int id, int usuarioId);
+        Task<bool> ActivarViajeAsync(int id, int usuarioId);
         Task<ViajeDetalleDto?> ObtenerDetallePorIdAsync(int id, int usuarioId);
+        Task<PaqueteDetalleDto?> ObtenerPaqueteAsignadoAsync(
+            int viajeId,
+            int envioId,
+            int usuarioId,
+            CancellationToken cancellationToken = default);
+        Task<List<Envio>> ObtenerTransportesAsignadosAsync(int usuarioId);
+        Task<bool> CambiarEstadoTransporteAsync(int envioId, string accion, int usuarioId);
     }
 
     public class ViajeService : IViajeService
@@ -81,7 +89,10 @@ namespace RuteaYa.Servicios
                 return false;
             }
 
-            _context.Viajes.Remove(viaje);
+            // Borrado lógico: el viaje desaparece de los listados pero se conserva
+            // para no romper el historial de envíos y asignaciones.
+            viaje.EliminadoEn = DateTime.Now;
+            _context.Viajes.Update(viaje);
             await _context.SaveChangesAsync();
 
             return true;
@@ -155,17 +166,29 @@ namespace RuteaYa.Servicios
             return true;
         }
 
+        //Vuelve a poner en curso un viaje que había sido desactivado
+        public async Task<bool> ActivarViajeAsync(int id, int usuarioId)
+        {
+            var viaje = await _context.Viajes.FirstOrDefaultAsync(v => v.Id == id && v.UsuarioId == usuarioId);
+            if (viaje == null)
+            {
+                return false;
+            }
+            viaje.Activo = true;
+            _context.Viajes.Update(viaje);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         public async Task<ViajeDetalleDto?> ObtenerDetallePorIdAsync(int id, int usuarioId)
         {
-            // Buscamos el viaje incluyendo los días y las asignaciones con sus envíos correspondientes
+            
             var viaje = await _context.Viajes
-                .Where(v =>
-                v.Id == id &&
-                v.UsuarioId == usuarioId
-                )
+                .Where(v => v.Id == id && v.UsuarioId == usuarioId)
                 .Include(v => v.ViajeDias)
+                .Include(v => v.Paradas)
                 .Include(v => v.Asignaciones)
-                    .ThenInclude(a => a.Envio)
+                    .ThenInclude(a => a.Envio) 
                 .FirstOrDefaultAsync();
 
             if (viaje == null) return null;
@@ -175,27 +198,169 @@ namespace RuteaYa.Servicios
             {
                 Id = viaje.Id,
                 OrigenDir = viaje.OrigenDir,
+                OrigenLat = viaje.OrigenLat,
+                OrigenLng = viaje.OrigenLng,
                 DestinoDir = viaje.DestinoDir,
+                DestinoLat = viaje.DestinoLat,
+                DestinoLng = viaje.DestinoLng,
                 HoraSalida = viaje.HoraSalida,
                 HoraLlegada = viaje.HoraLlegada,
                 Activo = viaje.Activo,
                 MaxPaquetes = viaje.MaxPaquetes,
                 PesoMaximoKg = viaje.PesoMaxKg,
                 DesvioMaxKm = viaje.DesvioMaxKm,
-                DiasSemana = viaje.ViajeDias.Select(vd => ObtenerNombreDia(vd.DiaSemana)).ToList(),
+                DistanciaKm = viaje.DistanciaKm,
+                DuracionMin = viaje.DuracionMin,
+                DiasSemana = viaje.ViajeDias
+                    .OrderBy(vd => vd.DiaSemana)
+                    .Select(vd => ObtenerNombreDia(vd.DiaSemana))
+                    .ToList(),
+
+                // Las paradas se muestran en el orden del recorrido.
+                Paradas = viaje.Paradas
+                    .OrderBy(p => p.Orden)
+                    .Select(p => new ParadaDto
+                    {
+                        Id = p.Id,
+                        Orden = p.Orden,
+                        Direccion = p.Direccion,
+                        Lat = p.Lat,
+                        Lng = p.Lng
+                    })
+                    .ToList(),
 
                 // Mapeamos los envíos (paquetes) asignados a este viaje
                 PaquetesAsignados = viaje.Asignaciones.Select(a => new PaqueteDto
                 {
                     Id = a.Envio.Id,
-                    Descripcion = a.Envio.Descripcion,
+                    Descripcion = a.Envio.Descripcion ?? string.Empty,
                     Estado = a.Envio.Estado,
+                    EstadoNombre = ((EstadoEnvio)a.Envio.Estado).ObtenerNombre(),
                     FechaLimite = a.Envio.FechaLimite,
-                    Monto = a.Envio.Monto
+                    Monto = a.Envio.Monto,
+                    OrigenDir = a.Envio.OrigenDir,
+                    DestinoDir = a.Envio.DestinoDir
                 }).ToList()
             };
 
             return detalleDto;
+        }
+
+        public async Task<PaqueteDetalleDto?> ObtenerPaqueteAsignadoAsync(
+            int viajeId,
+            int envioId,
+            int usuarioId,
+            CancellationToken cancellationToken = default)
+        {
+            // La consulta valida en un solo paso que el viaje sea del usuario y que
+            // el envío esté realmente asignado a ese viaje. Si algo no coincide,
+            // devolvemos null para que la API responda 404 sin revelar información.
+            var paquete = await (
+                from asignacion in _context.Asignaciones.AsNoTracking()
+                join viaje in _context.Viajes on asignacion.ViajeId equals viaje.Id
+                join envio in _context.Envios on asignacion.EnvioId equals envio.Id
+                join usuario in _context.Usuarios on envio.UsuarioId equals usuario.Id
+                where asignacion.ViajeId == viajeId
+                      && asignacion.EnvioId == envioId
+                      && viaje.UsuarioId == usuarioId
+                select new PaqueteDetalleDto
+                {
+                    EnvioId = envio.Id,
+                    ViajeId = viaje.Id,
+                    Descripcion = envio.Descripcion ?? string.Empty,
+                    Estado = envio.Estado,
+                    FechaLimite = envio.FechaLimite,
+                    Monto = envio.Monto,
+                    PesoKg = envio.PesoKg,
+                    Tamano = envio.Tamano,
+                    OrigenDir = envio.OrigenDir,
+                    DestinoDir = envio.DestinoDir,
+                    CreadoEn = envio.CreadoEn,
+                    NombreRemitente = usuario.Nombre + " " + usuario.Apellido,
+                    FechaViaje = asignacion.FechaViaje,
+                    DesvioKm = asignacion.DesvioKm,
+                    TiempoExtraMin = asignacion.TiempoExtraMin,
+                    Ganancia = asignacion.Ganancia
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (paquete is null)
+            {
+                return null;
+            }
+
+            // Los nombres legibles se calculan en memoria para no depender de
+            // funciones que el proveedor de base de datos no sepa traducir.
+            paquete.EstadoNombre = ((EstadoEnvio)paquete.Estado).ObtenerNombre();
+            paquete.TamanoNombre = ObtenerNombreTamano(paquete.Tamano);
+            paquete.NombreRemitente = paquete.NombreRemitente.Trim();
+
+            return paquete;
+        }
+
+        private static string ObtenerNombreTamano(byte tamano) => tamano switch
+        {
+            1 => "Pequeño",
+            2 => "Mediano",
+            3 => "Grande",
+            _ => "No especificado"
+        };
+
+        public async Task<List<Envio>> ObtenerTransportesAsignadosAsync(int usuarioId)
+        {
+            // Buscamos envíos donde el viaje asociado pertenezca al usuario logueado
+            return await _context.Envios
+                .AsNoTracking()
+                .Where(e => _context.Asignaciones.Any(a => a.EnvioId == e.Id && a.Viaje.UsuarioId == usuarioId))
+                // Excluimos los que están cancelados o buscando conductor
+                .Where(e => e.Estado != (byte)EstadoEnvio.BuscandoConductor && e.Estado != (byte)EstadoEnvio.Cancelado)
+                .OrderByDescending(e => e.CreadoEn)
+                .ToListAsync();
+        }
+
+        public async Task<bool> CambiarEstadoTransporteAsync(int envioId, string accion, int usuarioId)
+        {
+            // Validar que el envío pertenezca a un viaje de este usuario
+            var envio = await _context.Envios
+                .FirstOrDefaultAsync(e => e.Id == envioId &&
+                    _context.Asignaciones.Any(a => a.EnvioId == e.Id && a.Viaje.UsuarioId == usuarioId));
+
+            if (envio == null) throw new InvalidOperationException("Envío no encontrado o no te pertenece.");
+
+            var estadoActual = (EstadoEnvio)envio.Estado;
+            byte nuevoEstado = 0;
+
+            switch (accion.ToLower())
+            {
+                case "retirado":
+                    if (estadoActual != EstadoEnvio.ConductorAsignado) throw new InvalidOperationException("El paquete no está listo para retirar.");
+                    nuevoEstado = (byte)EstadoEnvio.Retirado;
+                    break;
+                case "en-camino":
+                    if (estadoActual != EstadoEnvio.Retirado) throw new InvalidOperationException("Primero debes marcar el paquete como retirado.");
+                    nuevoEstado = (byte)EstadoEnvio.EnCamino;
+                    break;
+                case "entregado":
+                    if (estadoActual != EstadoEnvio.EnCamino) throw new InvalidOperationException("El paquete debe estar en camino para entregarse.");
+                    nuevoEstado = (byte)EstadoEnvio.Entregado;
+                    break;
+                default:
+                    throw new InvalidOperationException("Acción no válida.");
+            }
+
+            var estadoAnterior = envio.Estado;
+            envio.Estado = nuevoEstado;
+
+            _context.EnvioEstadoHistoriales.Add(new EnvioEstadoHistorial
+            {
+                EnvioId = envio.Id,
+                EstadoAnterior = estadoAnterior,
+                EstadoNuevo = nuevoEstado,
+                Fecha = DateTime.Now
+            });
+
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }
