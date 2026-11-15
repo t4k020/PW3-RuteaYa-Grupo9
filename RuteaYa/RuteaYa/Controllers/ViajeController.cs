@@ -238,7 +238,7 @@ namespace RuteaYa.Controllers
 
                 if (respuesta.IsSuccessStatusCode)
                 {
-                    var viaje = await respuesta.Content.ReadFromJsonAsync<Viaje>();
+                    var viaje = await respuesta.Content.ReadFromJsonAsync<ViajeDetalleDto>();
                     return View(viaje);
                 }
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -257,23 +257,56 @@ namespace RuteaYa.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Editar(int id, Viaje modelo)
+        public async Task<IActionResult> Actualizar(int id, ViajeDetalleDto modelo)   // <- ViajeDetalleDto
         {
             if (id != modelo.Id)
             {
                 return BadRequest();
             }
 
+            if (string.IsNullOrWhiteSpace(modelo.OrigenDir))
+                ModelState.AddModelError(nameof(modelo.OrigenDir), "Indicá el origen.");
+            if (string.IsNullOrWhiteSpace(modelo.DestinoDir))
+                ModelState.AddModelError(nameof(modelo.DestinoDir), "Indicá el destino.");
+            if (modelo.HoraLlegada <= modelo.HoraSalida)
+                ModelState.AddModelError(nameof(modelo.HoraLlegada), "Debe ser posterior a la salida.");
+            if (modelo.MaxPaquetes < 1)
+                ModelState.AddModelError(nameof(modelo.MaxPaquetes), "Debe ser mayor que cero.");
+            if (modelo.PesoMaximoKg <= 0)
+                ModelState.AddModelError(nameof(modelo.PesoMaximoKg), "Debe ser mayor que cero.");
+            if (modelo.DesvioMaxKm < 0)
+                ModelState.AddModelError(nameof(modelo.DesvioMaxKm), "No puede ser negativo.");
+
             if (!ModelState.IsValid)
             {
                 return View(modelo);
             }
 
+            var viaje = new Viaje
+            {
+                Id = modelo.Id,
+                OrigenDir = modelo.OrigenDir.Trim(),
+                OrigenLat = modelo.OrigenLat,
+                OrigenLng = modelo.OrigenLng,
+                DestinoDir = modelo.DestinoDir.Trim(),
+                DestinoLat = modelo.DestinoLat,
+                DestinoLng = modelo.DestinoLng,
+                HoraSalida = modelo.HoraSalida,
+                HoraLlegada = modelo.HoraLlegada,
+                MaxPaquetes = modelo.MaxPaquetes,
+                PesoMaxKg = modelo.PesoMaximoKg,
+                DesvioMaxKm = modelo.DesvioMaxKm,
+                DistanciaKm = modelo.DistanciaKm,
+                DuracionMin = modelo.DuracionMin,
+                Activo = modelo.Activo
+            };
+
             var client = _httpClientFactory.CreateClient("ApiViaje");
 
             try
             {
-                HttpResponseMessage respuesta = await client.PutAsJsonAsync($"{ApiRoute}/{id}", modelo);
+                // OJO: se envía `viaje`, no `modelo`
+                HttpResponseMessage respuesta = await client.PutAsJsonAsync($"{ApiRoute}/{id}", viaje);
 
                 if (respuesta.IsSuccessStatusCode)
                 {
@@ -283,6 +316,7 @@ namespace RuteaYa.Controllers
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
                     TempData["Error"] = "No se encontró el viaje a actualizar.";
+                    return RedirectToAction("Index");
                 }
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {

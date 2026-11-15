@@ -66,31 +66,6 @@ builder.Services.AddHttpClient("ApiHome", client =>
 
 var app = builder.Build();
 
-// Carga inicial de la base de datos
-//Aviso: suele dar error en consola esta parte.
-
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-
-    try
-    {
-        var context = services.GetRequiredService<RuteaYaDbContext>();
-        DbInitializer.Initialize(context);
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-
-        logger.LogError(
-            ex,
-            "Ocurrió un error al poblar la base de datos."
-        );
-    }
-}
-
-}
-
 // Pipeline HTTP
 if (!app.Environment.IsDevelopment())
 {

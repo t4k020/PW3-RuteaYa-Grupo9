@@ -366,5 +366,124 @@ namespace RuteaYa.Controllers
                 return RedirectToAction(nameof(Oportunidades));
             }
         }
+
+        [HttpGet]
+        public async Task<IActionResult> Editar(int id)
+        {
+            var client = _httpClientFactory.CreateClient("ApiEnvio");
+
+            try
+            {
+                HttpResponseMessage respuesta = await client.GetAsync($"{ApiRoute}/{id}");
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    var envio = await respuesta.Content.ReadFromJsonAsync<EnvioDto>();
+
+                    if (envio is null)
+                    {
+                        TempData["Error"] = "No se encontró el envío a editar.";
+                        return RedirectToAction(nameof(Index));
+                    }
+
+                    // La API indica si el estado actual permite editar.
+                    if (!envio.PuedeEditar)
+                    {
+                        TempData["Error"] = "El envío solo puede editarse mientras busca conductor.";
+                        return RedirectToAction(nameof(Index));
+                    }
+
+                    ViewData["EnvioId"] = id;
+                    return View(new CrearEnvioDto
+                    {
+                        OrigenDir = envio.OrigenDir,
+                        DestinoDir = envio.DestinoDir,
+                        FechaLimite = envio.FechaLimite,
+                        PesoKg = envio.PesoKg,
+                        Tamano = envio.Tamano,
+                        Descripcion = envio.Descripcion,
+                        Monto = envio.Monto
+                    });
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    TempData["Error"] = "No se encontró el envío a editar.";
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    TempData["Error"] = "No tienes autorización para editar este envío.";
+                }
+                else
+                {
+                    TempData["Error"] = "No se pudo cargar el envío.";
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "No se pudo conectar con el servidor de la API.";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Editar(int id, CrearEnvioDto modelo)
+        {
+            ViewData["EnvioId"] = id;
+
+            if (!ModelState.IsValid)
+            {
+                return View(modelo);
+            }
+
+            var client = _httpClientFactory.CreateClient("ApiEnvio");
+
+            try
+            {
+                HttpResponseMessage respuesta = await client.PutAsJsonAsync($"{ApiRoute}/{id}", modelo);
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    TempData["Mensaje"] = "¡Envío actualizado con éxito!";
+                    return RedirectToAction(nameof(Index));
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    TempData["Error"] = "No se encontró el envío a editar.";
+                    return RedirectToAction(nameof(Index));
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    ModelState.AddModelError(string.Empty, "No tienes autorización para realizar esta acción.");
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    ProblemDetails? detalle = null;
+                    try
+                    {
+                        detalle = await respuesta.Content.ReadFromJsonAsync<ProblemDetails>();
+                    }
+                    catch (JsonException)
+                    {
+                    }
+
+                    ModelState.AddModelError(
+                        string.Empty,
+                        detalle?.Detail ?? "Error en los datos enviados a la API.");
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, "Ocurrió un error inesperado al comunicarse con el servidor.");
+                }
+            }
+            catch (HttpRequestException)
+            {
+                ModelState.AddModelError(string.Empty, "No se pudo conectar con el servidor de la API.");
+            }
+
+            return View(modelo);
+        }
+
     }
 }

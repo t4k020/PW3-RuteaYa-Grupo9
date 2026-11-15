@@ -19,6 +19,7 @@
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <a asp-action="Index" class="btn btn-outline-secondary rounded-pill px-3">Volver</a>
+            <a asp-action="Editar" asp-route-id="@Model.Id" class="btn btn-outline-warning rounded-pill px-3">Editar</a>
 
             @if (Model.Activo)
             {

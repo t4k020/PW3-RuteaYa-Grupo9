@@ -13,6 +13,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using Xunit;
+using System.Text.Json;
 
 namespace RuteaYa.Tests
 {
@@ -150,22 +151,6 @@ namespace RuteaYa.Tests
             var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
             Assert.Equal("Index", redirectToActionResult.ActionName);
             Assert.Equal("No se encontró este viaje.", _controller.TempData["Error"]);
-        }
-
-        [Fact]
-        public async Task Editar_Post_DeberiaRedireccionarAIndexConMensajeExito_CuandoLaApiRespondeOk()
-        {
-            // Arrange
-            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NoContent));
-            var viajeModificado = CrearViajeValido(1);
-
-            // Act
-            var resultado = await _controller.Editar(1, viajeModificado);
-
-            // Assert
-            var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
-            Assert.Equal("Index", redirectToActionResult.ActionName);
-            Assert.Equal("¡Viaje actualizado con éxito!", _controller.TempData["Mensaje"]);
         }
 
         [Fact]
@@ -419,12 +404,304 @@ namespace RuteaYa.Tests
             };
         }
 
-        private Viaje CrearViajeValido(int id = 1)
+        // ---------- Editar viaje: GET ----------
+
+        [Fact]
+        public async Task Editar_Get_DeberiaRetornarVistaConElDetalleDelViaje_CuandoLaApiRespondeOk()
         {
-            return new Viaje
+            var viaje = CrearViajeDetalleValido(3);
+            viaje.DiasSemana = new List<string> { "Lun", "Mié" };
+            viaje.Paradas = new List<ParadaDto>
+            {
+                new ParadaDto { Id = 1, Orden = 1, Direccion = "Chacarita" }
+            };
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(viaje)
+            });
+
+            var resultado = await _controller.Editar(3);
+
+            var viewResult = Assert.IsType<ViewResult>(resultado);
+            var modelo = Assert.IsType<ViajeDetalleDto>(viewResult.Model);
+            Assert.Equal(3, modelo.Id);
+            Assert.Equal(viaje.OrigenDir, modelo.OrigenDir);
+            Assert.Equal(viaje.PesoMaximoKg, modelo.PesoMaximoKg);
+            Assert.Equal(viaje.DistanciaKm, modelo.DistanciaKm);
+            Assert.True(modelo.Activo);
+            Assert.Equal(new[] { "Lun", "Mié" }, modelo.DiasSemana);
+            Assert.Single(modelo.Paradas);
+        }
+
+        [Fact]
+        public async Task Editar_Get_DeberiaRedireccionarAIndexConError_CuandoLaApiRetornaNotFound()
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            var resultado = await _controller.Editar(999);
+
+            var redirect = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirect.ActionName);
+            Assert.Equal("No se encontró el viaje a editar.", _controller.TempData["Error"]);
+        }
+
+        [Fact]
+        public async Task Editar_Get_DeberiaRedireccionarAIndex_CuandoLaApiFalla()
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+
+            var resultado = await _controller.Editar(1);
+
+            var redirect = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirect.ActionName);
+        }
+
+        [Fact]
+        public async Task Editar_Get_DeberiaRedireccionarAIndexConError_CuandoOcurreHttpRequestException()
+        {
+            SetHttpServerError(new HttpRequestException("Error de red"));
+
+            var resultado = await _controller.Editar(1);
+
+            var redirect = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirect.ActionName);
+            Assert.Equal("No se pudo conectar con el servidor de la API.", _controller.TempData["Error"]);
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaRetornarBadRequest_CuandoElIdNoCoincideConElModelo()
+        {
+            var resultado = await _controller.Actualizar(2, CrearViajeDetalleValido(1));
+
+            Assert.IsType<BadRequestResult>(resultado);
+            VerificarQueNoSeLlamoALaApi();
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaRedireccionarAIndexConMensajeExito_CuandoLaApiRespondeNoContent()
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NoContent));
+
+            var resultado = await _controller.Actualizar(1, CrearViajeDetalleValido(1));
+
+            var redirect = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirect.ActionName);
+            Assert.Equal("¡Viaje actualizado con éxito!", _controller.TempData["Mensaje"]);
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaEnviarUnPutConLaEntidadViajeMapeada()
+        {
+            string? cuerpo = null;
+            HttpRequestMessage? solicitud = null;
+            _httpMessageHandlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .Callback<HttpRequestMessage, CancellationToken>((r, _) =>
+                {
+                    solicitud = r;
+                    cuerpo = r.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                })
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NoContent));
+
+            var modelo = CrearViajeDetalleValido(4);
+            modelo.OrigenDir = "  Av. Rivadavia 100  ";
+            modelo.DestinoDir = "  Av. Belgrano 200  ";
+            modelo.PesoMaximoKg = 30.5m;
+
+            await _controller.Actualizar(4, modelo);
+
+            Assert.NotNull(solicitud);
+            Assert.Equal(HttpMethod.Put, solicitud!.Method);
+            Assert.Equal("/api/ApiViaje/4", solicitud.RequestUri!.AbsolutePath);
+
+            var viaje = JsonSerializer.Deserialize<Viaje>(
+                cuerpo!, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            Assert.NotNull(viaje);
+            Assert.Equal(4, viaje!.Id);
+            Assert.Equal("Av. Rivadavia 100", viaje.OrigenDir);
+            Assert.Equal("Av. Belgrano 200", viaje.DestinoDir);
+            Assert.Equal(modelo.OrigenLat, viaje.OrigenLat);
+            Assert.Equal(modelo.OrigenLng, viaje.OrigenLng);
+            Assert.Equal(modelo.DestinoLat, viaje.DestinoLat);
+            Assert.Equal(modelo.DestinoLng, viaje.DestinoLng);
+            Assert.Equal(modelo.HoraSalida, viaje.HoraSalida);
+            Assert.Equal(modelo.HoraLlegada, viaje.HoraLlegada);
+            Assert.Equal(modelo.MaxPaquetes, viaje.MaxPaquetes);
+            // PesoMaximoKg del DTO se corresponde con PesoMaxKg de la entidad.
+            Assert.Equal(30.5m, viaje.PesoMaxKg);
+            Assert.Equal(modelo.DesvioMaxKm, viaje.DesvioMaxKm);
+            // Estos campos no se editan, pero el PUT los sobrescribe: deben conservarse.
+            Assert.Equal(modelo.DistanciaKm, viaje.DistanciaKm);
+            Assert.Equal(modelo.DuracionMin, viaje.DuracionMin);
+            Assert.True(viaje.Activo);
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaConservarElEstadoInactivo_CuandoElViajeEstabaInactivo()
+        {
+            string? cuerpo = null;
+            _httpMessageHandlerMock
+                .Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>())
+                .Callback<HttpRequestMessage, CancellationToken>((r, _) =>
+                    cuerpo = r.Content!.ReadAsStringAsync().GetAwaiter().GetResult())
+                .ReturnsAsync(new HttpResponseMessage(HttpStatusCode.NoContent));
+            var modelo = CrearViajeDetalleValido(1);
+            modelo.Activo = false;
+
+            await _controller.Actualizar(1, modelo);
+
+            var viaje = JsonSerializer.Deserialize<Viaje>(
+                cuerpo!, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+            Assert.False(viaje!.Activo);
+        }
+
+        [Theory]
+        [InlineData("OrigenDir")]
+        [InlineData("DestinoDir")]
+        [InlineData("HoraLlegadaIgual")]
+        [InlineData("HoraLlegadaAnterior")]
+        [InlineData("MaxPaquetes")]
+        [InlineData("PesoMaximoKg")]
+        [InlineData("DesvioMaxKm")]
+        public async Task Editar_Post_DeberiaRetornarLaVistaConError_CuandoLosDatosSonInvalidos(string caso)
+        {
+            var modelo = CrearViajeDetalleValido(1);
+            string campoConError;
+            switch (caso)
+            {
+                case "OrigenDir":
+                    modelo.OrigenDir = "   ";
+                    campoConError = nameof(ViajeDetalleDto.OrigenDir);
+                    break;
+                case "DestinoDir":
+                    modelo.DestinoDir = "";
+                    campoConError = nameof(ViajeDetalleDto.DestinoDir);
+                    break;
+                case "HoraLlegadaIgual":
+                    modelo.HoraLlegada = modelo.HoraSalida;
+                    campoConError = nameof(ViajeDetalleDto.HoraLlegada);
+                    break;
+                case "HoraLlegadaAnterior":
+                    modelo.HoraLlegada = modelo.HoraSalida.AddHours(-1);
+                    campoConError = nameof(ViajeDetalleDto.HoraLlegada);
+                    break;
+                case "MaxPaquetes":
+                    modelo.MaxPaquetes = 0;
+                    campoConError = nameof(ViajeDetalleDto.MaxPaquetes);
+                    break;
+                case "PesoMaximoKg":
+                    modelo.PesoMaximoKg = 0;
+                    campoConError = nameof(ViajeDetalleDto.PesoMaximoKg);
+                    break;
+                default:
+                    modelo.DesvioMaxKm = -1;
+                    campoConError = nameof(ViajeDetalleDto.DesvioMaxKm);
+                    break;
+            }
+
+            var resultado = await _controller.Actualizar(1, modelo);
+
+            var viewResult = Assert.IsType<ViewResult>(resultado);
+            Assert.Same(modelo, viewResult.Model);
+            Assert.False(_controller.ModelState.IsValid);
+            Assert.True(_controller.ModelState.ContainsKey(campoConError));
+            VerificarQueNoSeLlamoALaApi();
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaAceptarDesvioCero()
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NoContent));
+            var modelo = CrearViajeDetalleValido(1);
+            modelo.DesvioMaxKm = 0;
+
+            var resultado = await _controller.Actualizar(1, modelo);
+
+            Assert.IsType<RedirectToActionResult>(resultado);
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaRetornarLaVistaSinLlamarALaApi_CuandoElModelStateYaEsInvalido()
+        {
+            _controller.ModelState.AddModelError("HoraSalida", "Hora inválida.");
+
+            var resultado = await _controller.Actualizar(1, CrearViajeDetalleValido(1));
+
+            Assert.IsType<ViewResult>(resultado);
+            VerificarQueNoSeLlamoALaApi();
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaRedireccionarAIndexConError_CuandoLaApiRetornaNotFound()
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            var resultado = await _controller.Actualizar(1, CrearViajeDetalleValido(1));
+
+            var redirect = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirect.ActionName);
+            Assert.Equal("No se encontró el viaje a actualizar.", _controller.TempData["Error"]);
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaRetornarVistaConError_CuandoLaApiRetornaUnauthorized()
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.Unauthorized));
+            var modelo = CrearViajeDetalleValido(1);
+
+            var resultado = await _controller.Actualizar(1, modelo);
+
+            var viewResult = Assert.IsType<ViewResult>(resultado);
+            Assert.Same(modelo, viewResult.Model);
+            Assert.Equal(
+                "No tienes autorización para realizar esta acción.",
+                ObtenerErrorGeneral());
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaRetornarVistaConError_CuandoLaApiFallaConErrorInterno()
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+
+            var resultado = await _controller.Actualizar(1, CrearViajeDetalleValido(1));
+
+            Assert.IsType<ViewResult>(resultado);
+            Assert.Equal(
+                "Ocurrió un error inesperado al comunicarse con el servidor.",
+                ObtenerErrorGeneral());
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaRetornarVistaConError_CuandoOcurreHttpRequestException()
+        {
+            SetHttpServerError(new HttpRequestException("Error de red"));
+
+            var resultado = await _controller.Actualizar(1, CrearViajeDetalleValido(1));
+
+            Assert.IsType<ViewResult>(resultado);
+            Assert.Equal("No se pudo conectar con el servidor de la API.", ObtenerErrorGeneral());
+        }
+
+        // ---------- Métodos auxiliares ----------
+
+        private string? ObtenerErrorGeneral()
+        {
+            return _controller.ModelState[string.Empty]?.Errors.Single().ErrorMessage;
+        }
+
+        private static ViajeDetalleDto CrearViajeDetalleValido(int id)
+        {
+            return new ViajeDetalleDto
             {
                 Id = id,
-                UsuarioId = 1,
                 OrigenDir = "Av. Corrientes 1234, CABA",
                 OrigenLat = -34.603722m,
                 OrigenLng = -58.381592m,
@@ -433,13 +710,22 @@ namespace RuteaYa.Tests
                 DestinoLng = -58.393333m,
                 HoraSalida = new TimeOnly(8, 0),
                 HoraLlegada = new TimeOnly(10, 0),
+                Activo = true,
                 MaxPaquetes = 5,
-                PesoMaxKg = 50.0m,
+                PesoMaximoKg = 50.0m,
                 DesvioMaxKm = 2.5m,
                 DistanciaKm = 15.0m,
-                DuracionMin = 60,
-                Activo = true
+                DuracionMin = 60
             };
+        }
+
+        private void VerificarQueNoSeLlamoALaApi()
+        {
+            _httpMessageHandlerMock.Protected().Verify(
+                "SendAsync",
+                Times.Never(),
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>());
         }
     }
 }

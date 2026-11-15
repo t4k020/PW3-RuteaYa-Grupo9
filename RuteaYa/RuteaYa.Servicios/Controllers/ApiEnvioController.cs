@@ -131,6 +131,55 @@ public class ApiEnvioController : ControllerBase
         }
     }
 
+    /// PUT: Edita un envío (solo si pertenece al usuario y todavía busca conductor).
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ActualizarEnvioApi(int id, [FromBody] CrearEnvioDto solicitud)
+    {
+        if (!TryObtenerUsuarioId(out var usuarioId))
+        {
+            return Unauthorized();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        try
+        {
+            var datos = new Envio
+            {
+                OrigenDir = solicitud.OrigenDir,
+                DestinoDir = solicitud.DestinoDir,
+                FechaLimite = solicitud.FechaLimite,
+                PesoKg = solicitud.PesoKg,
+                Tamano = solicitud.Tamano,
+                Descripcion = solicitud.Descripcion,
+                Monto = solicitud.Monto
+            };
+
+            var actualizado = await _envioService.ActualizarEnvioAsync(id, datos, usuarioId);
+            return actualizado ? NoContent() : NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "No se puede editar el envío.",
+                Detail = ex.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Ocurrió un error interno al editar el envío.");
+        }
+    }
+
     /// <summary>
     /// DELETE: Elimina un envío (solo si pertenece al usuario).
     /// </summary>
@@ -312,6 +361,7 @@ public class ApiEnvioController : ControllerBase
             CreadoEn = envio.CreadoEn,
             EstadoNombre = ((EstadoEnvio)envio.Estado).ObtenerNombre(),
             // CLAVE: Calcular permisos en la API (no confiar en cliente)
+            PuedeEditar = (EstadoEnvio)envio.Estado is EstadoEnvio.BuscandoConductor,
             PuedeCancelar = (EstadoEnvio)envio.Estado is
                 EstadoEnvio.BuscandoConductor or EstadoEnvio.ConductorAsignado,
             PuedeEliminar = (EstadoEnvio)envio.Estado is EstadoEnvio.Cancelado
