@@ -471,7 +471,7 @@ namespace RuteaYa.Tests
         [Fact]
         public async Task Editar_Post_DeberiaRetornarBadRequest_CuandoElIdNoCoincideConElModelo()
         {
-            var resultado = await _controller.Actualizar(2, CrearViajeDetalleValido(1));
+            var resultado = await _controller.Editar(2, CrearViajeDetalleValido(1));
 
             Assert.IsType<BadRequestResult>(resultado);
             VerificarQueNoSeLlamoALaApi();
@@ -482,7 +482,7 @@ namespace RuteaYa.Tests
         {
             ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NoContent));
 
-            var resultado = await _controller.Actualizar(1, CrearViajeDetalleValido(1));
+            var resultado = await _controller.Editar(1, CrearViajeDetalleValido(1));
 
             var redirect = Assert.IsType<RedirectToActionResult>(resultado);
             Assert.Equal("Index", redirect.ActionName);
@@ -512,7 +512,7 @@ namespace RuteaYa.Tests
             modelo.DestinoDir = "  Av. Belgrano 200  ";
             modelo.PesoMaximoKg = 30.5m;
 
-            await _controller.Actualizar(4, modelo);
+            await _controller.Editar(4, modelo);
 
             Assert.NotNull(solicitud);
             Assert.Equal(HttpMethod.Put, solicitud!.Method);
@@ -556,7 +556,7 @@ namespace RuteaYa.Tests
             var modelo = CrearViajeDetalleValido(1);
             modelo.Activo = false;
 
-            await _controller.Actualizar(1, modelo);
+            await _controller.Editar(1, modelo);
 
             var viaje = JsonSerializer.Deserialize<Viaje>(
                 cuerpo!, new JsonSerializerOptions(JsonSerializerDefaults.Web));
@@ -607,7 +607,7 @@ namespace RuteaYa.Tests
                     break;
             }
 
-            var resultado = await _controller.Actualizar(1, modelo);
+            var resultado = await _controller.Editar(1, modelo);
 
             var viewResult = Assert.IsType<ViewResult>(resultado);
             Assert.Same(modelo, viewResult.Model);
@@ -623,7 +623,7 @@ namespace RuteaYa.Tests
             var modelo = CrearViajeDetalleValido(1);
             modelo.DesvioMaxKm = 0;
 
-            var resultado = await _controller.Actualizar(1, modelo);
+            var resultado = await _controller.Editar(1, modelo);
 
             Assert.IsType<RedirectToActionResult>(resultado);
         }
@@ -633,7 +633,7 @@ namespace RuteaYa.Tests
         {
             _controller.ModelState.AddModelError("HoraSalida", "Hora inválida.");
 
-            var resultado = await _controller.Actualizar(1, CrearViajeDetalleValido(1));
+            var resultado = await _controller.Editar(1, CrearViajeDetalleValido(1));
 
             Assert.IsType<ViewResult>(resultado);
             VerificarQueNoSeLlamoALaApi();
@@ -644,7 +644,7 @@ namespace RuteaYa.Tests
         {
             ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NotFound));
 
-            var resultado = await _controller.Actualizar(1, CrearViajeDetalleValido(1));
+            var resultado = await _controller.Editar(1, CrearViajeDetalleValido(1));
 
             var redirect = Assert.IsType<RedirectToActionResult>(resultado);
             Assert.Equal("Index", redirect.ActionName);
@@ -657,7 +657,7 @@ namespace RuteaYa.Tests
             ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.Unauthorized));
             var modelo = CrearViajeDetalleValido(1);
 
-            var resultado = await _controller.Actualizar(1, modelo);
+            var resultado = await _controller.Editar(1, modelo);
 
             var viewResult = Assert.IsType<ViewResult>(resultado);
             Assert.Same(modelo, viewResult.Model);
@@ -671,7 +671,7 @@ namespace RuteaYa.Tests
         {
             ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.InternalServerError));
 
-            var resultado = await _controller.Actualizar(1, CrearViajeDetalleValido(1));
+            var resultado = await _controller.Editar(1, CrearViajeDetalleValido(1));
 
             Assert.IsType<ViewResult>(resultado);
             Assert.Equal(
@@ -684,7 +684,7 @@ namespace RuteaYa.Tests
         {
             SetHttpServerError(new HttpRequestException("Error de red"));
 
-            var resultado = await _controller.Actualizar(1, CrearViajeDetalleValido(1));
+            var resultado = await _controller.Editar(1, CrearViajeDetalleValido(1));
 
             Assert.IsType<ViewResult>(resultado);
             Assert.Equal("No se pudo conectar con el servidor de la API.", ObtenerErrorGeneral());

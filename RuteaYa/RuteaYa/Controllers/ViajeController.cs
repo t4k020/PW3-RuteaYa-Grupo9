@@ -257,7 +257,7 @@ namespace RuteaYa.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Actualizar(int id, ViajeDetalleDto modelo)   // <- ViajeDetalleDto
+        public async Task<IActionResult> Editar(int id, ViajeDetalleDto modelo)   // <- ViajeDetalleDto
         {
             if (id != modelo.Id)
             {
