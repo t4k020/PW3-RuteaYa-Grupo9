@@ -157,7 +157,17 @@ namespace RuteaYa.Tests
         {
             // Arrange
             ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NoContent));
-            var viajeModificado = CrearViajeValido(1);
+            var viajeModificado = new CrearViajeDto
+            {
+                OrigenDir = "Av. Corrientes 1234, CABA",
+                DestinoDir = "Av. Santa Fe 4321, CABA",
+                HoraSalida = new TimeOnly(8, 0),
+                HoraLlegada = new TimeOnly(10, 0),
+                DiasSemana = new List<byte> { 1 },
+                MaxPaquetes = 5,
+                PesoMaxKg = 50m,
+                DesvioMaxKm = 2.5m
+            };
 
             // Act
             var resultado = await _controller.Editar(1, viajeModificado);
@@ -166,6 +176,60 @@ namespace RuteaYa.Tests
             var redirectToActionResult = Assert.IsType<RedirectToActionResult>(resultado);
             Assert.Equal("Index", redirectToActionResult.ActionName);
             Assert.Equal("¡Viaje actualizado con éxito!", _controller.TempData["Mensaje"]);
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaMostrarElMotivoDeLaApi_CuandoNoPuedeGeocodificar()
+        {
+            // Arrange: la API responde 400 (ProblemDetails) porque la dirección
+            // no se pudo ubicar.
+            var problema = new
+            {
+                title = "Datos inválidos.",
+                detail = "No se pudo ubicar la dirección de origen: Calle Inexistente 0.",
+                status = 400
+            };
+
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = JsonContent.Create(problema)
+            });
+
+            // Act
+            var resultado = await _controller.Editar(1, CrearViajeDtoValido());
+
+            // Assert
+            var viewResult = Assert.IsType<ViewResult>(resultado);
+            Assert.False(_controller.ModelState.IsValid);
+            Assert.Contains(
+                _controller.ModelState[string.Empty]!.Errors,
+                error => error.ErrorMessage.Contains("No se pudo ubicar la dirección"));
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaMostrarElMotivoDeLaApi_CuandoElProveedorDeRutasFalla()
+        {
+            // Arrange: la API responde 502 porque el proveedor de rutas no respondió.
+            var problema = new
+            {
+                title = "Servicio de rutas no disponible.",
+                detail = "El proveedor de rutas no respondió a tiempo.",
+                status = 502
+            };
+
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.BadGateway)
+            {
+                Content = JsonContent.Create(problema)
+            });
+
+            // Act
+            var resultado = await _controller.Editar(1, CrearViajeDtoValido());
+
+            // Assert
+            Assert.IsType<ViewResult>(resultado);
+            Assert.Contains(
+                _controller.ModelState[string.Empty]!.Errors,
+                error => error.ErrorMessage.Contains("no respondió a tiempo"));
         }
 
         [Fact]

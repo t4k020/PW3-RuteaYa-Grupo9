@@ -87,9 +87,11 @@ namespace RuteaYa.Controllers
                 {
                     ModelState.AddModelError(string.Empty, "No tienes autorización para realizar esta acción.");
                 }
-                else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest
+                         || respuesta.StatusCode == System.Net.HttpStatusCode.BadGateway)
                 {
-                    // Se intenta mostrar el detalle de validación devuelto por la API.
+                    // La API explica el motivo: datos inválidos (400), dirección
+                    // no ubicada (400) o proveedor de rutas caído (502).
                     ProblemDetails? detalle = null;
                     try
                     {

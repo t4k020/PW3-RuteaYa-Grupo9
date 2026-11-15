@@ -60,18 +60,18 @@ namespace RuteaYa.Repositorios
                 {
                     UsuarioId = usuarios[0].Id, // Admin
                     OrigenDir = "Av. Rivadavia 1234, CABA",
-                    OrigenLat = -34.603722m,
-                    OrigenLng = -58.381592m,
+                    OrigenLat = -34.608344m,
+                    OrigenLng = -58.392612m,
                     DestinoDir = "Av. Corrientes 5678, CABA",
-                    DestinoLat = -34.599722m,
-                    DestinoLng = -58.435833m,
+                    DestinoLat = -34.587528m,
+                    DestinoLng = -58.437509m,
                     HoraSalida = new TimeOnly(8, 0),
                     HoraLlegada = new TimeOnly(12, 0),
                     MaxPaquetes = 5,
                     PesoMaxKg = 50.00m,
                     DesvioMaxKm = 5.00m,
-                    DistanciaKm = 15.50m,
-                    DuracionMin = 45,
+                    DistanciaKm = 7.85m,
+                    DuracionMin = 16,
                     Activo = true
                 },
                 new Viaje
@@ -88,8 +88,8 @@ namespace RuteaYa.Repositorios
                     MaxPaquetes = 3,
                     PesoMaxKg = 30.00m,
                     DesvioMaxKm = 3.50m,
-                    DistanciaKm = 22.00m,
-                    DuracionMin = 60,
+                    DistanciaKm = 30.21m,
+                    DuracionMin = 61,
                     Activo = true
                 },
                 new Viaje
@@ -106,8 +106,8 @@ namespace RuteaYa.Repositorios
                     MaxPaquetes = 10,
                     PesoMaxKg = 100.00m,
                     DesvioMaxKm = 8.00m,
-                    DistanciaKm = 18.20m,
-                    DuracionMin = 50,
+                    DistanciaKm = 41.33m,
+                    DuracionMin = 83,
                     Activo = true
                 },
                 new Viaje
@@ -115,18 +115,18 @@ namespace RuteaYa.Repositorios
                     // Viaje desactivado: permite probar los botones Activar y Eliminar.
                     UsuarioId = usuarios[0].Id, // Admin
                     OrigenDir = "Av. La Plata 1500, CABA",
-                    OrigenLat = -34.626500m,
-                    OrigenLng = -58.426300m,
+                    OrigenLat = -34.626540m,
+                    OrigenLng = -58.426280m,
                     DestinoDir = "Av. Directorio 3000, CABA",
-                    DestinoLat = -34.641200m,
-                    DestinoLng = -58.478900m,
+                    DestinoLat = -34.641210m,
+                    DestinoLng = -58.478910m,
                     HoraSalida = new TimeOnly(7, 15),
                     HoraLlegada = new TimeOnly(8, 30),
                     MaxPaquetes = 4,
                     PesoMaxKg = 25.00m,
                     DesvioMaxKm = 2.00m,
-                    DistanciaKm = 9.40m,
-                    DuracionMin = 35,
+                    DistanciaKm = 6.61m,
+                    DuracionMin = 14,
                     Activo = false
                 }
             };
@@ -148,9 +148,9 @@ namespace RuteaYa.Repositorios
 
             var paradas = new List<Parada>
             {
-                new Parada { ViajeId = viajes[0].Id, Orden = 1, Direccion = "Corrientes 1000", Lat = -34.602500m, Lng = -58.385000m },
-                new Parada { ViajeId = viajes[1].Id, Orden = 1, Direccion = "Gaona 2500", Lat = -34.625000m, Lng = -58.470000m },
-                new Parada { ViajeId = viajes[2].Id, Orden = 1, Direccion = "Ruta 3 Km 28", Lat = -34.750000m, Lng = -58.590000m }
+                new Parada { ViajeId = viajes[0].Id, Orden = 1, Direccion = "Corrientes 1000, CABA", Lat = -34.602500m, Lng = -58.385000m },
+                new Parada { ViajeId = viajes[1].Id, Orden = 1, Direccion = "Gaona 2500, CABA", Lat = -34.625000m, Lng = -58.470000m },
+                new Parada { ViajeId = viajes[2].Id, Orden = 1, Direccion = "Ruta 3 Km 28, La Matanza", Lat = -34.750000m, Lng = -58.590000m }
             };
 
             context.Paradas.AddRange(paradas);
@@ -160,12 +160,12 @@ namespace RuteaYa.Repositorios
                 new Envio
                 {
                     UsuarioId = usuarios[1].Id, // Carlos envía
-                    OrigenDir = "Av. Santa Fe 1000",
-                    OrigenLat = -34.598000m,
-                    OrigenLng = -58.388000m,
-                    DestinoDir = "Av. Pueyrredón 500",
-                    DestinoLat = -34.602000m,
-                    DestinoLng = -58.405000m,
+                    OrigenDir = "Av. Santa Fe 1000, CABA",
+                    OrigenLat = -34.595595m,
+                    OrigenLng = -58.384061m,
+                    DestinoDir = "Av. Pueyrredón 500, CABA",
+                    DestinoLat = -34.598012m,
+                    DestinoLng = -58.400123m,
                     FechaLimite = DateTime.Now.AddDays(2),
                     PesoKg = 2.50m,
                     Tamano = 1, // Pequeño
@@ -177,12 +177,12 @@ namespace RuteaYa.Repositorios
                 new Envio
                 {
                     UsuarioId = usuarios[2].Id, // Lucía envía
-                    OrigenDir = "Suipacha 400",
-                    OrigenLat = -34.604000m,
-                    OrigenLng = -58.379000m,
-                    DestinoDir = "Esmeralda 800",
-                    DestinoLat = -34.601000m,
-                    DestinoLng = -58.378000m,
+                    OrigenDir = "Av. Belgrano 900, CABA",
+                    OrigenLat = -34.613043m,
+                    OrigenLng = -58.381012m,
+                    DestinoDir = "Av. Independencia 1800, CABA",
+                    DestinoLat = -34.620972m,
+                    DestinoLng = -58.390431m,
                     FechaLimite = DateTime.Now.AddDays(3),
                     PesoKg = 5.00m,
                     Tamano = 2, // Mediano
@@ -194,12 +194,12 @@ namespace RuteaYa.Repositorios
                 new Envio
                 {
                     UsuarioId = usuarios[0].Id, // Admin envía
-                    OrigenDir = "Bolívar 200",
-                    OrigenLat = -34.611000m,
-                    OrigenLng = -58.374000m,
-                    DestinoDir = "Defensa 700",
-                    DestinoLat = -34.615000m,
-                    DestinoLng = -58.370000m,
+                    OrigenDir = "Av. Córdoba 1200, CABA",
+                    OrigenLat = -34.598941m,
+                    OrigenLng = -58.390112m,
+                    DestinoDir = "Av. San Juan 2400, CABA",
+                    DestinoLat = -34.628015m,
+                    DestinoLng = -58.390584m,
                     FechaLimite = DateTime.Now.AddDays(1),
                     PesoKg = 1.00m,
                     Tamano = 1,
@@ -211,12 +211,12 @@ namespace RuteaYa.Repositorios
                 new Envio
                 {
                     UsuarioId = usuarios[1].Id, // Carlos envía
-                    OrigenDir = "Av. Belgrano 900",
-                    OrigenLat = -34.611000m,
-                    OrigenLng = -58.377000m,
-                    DestinoDir = "Av. Independencia 1800",
-                    DestinoLat = -34.620000m,
-                    DestinoLng = -58.383000m,
+                    OrigenDir = "Av. Las Heras 1500, CABA",
+                    OrigenLat = -34.588512m,
+                    OrigenLng = -58.400230m,
+                    DestinoDir = "Av. Scalabrini Ortiz 2200, CABA",
+                    DestinoLat = -34.580071m,
+                    DestinoLng = -58.430102m,
                     FechaLimite = DateTime.Now.AddDays(4),
                     PesoKg = 3.00m,
                     Tamano = 1,
@@ -228,12 +228,12 @@ namespace RuteaYa.Repositorios
                 new Envio
                 {
                     UsuarioId = usuarios[1].Id, // Carlos envía
-                    OrigenDir = "Av. Córdoba 1200",
-                    OrigenLat = -34.598000m,
-                    OrigenLng = -58.398000m,
-                    DestinoDir = "Av. San Juan 2400",
-                    DestinoLat = -34.627000m,
-                    DestinoLng = -58.390000m,
+                    OrigenDir = "Av. Callao 600, CABA",
+                    OrigenLat = -34.603471m,
+                    OrigenLng = -58.392011m,
+                    DestinoDir = "Av. Belgrano 1500, CABA",
+                    DestinoLat = -34.615098m,
+                    DestinoLng = -58.387210m,
                     FechaLimite = DateTime.Now.AddDays(-1),
                     PesoKg = 1.50m,
                     Tamano = 1,
@@ -245,12 +245,12 @@ namespace RuteaYa.Repositorios
                 new Envio
                 {
                     UsuarioId = usuarios[2].Id, // Lucía envía
-                    OrigenDir = "Av. Las Heras 1500",
-                    OrigenLat = -34.588000m,
-                    OrigenLng = -58.402000m,
-                    DestinoDir = "Av. Scalabrini Ortiz 2200",
-                    DestinoLat = -34.583000m,
-                    DestinoLng = -58.426000m,
+                    OrigenDir = "Plaza de Mayo, CABA",
+                    OrigenLat = -34.608300m,
+                    OrigenLng = -58.371200m,
+                    DestinoDir = "Cabildo 2000, CABA",
+                    DestinoLat = -34.562700m,
+                    DestinoLng = -58.459000m,
                     FechaLimite = DateTime.Now.AddDays(2),
                     PesoKg = 4.00m,
                     Tamano = 2,
@@ -262,12 +262,12 @@ namespace RuteaYa.Repositorios
                 new Envio
                 {
                     UsuarioId = usuarios[0].Id, // Admin envía
-                    OrigenDir = "Av. Callao 600",
-                    OrigenLat = -34.603000m,
-                    OrigenLng = -58.395000m,
-                    DestinoDir = "Av. Belgrano 1500",
-                    DestinoLat = -34.613000m,
-                    DestinoLng = -58.389000m,
+                    OrigenDir = "Av. Rivadavia 1234, CABA",
+                    OrigenLat = -34.608344m,
+                    OrigenLng = -58.392612m,
+                    DestinoDir = "Av. Corrientes 5678, CABA",
+                    DestinoLat = -34.587528m,
+                    DestinoLng = -58.437509m,
                     FechaLimite = DateTime.Now.AddDays(1),
                     PesoKg = 2.00m,
                     Tamano = 1,

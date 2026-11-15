@@ -51,7 +51,10 @@ namespace RuteaYa.Tests
         {
             ConfigurarUsuarioAutenticado();
             _envioServiceMock
-                .Setup(s => s.CrearEnvioAsync(It.IsAny<Envio>(), 1))
+                .Setup(s => s.CrearEnvioAsync(
+                    It.IsAny<CrearEnvioDto>(),
+                    1,
+                    It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new InvalidOperationException("El usuario asociado no existe."));
 
             var resultado = await _controller.CrearEnvio(CrearSolicitudValida());
@@ -70,7 +73,10 @@ namespace RuteaYa.Tests
                 DestinoDir = "Belgrano 500"
             };
             _envioServiceMock
-                .Setup(s => s.CrearEnvioAsync(It.IsAny<Envio>(), 1))
+                .Setup(s => s.CrearEnvioAsync(
+                    It.IsAny<CrearEnvioDto>(),
+                    1,
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(envioCreado);
 
             var resultado = await _controller.CrearEnvio(CrearSolicitudValida());

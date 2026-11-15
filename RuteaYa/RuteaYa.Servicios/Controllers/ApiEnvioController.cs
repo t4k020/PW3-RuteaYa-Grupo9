@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
 using RuteaYa.Servicios.Dtos;
+using RuteaYa.Servicios.Servicios.Rutas;
 
 namespace RuteaYa.Servicios.Controllers;
 
@@ -55,6 +56,7 @@ public class ApiEnvioController : ControllerBase
     [ProducesResponseType(typeof(EnvioDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
     public async Task<IActionResult> CrearEnvio(
         [FromBody] CrearEnvioDto solicitud)
     {
@@ -71,25 +73,27 @@ public class ApiEnvioController : ControllerBase
 
         try
         {
-            // CLAVE: Construir entidad en el servidor (no confiar en datos del cliente).
-            // UsuarioId y Estado se asignan acá, nunca desde el cliente (over-posting).
-            var envio = new Envio
-            {
-                OrigenDir = solicitud.OrigenDir.Trim(),
-                DestinoDir = solicitud.DestinoDir.Trim(),
-                FechaLimite = solicitud.FechaLimite.Date,
-                PesoKg = solicitud.PesoKg,
-                Tamano = solicitud.Tamano,
-                Descripcion = solicitud.Descripcion.Trim(),
-                Monto = solicitud.Monto
-            };
-            var nuevoEnvio = await _envioService.CrearEnvioAsync(envio, usuarioId);
+            // El servicio geocodifica las direcciones y asigna usuario,
+            // estado y coordenadas: nunca se confía en datos del cliente.
+            var nuevoEnvio = await _envioService.CrearEnvioAsync(
+                solicitud,
+                usuarioId,
+                HttpContext.RequestAborted);
 
             // Retornar 201 Created con la URL del nuevo recurso
             return CreatedAtAction(
                 nameof(ObtenerPorIdApi),
                 new { id = nuevoEnvio.Id },
                 Mapear(nuevoEnvio));
+        }
+        catch (ProveedorRutasException ex)
+        {
+            return StatusCode(StatusCodes.Status502BadGateway, new ProblemDetails
+            {
+                Title = "Servicio de rutas no disponible.",
+                Detail = ex.Message,
+                Status = StatusCodes.Status502BadGateway
+            });
         }
         catch (InvalidOperationException ex)
         {

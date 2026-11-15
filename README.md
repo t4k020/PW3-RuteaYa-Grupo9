@@ -1,1 +1,169 @@
-# PW3-RuteaYa-Grupo9
+# RuteaYa — Transporte colaborativo de paquetes
+
+TP Integrador de Programación Web 3 (2026, 2C).
+
+RuteaYa conecta a personas que viajan seguido con personas que necesitan enviar un paquete por la misma ruta.
+Un mismo usuario puede ser conductor y remitente: no hay roles fijos.
+
+## Stack
+
+- ASP.NET Core MVC (front)
+- ASP.NET Core Web API REST (back)
+- Entity Framework Core + SQL Server
+- xUnit + Moq (tests)
+
+## Arquitectura
+
+```
+MVC (Controllers/Views)
+   │  HttpClient tipado + DTOs
+   ▼
+Web API (Controllers)
+   ▼
+Services (lógica de negocio)
+   ▼
+Acceso a datos (DbContext / Repositorios)
+   ▼
+SQL Server
+```
+
+El proyecto MVC **no** conoce `DbContext` ni las entidades de EF: solo consume la API.
+
+| Proyecto | Rol |
+| --- | --- |
+| `RuteaYa.Servicios` | Web API + Services + DTOs |
+| `RuteaYa` | MVC |
+| `RuteaYa.Entidades` | Entidades de dominio |
+| `RuteaYa.Repositorios` | `DbContext`, migraciones, seed |
+| `RuteaYa.Tests` | Tests unitarios |
+
+## Requisitos
+
+- .NET SDK 10
+- SQL Server LocalDB (`(localdb)\MSSQLLocalDB`) o una instancia de SQL Server
+- Opcional: `dotnet-ef` (`dotnet tool install --global dotnet-ef`)
+
+## Configuración
+
+La cadena de conexión y la clave JWT están en `RuteaYa/RuteaYa.Servicios/appsettings.json`.
+Para usar otra base, cambiar `ConnectionStrings:DefaultConnection`.
+
+Las credenciales reales **no se versionan**: usar `dotnet user-secrets` o variables de entorno.
+
+## Cómo ejecutar
+
+Desde la carpeta de la solución (`RuteaYa/`):
+
+```bash
+# 1) API (crea la base y carga los datos iniciales la primera vez)
+dotnet run --project RuteaYa.Servicios
+
+# 2) MVC (en otra terminal)
+dotnet run --project RuteaYa
+```
+
+- API: <https://localhost:7224> — Swagger se abre en la raíz.
+- MVC: <https://localhost:7223>
+- La API se inicializa con `EnsureCreated()` + seed al arrancar.
+
+### Migraciones (cambios de esquema)
+
+```bash
+dotnet ef migrations add NombreDescriptivo --project RuteaYa.Repositorios --startup-project RuteaYa.Servicios
+dotnet ef database update --project RuteaYa.Repositorios --startup-project RuteaYa.Servicios
+```
+
+No modificar migraciones ya aplicadas: crear una nueva.
+
+> Si ya tenías una base `RuteaYaDb` local, **borrala** para que el seed se vuelva a cargar con las
+> direcciones nuevas: `sqllocaldb stop MSSQLLocalDB && sqllocaldb delete MSSQLLocalDB`
+> (o `DROP DATABASE RuteaYaDb`). El seed solo corre con la tabla `Usuarios` vacía.
+
+## Rutas y mapas
+
+La integración con el proveedor de mapas está detrás de `IRutaService`
+(`RuteaYa.Servicios/Servicios/Rutas`). Hay dos implementaciones:
+
+| Implementación | Cuándo se usa |
+| --- | --- |
+| `RutaServiceMock` | Por defecto, sin API key ni internet |
+| `TomTomRutaService` | `Rutas:Proveedor = "TomTom"` + API key configurada |
+
+El mock geocodifica contra un catálogo de direcciones de AMBA y, para cualquier otra dirección,
+devuelve una coordenada estable derivada del texto. Las distancias se calculan con Haversine ×
+factor de sinuosidad y la duración con una velocidad promedio, así el resultado es determinístico.
+
+Configuración (`RuteaYa.Servicios/appsettings.json`, sección `Rutas`):
+
+```json
+"Rutas": {
+  "Proveedor": "Mock",
+  "ApiKey": "",
+  "BaseUrl": "https://api.tomtom.com",
+  "PaisBusqueda": "AR",
+  "TimeoutSegundos": 10,
+  "Mock": { "FactorSinuosidad": 1.3, "VelocidadKmH": 30 }
+}
+```
+
+### Usar TomTom en local
+
+El proyecto no necesita `dotnet user-secrets init`: el `UserSecretsId` ya está en el `.csproj`.
+Para cargar la key hay un script que evita escribirla en el historial de la consola:
+
+```powershell
+# Pide la key de forma segura y deja el proveedor en TomTom
+powershell -File scripts\configurar-rutas.ps1
+
+# Variante sin prompt (útil para scripts de setup)
+powershell -File scripts\configurar-rutas.ps1 -ApiKey "<tu-api-key>"
+
+# Volver al mock y borrar la key del equipo
+powershell -File scripts\configurar-rutas.ps1 -Quitar
+```
+
+El script sólo orquesta `dotnet user-secrets`: la key queda en
+`%APPDATA%\Microsoft\UserSecrets\<UserSecretsId>\secrets.json`, fuera del repositorio.
+Reiniciá la API después de correrlo.
+
+> **Key compartida del equipo.** Usamos una sola key para todos. Se pasa por el grupo (nunca por el
+> repo) y cada integrante corre el script una vez. El que no la configure sigue trabajando con el
+> mock sin tocar nada, y `scripts/configurar-rutas.ps1 -Quitar` deja el entorno como recién clonado.
+
+Equivalente manual:
+
+```bash
+cd RuteaYa/RuteaYa.Servicios
+dotnet user-secrets set "Rutas:Proveedor" "TomTom"
+dotnet user-secrets set "Rutas:ApiKey" "<tu-api-key>"
+dotnet user-secrets list   # verificar
+```
+
+En servidores y CI (donde los user-secrets no aplican) usar variables de entorno:
+`Rutas__Proveedor=TomTom` y `Rutas__ApiKey=<tu-api-key>`.
+Si `Proveedor` está en `TomTom` pero falta la key, la API avisa por log y arranca con el mock.
+
+Al crear o editar un viaje y al crear un envío, la API geocodifica las direcciones y calcula
+la ruta: las coordenadas, la distancia y la duración las define el servidor, nunca el cliente.
+
+## Usuarios de prueba
+
+| Email | Contraseña |
+| --- | --- |
+| `admin@ruteaya.com` | `1234` |
+| `carlos.gonzalez@example.com` | `1234` |
+| `lucia.martinez@example.com` | `1234` |
+
+El seed incluye viajes (uno desactivado y uno con paradas), envíos en todos los estados, historial
+y asignaciones, con direcciones que el mock resuelve.
+
+## Tests
+
+```bash
+cd RuteaYa
+dotnet test --solution RuteaYa.slnx
+```
+
+Los tests usan el servicio de rutas mock: no dependen de internet ni de una API key.
+`dotnet test` corre en modo Microsoft.Testing.Platform (`global.json`): **no** pasar `--nologo`,
+porque termina con 0 tests ejecutados.

@@ -18,6 +18,9 @@
         public decimal DistanciaKm { get; set; }
         public int DuracionMin { get; set; }
         public List<string> DiasSemana { get; set; } = new();
+
+        // Números de día (1 = lunes ... 7 = domingo) para precargar formularios.
+        public List<byte> DiasSemanaNumeros { get; set; } = new();
         public List<ParadaDto> Paradas { get; set; } = new();
         public List<PaqueteDto> PaquetesAsignados { get; set; } = new();
     }

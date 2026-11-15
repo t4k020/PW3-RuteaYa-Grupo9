@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using RuteaYa.Entidades;
 using RuteaYa.Models;
 using RuteaYa.Servicios.Dtos;
@@ -90,26 +91,7 @@ namespace RuteaYa.Controllers
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest)
                 {
                     // Se muestra el detalle de validación devuelto por la API.
-                    ValidationProblemDetails? detalle = null;
-                    try
-                    {
-                        detalle = await respuesta.Content.ReadFromJsonAsync<ValidationProblemDetails>();
-                    }
-                    catch (JsonException)
-                    {
-                    }
-
-                    var mensajes = detalle?.Errors
-                        .SelectMany(error => error.Value)
-                        .Where(mensaje => !string.IsNullOrWhiteSpace(mensaje))
-                        .Distinct()
-                        .ToList();
-
-                    ModelState.AddModelError(
-                        string.Empty,
-                        mensajes != null && mensajes.Count > 0
-                            ? string.Join(" ", mensajes)
-                            : "Error en los datos enviados a la API.");
+                    await AgregarErroresDeLaApiAsync(respuesta, ModelState);
                 }
                 else
                 {
@@ -238,8 +220,15 @@ namespace RuteaYa.Controllers
 
                 if (respuesta.IsSuccessStatusCode)
                 {
-                    var viaje = await respuesta.Content.ReadFromJsonAsync<Viaje>();
-                    return View(viaje);
+                    var viaje = await respuesta.Content.ReadFromJsonAsync<ViajeDetalleDto>();
+
+                    if (viaje is null)
+                    {
+                        TempData["Error"] = "La API devolvió una respuesta vacía para el viaje.";
+                        return RedirectToAction("Index");
+                    }
+
+                    return View(AModeloEdicion(viaje));
                 }
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
@@ -255,15 +244,67 @@ namespace RuteaYa.Controllers
             return RedirectToAction("Index");
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Editar(int id, Viaje modelo)
+        // El formulario de edición usa el mismo contrato que la creación:
+        // las coordenadas y las distancias las calcula la API.
+        private static CrearViajeDto AModeloEdicion(ViajeDetalleDto viaje)
         {
-            if (id != modelo.Id)
+            return new CrearViajeDto
             {
-                return BadRequest();
+                OrigenDir = viaje.OrigenDir,
+                DestinoDir = viaje.DestinoDir,
+                HoraSalida = viaje.HoraSalida,
+                HoraLlegada = viaje.HoraLlegada,
+                DiasSemana = viaje.DiasSemanaNumeros,
+                MaxPaquetes = viaje.MaxPaquetes,
+                PesoMaxKg = viaje.PesoMaximoKg,
+                DesvioMaxKm = viaje.DesvioMaxKm,
+                Paradas = viaje.Paradas
+                    .OrderBy(parada => parada.Orden)
+                    .Select(parada => new ParadaViajeDto { Direccion = parada.Direccion })
+                    .ToList()
+            };
+        }
+
+        // Convierte el error que devuelve la API (ProblemDetails o
+        // ValidationProblemDetails) en mensajes del ModelState, así el usuario
+        // ve el motivo real: validación, dirección no ubicada o proveedor caído.
+        private static async Task AgregarErroresDeLaApiAsync(
+            HttpResponseMessage respuesta,
+            ModelStateDictionary modelState)
+        {
+            ValidationProblemDetails? detalle = null;
+
+            try
+            {
+                detalle = await respuesta.Content.ReadFromJsonAsync<ValidationProblemDetails>();
+            }
+            catch (JsonException)
+            {
             }
 
+            var mensajes = detalle?.Errors
+                .SelectMany(error => error.Value)
+                .Where(mensaje => !string.IsNullOrWhiteSpace(mensaje))
+                .Distinct()
+                .ToList();
+
+            if (mensajes is { Count: > 0 })
+            {
+                modelState.AddModelError(string.Empty, string.Join(" ", mensajes));
+                return;
+            }
+
+            modelState.AddModelError(
+                string.Empty,
+                detalle?.Detail
+                ?? detalle?.Title
+                ?? "Error en los datos enviados a la API.");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Editar(int id, CrearViajeDto modelo)
+        {
             if (!ModelState.IsValid)
             {
                 return View(modelo);
@@ -287,6 +328,13 @@ namespace RuteaYa.Controllers
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
                     ModelState.AddModelError(string.Empty, "No tienes autorización para realizar esta acción.");
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest
+                         || respuesta.StatusCode == System.Net.HttpStatusCode.BadGateway)
+                {
+                    // La API explica por qué no se pudo guardar: dirección no
+                    // ubicada (400) o proveedor de rutas caído (502).
+                    await AgregarErroresDeLaApiAsync(respuesta, ModelState);
                 }
                 else
                 {
