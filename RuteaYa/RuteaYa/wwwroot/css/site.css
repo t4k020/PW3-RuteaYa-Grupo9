@@ -213,34 +213,58 @@ html[data-bs-theme="dark"] body {
     color: var(--bs-secondary-color);
 }
 
-/* ===== Detalle del viaje: espacio reservado para el mapa ===== */
+/* ===== Mapas del recorrido ===== */
 
-.mapa-placeholder {
+.mapa-recorrido {
+    height: 380px;
+    min-height: 320px;
+    border-radius: 1rem;
+    overflow: hidden;
+    background-color: var(--bs-tertiary-bg);
+    z-index: 0;
+}
+
+.mapa-recorrido .leaflet-popup-content {
+    margin: .5rem .75rem;
+    font-size: .875rem;
+}
+
+.mapa-marcador {
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: .15rem;
-    aspect-ratio: 4 / 3;
-    min-height: 300px;
-    padding: 1.5rem;
-    text-align: center;
-    border: 1px dashed var(--bs-border-color);
-    border-radius: 1rem;
-    background-color: var(--bs-tertiary-bg);
-    background-image: repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 12px,
-        rgba(127, 127, 127, .08) 12px,
-        rgba(127, 127, 127, .08) 24px
-    );
+    width: 30px;
+    height: 30px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+    color: #fff;
+    font-size: .8rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.mapa-marcador--origen {
+    background-color: #198754;
+}
+
+.mapa-marcador--parada {
+    background-color: #0b132b;
+}
+
+.mapa-marcador--destino {
+    background-color: #212529;
+    border-radius: 6px;
+}
+
+.mapa-atribucion {
+    font-size: .75rem;
     color: var(--bs-secondary-color);
 }
 
-.mapa-placeholder__icono {
-    font-size: 2.25rem;
-    line-height: 1;
+/* En modo oscuro se atenúan los tiles para que no encandilen. */
+[data-bs-theme="dark"] .mapa-recorrido .leaflet-tile-pane {
+    filter: brightness(.75) contrast(1.05) saturate(.8);
 }
 
 /* El panel del mapa acompaña el scroll en pantallas grandes. */
