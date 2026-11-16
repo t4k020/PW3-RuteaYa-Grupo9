@@ -94,3 +94,27 @@ public sealed class AsignarEnvioDto
     [DataType(DataType.Date)]
     public DateTime FechaViaje { get; set; }
 }
+
+public sealed class OportunidadDto
+{
+    public int Id { get; set; }
+    public string OrigenDir { get; set; } = string.Empty;
+    public string DestinoDir { get; set; } = string.Empty;
+    public string Descripcion { get; set; } = string.Empty;
+    public decimal PesoKg { get; set; }
+    public decimal Monto { get; set; }
+    public decimal DesvioKm { get; set; }
+    public string Compatibilidad { get; set; } = string.Empty;
+}
+
+public sealed class OportunidadesResultadoDto
+{
+    public int ViajeId { get; set; }
+    public DateTime FechaViaje { get; set; }
+    public string OrigenDir { get; set; } = string.Empty;
+    public string DestinoDir { get; set; } = string.Empty;
+    public int CupoDisponible { get; set; }
+    public decimal PesoDisponibleKg { get; set; }
+    public decimal DesvioDisponibleKm { get; set; }
+    public List<OportunidadDto> Oportunidades { get; set; } = new();
+}

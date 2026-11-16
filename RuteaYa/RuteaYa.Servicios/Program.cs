@@ -26,6 +26,7 @@ builder.Services.AddScoped<IEnvioService, EnvioService>();
 builder.Services.AddScoped<IViajeService, ViajeService>();
 builder.Services.AddScoped<IHomeService, HomeService>();
 builder.Services.AddScoped<IOptimizadorService, OptimizadorService>();
+builder.Services.AddScoped<IPotencialService, PotencialService>();
 
 // Configuración JWT
 var jwtKey = builder.Configuration["Jwt:Key"]

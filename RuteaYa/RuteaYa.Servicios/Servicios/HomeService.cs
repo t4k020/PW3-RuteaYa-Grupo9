@@ -213,18 +213,13 @@ public class HomeService : IHomeService
             GananciaEfectivaMes = gananciaTotal,
 
 
-            Viajes = ultimosViajes.Select(v => new HomeViajeDto
+            HistorialViajes = ultimosViajes.Select(v => new HistorialViajeDto
             {
                 Id = v.Id,
                 Origen = v.OrigenDir,
                 Destino = v.DestinoDir,
-                HoraSalida = v.HoraSalida,
-                HoraLlegada = v.HoraLlegada,
-                Activo = v.Activo,
-                DiasSemana = new List<string> {
-                $"{v.Asignaciones.Count(a => a.Envio != null && a.Envio.Estado == (byte)EstadoEnvio.Entregado)} paquetes entregados",
-                $"${v.Asignaciones.Where(a => a.Envio != null && a.Envio.Estado == (byte)EstadoEnvio.Entregado).Sum(a => a.Ganancia):N0}"
-            }
+                PaquetesEntregados = v.Asignaciones.Count(a => a.Envio != null && a.Envio.Estado == (byte)EstadoEnvio.Entregado),
+                Ganancia = v.Asignaciones.Where(a => a.Envio != null && a.Envio.Estado == (byte)EstadoEnvio.Entregado).Sum(a => a.Ganancia)
             }).ToList(),
 
 

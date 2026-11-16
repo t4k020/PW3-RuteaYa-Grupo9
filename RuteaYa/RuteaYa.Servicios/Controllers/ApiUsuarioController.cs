@@ -1,68 +1,57 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using RuteaYa.Entidades;
-using RuteaYa.Servicios.Servicios;
 using RuteaYa.Servicios.Dtos;
+using RuteaYa.Servicios.Servicios;
 
-namespace RuteaYa.Servicios.Controllers
+namespace RuteaYa.Servicios.Controllers;
+
+[Authorize]
+[ApiController]
+[Route("api/usuarios")]
+public class ApiUsuarioController : ControllerBase
 {
-    [Route("Api/Usuario")]
-    public class ApiUsuarioController : Controller
+    private readonly UsuarioService _usuarios;
+
+    public ApiUsuarioController(UsuarioService usuarios) => _usuarios = usuarios;
+
+    [HttpGet("me")]
+    [ProducesResponseType(typeof(UsuarioDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ObtenerPropio()
     {
-        private UsuarioService _usuarioService;
+        if (!TryGetUserId(out var id)) return Unauthorized();
+        var usuario = await _usuarios.ObtenerPropioAsync(id);
+        return usuario is null ? NotFound() : Ok(usuario);
+    }
 
-        public ApiUsuarioController(UsuarioService usuarioService)
+    [HttpPut("me")]
+    public async Task<IActionResult> ActualizarPropio([FromBody] ActualizarUsuarioRequest solicitud)
+    {
+        if (!TryGetUserId(out var id)) return Unauthorized();
+        if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        try
         {
-            _usuarioService = usuarioService;
+            return await _usuarios.ActualizarPropioAsync(id, solicitud) ? NoContent() : NotFound();
         }
-
-        // GET: Api/Usuario/id
-        [HttpGet("{id}")]
-        public Usuario ObtenerUsuarioPorId(int id)
+        catch (InvalidOperationException ex)
         {
-            Usuario usuario = new Usuario();
-           
-            if (id <= 0)
-            {
-                throw new ArgumentException("El ID del usuario debe ser mayor que cero.");
-            }
-            // Lógica para obtener el usuario
-            return usuario;
-
-        }
-
-        // PUT: Api/Usuario/id
-        [HttpPut("{id}")]
-        public Boolean EditarUsuarioPorId(int id, [FromBody] Usuario usuario)
-        {
-            if (usuario == null)
-            {
-                return false;
-            }
-            // Lógica para actualizar el usuario
-            return true;
-        }
-
-        // DELETE: Api/Usuario/id
-        [HttpDelete("{id}")]
-        public Boolean EliminarUsuarioPorId(int id)
-        {
-            if (id <= 0)
-            {
-                return false;
-            }
-            // Lógica para eliminar el usuario
-            return true;
-        }
-
-        // Todos los usuarios: Api/Usuarios
-        [Authorize]
-        [HttpGet("List")]
-        public async Task<IActionResult> ListarUsuarios()
-        {
-            var usuarios = await _usuarioService.ListarUsuariosAsync();
-
-            return Ok(usuarios);
+            return Conflict(new ProblemDetails { Title = "No se pudo actualizar el perfil.", Detail = ex.Message, Status = StatusCodes.Status409Conflict });
         }
     }
+
+    [HttpDelete("me")]
+    public async Task<IActionResult> EliminarPropio()
+    {
+        if (!TryGetUserId(out var id)) return Unauthorized();
+        try
+        {
+            return await _usuarios.EliminarPropioAsync(id) ? NoContent() : NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new ProblemDetails { Title = "No se puede eliminar el perfil.", Detail = ex.Message, Status = StatusCodes.Status409Conflict });
+        }
+    }
+
+    private bool TryGetUserId(out int id) => int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out id);
 }

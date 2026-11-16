@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
 using RuteaYa.Servicios.Dtos;
+using RuteaYa.Models;
 using System.Text.Json;
 
 namespace RuteaYa.Controllers
@@ -293,19 +294,32 @@ namespace RuteaYa.Controllers
             return RedirectToAction(nameof(Oportunidades));
         }
         [HttpGet]
-        public async Task<IActionResult> Oportunidades()
+        public async Task<IActionResult> Oportunidades(int? viajeId, DateTime? fecha, string orden = "ganancia")
         {
             var client = _httpClientFactory.CreateClient("ApiEnvio");
+            var modelo = new OportunidadesViewModel
+            {
+                ViajeId = viajeId,
+                Fecha = (fecha ?? DateTime.Today).Date,
+                Orden = orden
+            };
 
             try
             {
-                HttpResponseMessage respuesta = await client.GetAsync($"{ApiRoute}/oportunidades");
+                var respuestaViajes = await client.GetAsync("api/ApiViaje?soloActivo=true");
+                if (respuestaViajes.IsSuccessStatusCode)
+                    modelo.Viajes = await respuestaViajes.Content.ReadFromJsonAsync<List<ViajeListadoDto>>() ?? new();
+
+                if (!viajeId.HasValue || !fecha.HasValue)
+                    return View(modelo);
+
+                var ruta = $"{ApiRoute}/oportunidades?viajeId={viajeId}&fecha={modelo.Fecha:yyyy-MM-dd}&orden={Uri.EscapeDataString(orden)}";
+                HttpResponseMessage respuesta = await client.GetAsync(ruta);
 
                 if (respuesta.IsSuccessStatusCode)
                 {
-                    var oportunidades = await respuesta.Content.ReadFromJsonAsync<List<EnvioDto>>()
-                        ?? new List<EnvioDto>();
-                    return View(oportunidades);
+                    modelo.Resultado = await respuesta.Content.ReadFromJsonAsync<OportunidadesResultadoDto>();
+                    return View(modelo);
                 }
                 else
                 {
@@ -317,7 +331,7 @@ namespace RuteaYa.Controllers
                 TempData["Error"] = "No se pudo conectar con el servidor de la API.";
             }
 
-            return View(new List<EnvioDto>());
+            return View(modelo);
         }
 
         [HttpGet]

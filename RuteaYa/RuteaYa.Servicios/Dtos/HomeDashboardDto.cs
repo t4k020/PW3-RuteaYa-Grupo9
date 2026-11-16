@@ -12,6 +12,7 @@ public class HomeDashboardDto
     public List<HomeViajeDto> Viajes { get; set; } = new();
     public List<HomeEnvioDto> Envios { get; set; } = new();
     public List<HomeOportunidadDto> Oportunidades { get; set; } = new();
+    public List<HistorialViajeDto> HistorialViajes { get; set; } = new();
 }
 
 // Datos mínimos de cada viaje que se muestra en el dashboard.
@@ -49,4 +50,13 @@ public class HomeOportunidadDto
     public DateTime FechaLimite { get; set; }
     public decimal Monto { get; set; }
     public decimal PesoKg { get; set; }
+}
+
+public class HistorialViajeDto
+{
+    public int Id { get; set; }
+    public string Origen { get; set; } = string.Empty;
+    public string Destino { get; set; } = string.Empty;
+    public int PaquetesEntregados { get; set; }
+    public decimal Ganancia { get; set; }
 }

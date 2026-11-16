@@ -1,0 +1,21 @@
+@model RuteaYa.Servicios.Dtos.PotencialMensualDto
+@{
+    ViewData["Title"] = "Potencial mensual";
+    var mes = new DateTime(Model.Anio, Model.Mes, 1);
+}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div><h2 class="fw-bold mb-1">Potencial de ganancias mensual</h2><p class="text-muted mb-0">Estimación sobre viajes recurrentes futuros y envíos aún disponibles.</p></div>
+        <span class="badge text-bg-light border px-3 py-2">@mes.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-AR"))</span>
+    </div>
+    @if (TempData["Error"] is string error) { <div class="alert alert-danger">@error</div> }
+    <form method="get" class="card border-0 shadow-sm rounded-4 p-3 mb-4"><div class="row g-3 align-items-end">
+        <div class="col-md-2"><label class="form-label" for="mes">Mes</label><input class="form-control" type="number" id="mes" name="mes" min="1" max="12" value="@Model.Mes" /></div>
+        <div class="col-md-2"><label class="form-label" for="anio">Año</label><input class="form-control" type="number" id="anio" name="anio" min="2020" max="2100" value="@Model.Anio" /></div>
+        <div class="col-md-5"><label class="form-label">Criterio</label><select class="form-select" name="criterio"><option value="ganancia" selected="@(Model.Criterio == "ganancia")">Maximizar ganancias</option><option value="desvio" selected="@(Model.Criterio == "desvio")">Minimizar desvíos</option><option value="equilibrio" selected="@(Model.Criterio == "equilibrio")">Equilibrio</option></select></div>
+        <div class="col-md-3"><button class="btn btn-dark w-100" type="submit">Calcular</button></div>
+    </div></form>
+    <div class="row g-3 mb-4"><div class="col-md-6"><div class="card card-potencial border-0 rounded-4 p-4 h-100"><div class="text-success fw-semibold">Potencial, no ganancia efectiva</div><div class="display-5 fw-bold text-success">@Model.GananciaPotencial.ToString("C")</div><div class="small">Ganancia efectiva: @Model.GananciaEfectiva.ToString("C")</div></div></div><div class="col-md-6"><div class="card border-0 shadow-sm rounded-4 p-4 h-100"><div class="row text-center"><div class="col"><div class="text-muted small">Viajes analizados</div><strong>@Model.ViajesAnalizados</strong></div><div class="col"><div class="text-muted small">Paquetes posibles</div><strong>@Model.PaquetesPosibles</strong></div><div class="col"><div class="text-muted small">Promedio/viaje</div><strong>@Model.PromedioPorViaje.ToString("C")</strong></div></div></div></div></div>
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4"><h5>Ganancia por semana</h5><div class="row g-3">@foreach (var semana in Model.Semanas) { <div class="col"><div class="small text-muted">Semana @semana.Numero</div><strong>@semana.Ganancia.ToString("C")</strong></div> }</div></div>
+    <div class="card border-0 shadow-sm rounded-4 p-4"><h5>Viajes considerados</h5>@if (!Model.Viajes.Any()) { <p class="text-muted mb-0">No hay oportunidades compatibles para el período seleccionado.</p> } else { <div class="list-group list-group-flush">@foreach (var viaje in Model.Viajes) { <div class="list-group-item d-flex justify-content-between"><div><strong>@viaje.OrigenDir → @viaje.DestinoDir</strong><br /><small>@viaje.Fecha.ToString("dd/MM") · @viaje.Paquetes paquetes · @viaje.DesvioKm.ToString("0.#") km</small></div><strong class="text-success">@viaje.Ganancia.ToString("C")</strong></div> }</div>}</div>
+</div>
