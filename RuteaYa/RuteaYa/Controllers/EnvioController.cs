@@ -270,7 +270,7 @@ namespace RuteaYa.Controllers
                 if (respuesta.IsSuccessStatusCode)
                 {
                     TempData["Mensaje"] = "¡Envío aceptado y asignado a tu viaje con éxito!";
-                    return RedirectToAction("Mis Transportes", "Viaje");
+                    return RedirectToAction("MisTransportes", "Viaje");
                 }
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest)
                 {
@@ -319,7 +319,7 @@ namespace RuteaYa.Controllers
                 if (!viajeId.HasValue)
                     return View(modelo);
 
-                var ruta = $"{ApiRoute}/oportunidades?viajeId={viajeId}"; //&fecha={modelo.Fecha:yyyy-MM-dd}&orden={Uri.EscapeDataString(orden)} no es necesario 
+                var ruta = $"{ApiRoute}/oportunidades?viajeId={viajeId}&fecha={modelo.Fecha:yyyy-MM-dd}&orden={Uri.EscapeDataString(orden)}";
                 HttpResponseMessage respuesta = await client.GetAsync(ruta);
 
                 if (respuesta.IsSuccessStatusCode)
