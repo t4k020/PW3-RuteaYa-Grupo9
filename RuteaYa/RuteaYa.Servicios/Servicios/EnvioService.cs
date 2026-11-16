@@ -550,8 +550,12 @@ namespace RuteaYa.Servicios
             var contexto = await ObtenerOportunidadesParaViajeAsync(viajeId, fechaViaje, usuarioId, "ganancia", cancellationToken);
             if (contexto is null) return null;
 
-            var envio = await ObtenerDetalleOportunidadAsync(envioId, usuarioId);
-            if (envio is null) return null;
+            var entidad = await _context.Envios.AsNoTracking().FirstOrDefaultAsync(e => e.Id == envioId
+                           && e.UsuarioId != usuarioId
+                           && e.Estado == (byte)EstadoEnvio.BuscandoConductor, cancellationToken);
+            if (entidad is null) return null;
+
+            var envio = CrearDto(entidad, asignacion: null);
 
             var viaje = await _context.Viajes.AsNoTracking()
                 .FirstAsync(v => v.Id == viajeId, cancellationToken);

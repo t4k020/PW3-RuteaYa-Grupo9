@@ -77,6 +77,7 @@ public class OportunidadesYPotencialServiceTest
         var viaje = CrearViaje(1, 10, 2, 5m, 2m, fecha);
         viaje.DistanciaKm = 18.4m;
         viaje.DuracionMin = 55;
+        context.Usuarios.AddRange(CrearUsuario(10), CrearUsuario(20));
         context.Viajes.Add(viaje);
         context.Envios.Add(CrearEnvio(3, 20, fecha, 2m, 6000m)); // desvío estimado 2.0 km
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -102,6 +103,7 @@ public class OportunidadesYPotencialServiceTest
     {
         await using var context = CrearContexto();
         var fecha = ProximaFechaProgramada();
+        context.Usuarios.AddRange(CrearUsuario(10), CrearUsuario(20));
         context.Viajes.Add(CrearViaje(1, 10, 2, 5m, 2m, fecha));
         context.Envios.Add(CrearEnvio(1, 20, fecha, 9m, 4000m));
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
@@ -144,6 +146,24 @@ public class OportunidadesYPotencialServiceTest
 
     private static Envio CrearEnvio(int id, int usuarioId, DateTime fechaLimite, decimal peso, decimal monto) => new()
     {
-        Id = id, UsuarioId = usuarioId, OrigenDir = "Origen paquete", DestinoDir = "Destino paquete", FechaLimite = fechaLimite, PesoKg = peso, Tamano = 1, Descripcion = "Paquete", Monto = monto, Estado = (byte)EstadoEnvio.BuscandoConductor
+        Id = id,
+        UsuarioId = usuarioId,
+        OrigenDir = "Origen paquete",
+        DestinoDir = "Destino paquete",
+        FechaLimite = fechaLimite,
+        PesoKg = peso,
+        Tamano = 1,
+        Descripcion = "Paquete",
+        Monto = monto,
+        Estado = (byte)EstadoEnvio.BuscandoConductor
+    };
+
+    private static Usuario CrearUsuario(int id) => new()
+    {
+        Id = id,
+        Nombre = "Test",
+        Apellido = "Usuario",
+        Email = $"u{id}@example.com",
+        PasswordHash = "hash-de-prueba"
     };
 }
