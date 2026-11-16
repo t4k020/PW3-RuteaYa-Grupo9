@@ -164,6 +164,38 @@ namespace RuteaYa.Tests
         }
 
         [Fact]
+        public async Task CuandoLaApiDevuelve502MuestraElMotivoDelProveedorDeRutas()
+        {
+            // Arrange: la API responde 502 cuando el proveedor de rutas falla.
+            var nuevoEnvio = new CrearEnvioDto
+            {
+                OrigenDir = "Mitre 1000",
+                DestinoDir = "Belgrano 500"
+            };
+
+            var problema = new
+            {
+                title = "Servicio de rutas no disponible.",
+                detail = "El proveedor de rutas no respondió a tiempo.",
+                status = 502
+            };
+
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.BadGateway)
+            {
+                Content = JsonContent.Create(problema)
+            });
+
+            // Act
+            var resultado = await _controller.Crear(nuevoEnvio);
+
+            // Assert
+            Assert.IsType<ViewResult>(resultado);
+            Assert.Contains(
+                _controller.ModelState[string.Empty]!.Errors,
+                e => e.ErrorMessage.Contains("no respondió a tiempo"));
+        }
+
+        [Fact]
         public async Task CuandoLaApiDevuelveErrorInesperadoAgregaErrorAlModelState()
         {
             // Arrange

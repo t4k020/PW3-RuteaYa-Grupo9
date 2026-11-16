@@ -16,7 +16,31 @@ namespace RuteaYa.Repositorios
             // Normaliza envíos creados con el estado Pendiente, que ya no existe.
             NormalizarEnviosPendientes(context);
 
-            //  evita duplicados
+            //  evita duplicados: crea cada usuario demo solo si falta
+            var semillas = new[]
+            {
+                (Nombre: "Admin", Apellido: "Sistema", Email: "admin@ruteaya.com"),
+                (Nombre: "Carlos", Apellido: "González", Email: "carlos.gonzalez@example.com"),
+                (Nombre: "Lucía", Apellido: "Martínez", Email: "lucia.martinez@example.com")
+            };
+
+            foreach (var semilla in semillas)
+            {
+                if (context.Usuarios.Any(u => u.Email == semilla.Email))
+                    continue;
+
+                context.Usuarios.Add(new Usuario
+                {
+                    Nombre = semilla.Nombre,
+                    Apellido = semilla.Apellido,
+                    Email = semilla.Email,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("1234"),
+                    CreadoEn = DateTime.Now
+                });
+            }
+
+            context.SaveChanges();
+
             var usuarios = context.Usuarios
                 .OrderBy(u => u.Id)
                 .ToList();
@@ -157,7 +181,8 @@ namespace RuteaYa.Repositorios
                 new byte[] { 1, 3, 5 },
                 ("Ruta 3 Km 28", -34.75m, -58.59m)));
 
-            viajesDemo.Add(GuardarViaje(
+            // Viaje desactivado: permite probar los botones Activar y Eliminar.
+            var viajeDesactivado = GuardarViaje(
                 UsuarioId(0),
                 "Av. La Plata 1500, CABA",
                 -34.6265m, -58.4263m,
@@ -165,7 +190,15 @@ namespace RuteaYa.Repositorios
                 -34.6412m, -58.4789m,
                 new TimeOnly(7, 15), new TimeOnly(8, 30),
                 4, 25m, 2m, 9.4m, 35,
-                new byte[] { 2, 4, 6 }));
+                new byte[] { 2, 4, 6 });
+
+            if (viajeDesactivado.Activo)
+            {
+                viajeDesactivado.Activo = false;
+                context.SaveChanges();
+            }
+
+            viajesDemo.Add(viajeDesactivado);
 
             viajesDemo.Add(GuardarViaje(
                 UsuarioId(1),

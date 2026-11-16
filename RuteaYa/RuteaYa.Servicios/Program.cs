@@ -1,17 +1,46 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Net.Http.Headers;
+using Microsoft.OpenApi;
 using RuteaYa.Repositorios;
 using RuteaYa.Servicios;
 using RuteaYa.Servicios.Controllers;
 using RuteaYa.Servicios.Servicios;
+using RuteaYa.Servicios.Servicios.Rutas;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Nombre del esquema de seguridad que se publica en Swagger.
+const string EsquemaJwt = "Bearer";
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(opciones =>
+{
+    // Sin esto Swagger UI no muestra el botón Authorize y no hay forma de
+    // probar los endpoints protegidos con el token de Api/Auth/Login.
+    opciones.AddSecurityDefinition(EsquemaJwt, new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Name = HeaderNames.Authorization,
+        Description = "Pegá el token que devuelve POST Api/Auth/Login, sin la palabra Bearer."
+    });
+
+    opciones.AddSecurityRequirement(documento =>
+    {
+        var requisito = new OpenApiSecurityRequirement
+        {
+            [new OpenApiSecuritySchemeReference(EsquemaJwt, documento)] = new List<string>()
+        };
+
+        return requisito;
+    });
+});
 
 // Base de datos
 builder.Services.AddDbContext<RuteaYaDbContext>(options =>
@@ -26,6 +55,9 @@ builder.Services.AddScoped<IEnvioService, EnvioService>();
 builder.Services.AddScoped<IViajeService, ViajeService>();
 builder.Services.AddScoped<IHomeService, HomeService>();
 builder.Services.AddScoped<IOptimizadorService, OptimizadorService>();
+
+// Rutas y mapas: proveedor real o mock según configuración.
+builder.Services.AddRutas(builder.Configuration);
 
 // Configuración JWT
 var jwtKey = builder.Configuration["Jwt:Key"]

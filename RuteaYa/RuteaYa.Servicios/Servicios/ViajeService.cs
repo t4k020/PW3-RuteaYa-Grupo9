@@ -2,14 +2,22 @@
 using RuteaYa.Entidades;
 using RuteaYa.Repositorios;
 using RuteaYa.Servicios.Dtos;
+using RuteaYa.Servicios.Servicios.Rutas;
 
 namespace RuteaYa.Servicios
 {
     public interface IViajeService
     {
-        Task<Viaje> CrearViajeAsync(Viaje viaje);
+        Task<Viaje> CrearViajeAsync(
+            CrearViajeDto solicitud,
+            int usuarioId,
+            CancellationToken cancellationToken = default);
         Task<Viaje?> ObtenerPorIdAsync(int id);
-        Task<bool> ActualizarViajeAsync(int id, Viaje viaje, int usuarioId);
+        Task<bool> ActualizarViajeAsync(
+            int id,
+            CrearViajeDto solicitud,
+            int usuarioId,
+            CancellationToken cancellationToken = default);
         Task<bool> EliminarViajeAsync(int id, int usuarioId);
         Task<IEnumerable<Viaje>> ObtenerTodosAsync();
         Task<IEnumerable<ViajeListadoDto>> ObtenerParaListadoAsync(bool? soloActivo, int usuarioId);
@@ -28,18 +36,140 @@ namespace RuteaYa.Servicios
     public class ViajeService : IViajeService
     {
         private readonly RuteaYaDbContext _context;
+        private readonly IRutaService _rutaService;
 
-        public ViajeService(RuteaYaDbContext context)
+        public ViajeService(RuteaYaDbContext context, IRutaService rutaService)
         {
             _context = context;
+            _rutaService = rutaService;
         }
 
-        public async Task<Viaje> CrearViajeAsync(Viaje viaje)
+        public async Task<Viaje> CrearViajeAsync(
+            CrearViajeDto solicitud,
+            int usuarioId,
+            CancellationToken cancellationToken = default)
         {
+            // Las coordenadas y las distancias las define el servidor a partir
+            // de las direcciones: nunca se aceptan desde el cliente.
+            var recorrido = await PrepararRecorridoAsync(solicitud, cancellationToken);
+
+            var viaje = new Viaje
+            {
+                UsuarioId = usuarioId,
+                HoraSalida = solicitud.HoraSalida
+                    ?? throw new InvalidOperationException("La hora de salida es obligatoria."),
+                HoraLlegada = solicitud.HoraLlegada
+                    ?? throw new InvalidOperationException("La hora de llegada es obligatoria."),
+                MaxPaquetes = solicitud.MaxPaquetes,
+                PesoMaxKg = solicitud.PesoMaxKg,
+                DesvioMaxKm = solicitud.DesvioMaxKm,
+                Activo = true,
+                ViajeDias = CrearDias(solicitud)
+            };
+
+            AplicarRecorrido(viaje, recorrido);
+
             _context.Viajes.Add(viaje);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
+
             return viaje;
         }
+
+        // Geocodifica origen, paradas y destino, y calcula la ruta que los une
+        // en el orden del recorrido. Un fallo de geocodificación es un dato
+        // inválido del usuario, por eso se informa como InvalidOperationException.
+        private async Task<DatosRecorrido> PrepararRecorridoAsync(
+            CrearViajeDto solicitud,
+            CancellationToken cancellationToken)
+        {
+            var origenDir = solicitud.OrigenDir.Trim();
+            var destinoDir = solicitud.DestinoDir.Trim();
+
+            var origen = await GeocodificarAsync(origenDir, "origen", cancellationToken);
+            var destino = await GeocodificarAsync(destinoDir, "destino", cancellationToken);
+
+            var paradas = new List<ParadaGeocodificada>();
+
+            foreach (var parada in solicitud.Paradas ?? new List<ParadaViajeDto>())
+            {
+                var direccion = parada.Direccion.Trim();
+                var coordenada = await GeocodificarAsync(direccion, "la parada", cancellationToken);
+                paradas.Add(new ParadaGeocodificada(direccion, coordenada));
+            }
+
+            var puntos = new List<CoordenadaDto> { origen };
+            puntos.AddRange(paradas.Select(parada => parada.Coordenada));
+            puntos.Add(destino);
+
+            var ruta = await _rutaService.CalcularRutaAsync(puntos, cancellationToken);
+
+            return new DatosRecorrido(origenDir, origen, destinoDir, destino, paradas, ruta);
+        }
+
+        private async Task<CoordenadaDto> GeocodificarAsync(
+            string direccion,
+            string descripcion,
+            CancellationToken cancellationToken)
+        {
+            var coordenada = await _rutaService.GeocodificarAsync(direccion, cancellationToken);
+
+            if (coordenada is null)
+            {
+                throw new InvalidOperationException(
+                    $"No se pudo ubicar la dirección de {descripcion}: {direccion}.");
+            }
+
+            return coordenada;
+        }
+
+        private static List<ViajeDia> CrearDias(CrearViajeDto solicitud)
+        {
+            var dias = solicitud.DiasSemana ?? new List<byte>();
+
+            return dias
+                .Distinct()
+                .OrderBy(dia => dia)
+                .Select(dia => new ViajeDia { DiaSemana = dia })
+                .ToList();
+        }
+
+        private static void AplicarRecorrido(Viaje viaje, DatosRecorrido recorrido)
+        {
+            viaje.OrigenDir = recorrido.OrigenDir;
+            viaje.OrigenLat = recorrido.Origen.Lat;
+            viaje.OrigenLng = recorrido.Origen.Lng;
+            viaje.DestinoDir = recorrido.DestinoDir;
+            viaje.DestinoLat = recorrido.Destino.Lat;
+            viaje.DestinoLng = recorrido.Destino.Lng;
+            viaje.DistanciaKm = recorrido.Ruta.DistanciaKm;
+            viaje.DuracionMin = recorrido.Ruta.DuracionMin;
+
+            // Las paradas se renumeran según el orden en que llegaron.
+            viaje.Paradas.Clear();
+
+            for (var indice = 0; indice < recorrido.Paradas.Count; indice++)
+            {
+                var parada = recorrido.Paradas[indice];
+
+                viaje.Paradas.Add(new Parada
+                {
+                    Orden = indice + 1,
+                    Direccion = parada.Direccion,
+                    Lat = parada.Coordenada.Lat,
+                    Lng = parada.Coordenada.Lng
+                });
+            }
+        }
+
+        private sealed record ParadaGeocodificada(string Direccion, CoordenadaDto Coordenada);
+
+        private sealed record DatosRecorrido(
+            string OrigenDir,
+            CoordenadaDto Origen,
+            string DestinoDir,
+            CoordenadaDto Destino,
+            IReadOnlyList<ParadaGeocodificada> Paradas,
+            RutaDto Ruta);
 
         public async Task<Viaje?> ObtenerPorIdAsync(int id)
         {
@@ -50,34 +180,60 @@ namespace RuteaYa.Servicios
                 .FirstOrDefaultAsync(v => v.Id == id);
         }
 
-        public async Task<bool> ActualizarViajeAsync(int id, Viaje viajeModificado, int usuarioId)
+        public async Task<bool> ActualizarViajeAsync(
+            int id,
+            CrearViajeDto solicitud,
+            int usuarioId,
+            CancellationToken cancellationToken = default)
         {
-            var viajeExistente = await _context.Viajes.FirstOrDefaultAsync(v => v.Id == id && v.UsuarioId == usuarioId);
-            
+            var viajeExistente = await _context.Viajes
+                .Include(v => v.Paradas)
+                .Include(v => v.ViajeDias)
+                .FirstOrDefaultAsync(
+                    v => v.Id == id && v.UsuarioId == usuarioId,
+                    cancellationToken);
+
             if (viajeExistente == null)
                 return false;
-            
 
-            // Actualizamos todas las propiedades con los datos nuevos
-            viajeExistente.OrigenDir = viajeModificado.OrigenDir;
-            viajeExistente.OrigenLat = viajeModificado.OrigenLat;
-            viajeExistente.OrigenLng = viajeModificado.OrigenLng;
-            viajeExistente.DestinoDir = viajeModificado.DestinoDir;
-            viajeExistente.DestinoLat = viajeModificado.DestinoLat;
-            viajeExistente.DestinoLng = viajeModificado.DestinoLng;
-            viajeExistente.HoraSalida = viajeModificado.HoraSalida;
-            viajeExistente.HoraLlegada = viajeModificado.HoraLlegada;
-            viajeExistente.MaxPaquetes = viajeModificado.MaxPaquetes;
-            viajeExistente.PesoMaxKg = viajeModificado.PesoMaxKg;
-            viajeExistente.DesvioMaxKm = viajeModificado.DesvioMaxKm;
-            viajeExistente.DistanciaKm = viajeModificado.DistanciaKm;
-            viajeExistente.DuracionMin = viajeModificado.DuracionMin;
-            viajeExistente.Activo = viajeModificado.Activo;
+            // Se recalcula todo el recorrido porque origen, destino o paradas
+            // pudieron cambiar y las distancias guardadas quedarían obsoletas.
+            var recorrido = await PrepararRecorridoAsync(solicitud, cancellationToken);
 
-            _context.Viajes.Update(viajeExistente);
-            await _context.SaveChangesAsync();
+            viajeExistente.HoraSalida = solicitud.HoraSalida
+                ?? throw new InvalidOperationException("La hora de salida es obligatoria.");
+            viajeExistente.HoraLlegada = solicitud.HoraLlegada
+                ?? throw new InvalidOperationException("La hora de llegada es obligatoria.");
+            viajeExistente.MaxPaquetes = solicitud.MaxPaquetes;
+            viajeExistente.PesoMaxKg = solicitud.PesoMaxKg;
+            viajeExistente.DesvioMaxKm = solicitud.DesvioMaxKm;
+
+            AplicarRecorrido(viajeExistente, recorrido);
+            ActualizarDias(viajeExistente, solicitud);
+
+            await _context.SaveChangesAsync(cancellationToken);
 
             return true;
+        }
+
+        // Sincroniza los días sin borrar y volver a insertar los que se repiten:
+        // la clave de ViajeDia es compuesta (ViajeId + DiaSemana) y EF no puede
+        // seguir dos instancias con la misma clave en el mismo SaveChanges.
+        private static void ActualizarDias(Viaje viaje, CrearViajeDto solicitud)
+        {
+            var solicitados = (solicitud.DiasSemana ?? new List<byte>()).Distinct().ToHashSet();
+
+            foreach (var dia in viaje.ViajeDias.Where(dia => !solicitados.Contains(dia.DiaSemana)).ToList())
+            {
+                viaje.ViajeDias.Remove(dia);
+            }
+
+            var existentes = viaje.ViajeDias.Select(dia => dia.DiaSemana).ToHashSet();
+
+            foreach (var dia in solicitados.Where(dia => !existentes.Contains(dia)).OrderBy(dia => dia))
+            {
+                viaje.ViajeDias.Add(new ViajeDia { DiaSemana = dia });
+            }
         }
 
         public async Task<bool> EliminarViajeAsync(int id, int usuarioId)
@@ -214,6 +370,11 @@ namespace RuteaYa.Servicios
                 DiasSemana = viaje.ViajeDias
                     .OrderBy(vd => vd.DiaSemana)
                     .Select(vd => ObtenerNombreDia(vd.DiaSemana))
+                    .ToList(),
+
+                DiasSemanaNumeros = viaje.ViajeDias
+                    .OrderBy(vd => vd.DiaSemana)
+                    .Select(vd => vd.DiaSemana)
                     .ToList(),
 
                 // Las paradas se muestran en el orden del recorrido.

@@ -112,8 +112,8 @@ public sealed class CrearViajeDto : IValidatableObject
     }
 }
 
-// Dirección de una parada intermedia. Las coordenadas se completarán
-// cuando se integre el proveedor de rutas.
+// Dirección de una parada intermedia. El servidor resuelve sus coordenadas
+// con el proveedor de rutas al crear o editar el viaje.
 public sealed class ParadaViajeDto
 {
     [Required(ErrorMessage = "La dirección de la parada es obligatoria.")]
