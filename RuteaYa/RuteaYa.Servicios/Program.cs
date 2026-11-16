@@ -55,6 +55,7 @@ builder.Services.AddScoped<IEnvioService, EnvioService>();
 builder.Services.AddScoped<IViajeService, ViajeService>();
 builder.Services.AddScoped<IHomeService, HomeService>();
 builder.Services.AddScoped<IOptimizadorService, OptimizadorService>();
+builder.Services.AddScoped<IPotencialService, PotencialService>();
 
 // Caché en memoria para no pedir la geometría al proveedor en cada vista.
 builder.Services.AddMemoryCache();

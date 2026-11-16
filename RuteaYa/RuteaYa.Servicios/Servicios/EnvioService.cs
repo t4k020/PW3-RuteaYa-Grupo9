@@ -30,9 +30,12 @@ namespace RuteaYa.Servicios
 
         Task<bool> VincularEnvioAViajeAsync(int envioId, int viajeId, DateTime fechaViaje, int usuarioId);
         Task<List<Envio>> ObtenerOportunidadesDisponiblesAsync(int usuarioId);
+        Task<OportunidadesResultadoDto?> ObtenerOportunidadesParaViajeAsync(int viajeId, DateTime fechaViaje, int usuarioId, string orden, CancellationToken cancellationToken);
         Task<EnvioDto?> ObtenerDetalleOportunidadAsync(int id, int usuarioActualId);
+        Task<DetalleOportunidadViajeDto?> ObtenerDetalleOportunidadParaViajeAsync(int envioId, int viajeId, DateTime fechaViaje, int usuarioId, CancellationToken cancellationToken);
     }
-    public class EnvioService : IEnvioService {
+    public class EnvioService : IEnvioService
+    {
         private readonly RuteaYaDbContext _context;
         private readonly IRutaService _rutaService;
 
@@ -137,7 +140,7 @@ namespace RuteaYa.Servicios
 
         public async Task<Envio?> ObtenerPorIdAsync(int id)
         {
-            
+
             return await _context.Envios.FirstOrDefaultAsync(e => e.Id == id);
         }
 
@@ -161,7 +164,7 @@ namespace RuteaYa.Servicios
 
             if (envio == null) return null;
 
-    
+
             return CrearDto(envio, asignacion: null);
         }
 
@@ -291,14 +294,14 @@ namespace RuteaYa.Servicios
 
             if (envio == null)
             {
-                return false; 
+                return false;
             }
 
             _context.Envios.Remove(envio);
- 
+
             await _context.SaveChangesAsync();
 
-            return true; 
+            return true;
         }
 
         public async Task<bool> EliminarEnvioAsync(int id, int usuarioId)
@@ -478,11 +481,109 @@ namespace RuteaYa.Servicios
         {
             return await _context.Envios
                 .AsNoTracking()
-                .Where(e => e.UsuarioId != usuarioId 
-                         && e.Estado == (byte)EstadoEnvio.BuscandoConductor 
-                         && !_context.Asignaciones.Any(a => a.EnvioId == e.Id)) 
+                .Where(e => e.UsuarioId != usuarioId
+                         && e.Estado == (byte)EstadoEnvio.BuscandoConductor
+                         && !_context.Asignaciones.Any(a => a.EnvioId == e.Id))
                 .OrderByDescending(e => e.CreadoEn)
                 .ToListAsync();
+        }
+
+        public async Task<OportunidadesResultadoDto?> ObtenerOportunidadesParaViajeAsync(
+            int viajeId, DateTime fechaViaje, int usuarioId, string orden, CancellationToken cancellationToken)
+        {
+            var viaje = await _context.Viajes.AsNoTracking().Include(v => v.ViajeDias)
+                .FirstOrDefaultAsync(v => v.Id == viajeId && v.UsuarioId == usuarioId && v.Activo, cancellationToken);
+            if (viaje is null) return null;
+            var fecha = fechaViaje.Date;
+            if (fecha < DateTime.Today) throw new InvalidOperationException("No se pueden consultar oportunidades para una fecha pasada.");
+            var dia = fecha.DayOfWeek == DayOfWeek.Sunday ? (byte)7 : (byte)fecha.DayOfWeek;
+            if (!viaje.ViajeDias.Any(d => d.DiaSemana == dia)) throw new InvalidOperationException("La fecha seleccionada no coincide con los días programados para este viaje.");
+
+            var asignaciones = await _context.Asignaciones.AsNoTracking().Where(a => a.ViajeId == viajeId && a.FechaViaje.Date == fecha).ToListAsync(cancellationToken);
+            var idsAsignados = asignaciones.Select(a => a.EnvioId).ToList();
+            var pesoAsignado = idsAsignados.Count == 0 ? 0m : await _context.Envios.Where(e => idsAsignados.Contains(e.Id)).SumAsync(e => e.PesoKg, cancellationToken);
+            var cupo = Math.Max(0, viaje.MaxPaquetes - asignaciones.Count);
+            var peso = Math.Max(0, viaje.PesoMaxKg - pesoAsignado);
+            var desvio = Math.Max(0, viaje.DesvioMaxKm - asignaciones.Sum(a => a.DesvioKm));
+
+            var candidatas = await _context.Envios.AsNoTracking().Where(e => e.UsuarioId != usuarioId && e.Estado == (byte)EstadoEnvio.BuscandoConductor && e.FechaLimite.Date >= fecha && !_context.Asignaciones.Any(a => a.EnvioId == e.Id)).ToListAsync(cancellationToken);
+            var oportunidades = candidatas
+                .Where(e => cupo > 0 && e.PesoKg <= peso && OptimizadorService.EstimarDesvioKm(e.Id) <= desvio)
+                .Select(e =>
+                {
+                    var desvioEstimado = OptimizadorService.EstimarDesvioKm(e.Id);
+                    return new OportunidadDto
+                    {
+                        Id = e.Id,
+                        OrigenDir = e.OrigenDir,
+                        DestinoDir = e.DestinoDir,
+                        Descripcion = e.Descripcion ?? string.Empty,
+                        PesoKg = e.PesoKg,
+                        Monto = e.Monto,
+                        DesvioKm = desvioEstimado,
+                        Compatibilidad = ClasificarCompatibilidad(desvioEstimado)
+                    };
+                });
+
+            oportunidades = orden.ToLowerInvariant() switch
+            {
+                "desvio" => oportunidades.OrderBy(o => o.DesvioKm).ThenByDescending(o => o.Monto).ThenBy(o => o.Id),
+                "compatibilidad" => oportunidades
+                    .OrderByDescending(o => o.Monto / (1 + o.DesvioKm))
+                    .ThenBy(o => o.DesvioKm)
+                    .ThenBy(o => o.Id),
+                _ => oportunidades.OrderByDescending(o => o.Monto).ThenBy(o => o.DesvioKm).ThenBy(o => o.Id)
+            };
+
+            return new OportunidadesResultadoDto { ViajeId = viaje.Id, FechaViaje = fecha, OrigenDir = viaje.OrigenDir, DestinoDir = viaje.DestinoDir, CupoDisponible = cupo, PesoDisponibleKg = peso, DesvioDisponibleKm = desvio, Oportunidades = oportunidades.ToList() };
+        }
+
+        private static string ClasificarCompatibilidad(decimal desvioKm) =>
+            desvioKm <= 1 ? "Muy compatible" : desvioKm <= 2 ? "Compatible" : "Mucho desvío";
+
+        // Detalle de un envío visto desde uno de MIS viajes en una fecha concreta.
+        // Devuelve null si el viaje no es mío/no está activo o el envío no está disponible.
+        public async Task<DetalleOportunidadViajeDto?> ObtenerDetalleOportunidadParaViajeAsync(
+            int envioId, int viajeId, DateTime fechaViaje, int usuarioId, CancellationToken cancellationToken)
+        {
+            // Reutiliza las validaciones de fecha/día y el cálculo de capacidad restante.
+            var contexto = await ObtenerOportunidadesParaViajeAsync(viajeId, fechaViaje, usuarioId, "ganancia", cancellationToken);
+            if (contexto is null) return null;
+
+            var entidad = await _context.Envios.AsNoTracking().FirstOrDefaultAsync(e => e.Id == envioId
+                           && e.UsuarioId != usuarioId
+                           && e.Estado == (byte)EstadoEnvio.BuscandoConductor, cancellationToken);
+            if (entidad is null) return null;
+
+            var envio = CrearDto(entidad, asignacion: null);
+
+            var viaje = await _context.Viajes.AsNoTracking()
+                .FirstAsync(v => v.Id == viajeId, cancellationToken);
+
+            var desvio = OptimizadorService.EstimarDesvioKm(envioId);
+            var yaAsignado = await _context.Asignaciones.AnyAsync(a => a.EnvioId == envioId, cancellationToken);
+
+            return new DetalleOportunidadViajeDto
+            {
+                Envio = envio,
+                ViajeId = viaje.Id,
+                FechaViaje = contexto.FechaViaje,
+                ViajeOrigenDir = viaje.OrigenDir,
+                ViajeDestinoDir = viaje.DestinoDir,
+                DistanciaHabitualKm = viaje.DistanciaKm,
+                DesvioKm = desvio,
+                DistanciaConEnvioKm = viaje.DistanciaKm + desvio,
+                DuracionHabitualMin = viaje.DuracionMin,
+                TiempoAdicionalMin = OptimizadorService.EstimarTiempoExtraMin(desvio),
+                CupoRestante = contexto.CupoDisponible,
+                PesoRestanteKg = contexto.PesoDisponibleKg,
+                PagoPorKmAdicional = desvio > 0 ? Math.Round(envio.Monto / desvio, 2) : envio.Monto,
+                Compatibilidad = ClasificarCompatibilidad(desvio),
+                PuedeAceptar = !yaAsignado
+                               && contexto.CupoDisponible > 0
+                               && envio.PesoKg <= contexto.PesoDisponibleKg
+                               && desvio <= contexto.DesvioDisponibleKm
+            };
         }
 
         private static string ObtenerNombreDia(byte dia) => dia switch

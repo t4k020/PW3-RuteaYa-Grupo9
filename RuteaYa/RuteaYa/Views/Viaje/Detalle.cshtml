@@ -40,7 +40,8 @@
                 </form>
             }
 
-            <a asp-controller="Envio" asp-action="Oportunidades" class="btn btn-dark rounded-pill px-4">Ver oportunidades</a>
+            <a asp-controller="Envio" asp-action="Oportunidades" asp-route-viajeId="@Model.Id"
+                class="btn btn-dark rounded-pill px-4">Ver oportunidades</a>
         </div>
     </div>
 

@@ -294,7 +294,7 @@ public class ApiEnvioController : ControllerBase
     [HttpGet("oportunidades")]
     [ProducesResponseType(typeof(IEnumerable<EnvioDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> ObtenerOportunidadesApi(CancellationToken cancellationToken)
+    public async Task<IActionResult> ObtenerOportunidadesApi([FromQuery] int viajeId, [FromQuery] DateTime fecha, [FromQuery] string orden = "ganancia", CancellationToken cancellationToken = default)
     {
         if (!TryObtenerUsuarioId(out var usuarioId))
         {
@@ -304,13 +304,10 @@ public class ApiEnvioController : ControllerBase
         try
         {
 
-            var envios = await _envioService.ObtenerOportunidadesDisponiblesAsync(usuarioId);
-
- 
-            var dtos = envios.Select(e => Mapear(e)).ToList();
-
-            return Ok(dtos);
+            var oportunidades = await _envioService.ObtenerOportunidadesParaViajeAsync(viajeId, fecha, usuarioId, orden, cancellationToken);
+            return oportunidades is null ? NotFound() : Ok(oportunidades);
         }
+        catch (InvalidOperationException ex) { return BadRequest(new ProblemDetails { Detail = ex.Message, Status = StatusCodes.Status400BadRequest }); }
         catch (Exception)
         {
             return StatusCode(500, "Ocurrió un error interno al obtener las oportunidades.");
@@ -330,7 +327,29 @@ public class ApiEnvioController : ControllerBase
         return envio == null ? NotFound() : Ok(envio);
     }
 
+    [HttpGet("oportunidades/{id:int}/detalle")]
+    [ProducesResponseType(typeof(DetalleOportunidadViajeDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ObtenerDetalleOportunidadParaViajeApi(
+        int id, [FromQuery] int viajeId, [FromQuery] DateTime fecha, CancellationToken cancellationToken = default)
+    {
+        if (!TryObtenerUsuarioId(out var usuarioId))
+        {
+            return Unauthorized();
+        }
 
+        try
+        {
+            var detalle = await _envioService.ObtenerDetalleOportunidadParaViajeAsync(id, viajeId, fecha, usuarioId, cancellationToken);
+            return detalle is null ? NotFound() : Ok(detalle);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new ProblemDetails { Detail = ex.Message, Status = StatusCodes.Status400BadRequest });
+        }
+    }
 
     /// <summary>
     /// Método privado: Extrae el ID del usuario desde el JWT (Claims).

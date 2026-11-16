@@ -69,6 +69,11 @@ builder.Services.AddHttpClient("ApiHome", client =>
         builder.Configuration["ApiSettings:BaseUrl"]!);
 }).AddHttpMessageHandler<JwtAuthorizationHandler>();
 
+builder.Services.AddHttpClient("ApiPotencial", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"]!);
+}).AddHttpMessageHandler<JwtAuthorizationHandler>();
+
 var app = builder.Build();
 
 // Pipeline HTTP
