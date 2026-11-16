@@ -49,6 +49,84 @@ public class OportunidadesYPotencialServiceTest
         Assert.Single(resultado.Viajes);
     }
 
+    [Fact]
+    public async Task ObtenerOportunidadesParaViajeAsync_OrdenaPorCompatibilidad_ValorPorKmDeDesvio()
+    {
+        await using var context = CrearContexto();
+        var fecha = ProximaFechaProgramada();
+        context.Viajes.Add(CrearViaje(1, 10, 5, 50m, 10m, fecha));
+        context.Envios.AddRange(
+            CrearEnvio(1, 20, fecha, 1m, 4000m),
+            CrearEnvio(2, 20, fecha, 1m, 5000m),
+            CrearEnvio(3, 20, fecha, 1m, 9000m));
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var servicio = new EnvioService(context, RutasDePrueba.CrearMock());
+
+        var porCompatibilidad = await servicio.ObtenerOportunidadesParaViajeAsync(1, fecha, 10, "compatibilidad", TestContext.Current.CancellationToken);
+        var porDesvio = await servicio.ObtenerOportunidadesParaViajeAsync(1, fecha, 10, "desvio", TestContext.Current.CancellationToken);
+
+        Assert.Equal(new[] { 3, 1, 2 }, porCompatibilidad!.Oportunidades.Select(o => o.Id));
+        Assert.Equal(new[] { 1, 2, 3 }, porDesvio!.Oportunidades.Select(o => o.Id));
+    }
+
+    [Fact]
+    public async Task ObtenerDetalleOportunidadParaViajeAsync_DevuelveValoresRealesDelViaje()
+    {
+        await using var context = CrearContexto();
+        var fecha = ProximaFechaProgramada();
+        var viaje = CrearViaje(1, 10, 2, 5m, 2m, fecha);
+        viaje.DistanciaKm = 18.4m;
+        viaje.DuracionMin = 55;
+        context.Viajes.Add(viaje);
+        context.Envios.Add(CrearEnvio(3, 20, fecha, 2m, 6000m)); // desvío estimado 2.0 km
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var detalle = await new EnvioService(context, RutasDePrueba.CrearMock())
+            .ObtenerDetalleOportunidadParaViajeAsync(3, 1, fecha, 10, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(detalle);
+        Assert.Equal(18.4m, detalle!.DistanciaHabitualKm);
+        Assert.Equal(2m, detalle.DesvioKm);
+        Assert.Equal(20.4m, detalle.DistanciaConEnvioKm);
+        Assert.Equal(55, detalle.DuracionHabitualMin);
+        Assert.Equal(6, detalle.TiempoAdicionalMin);
+        Assert.Equal(2, detalle.CupoRestante);
+        Assert.Equal(5m, detalle.PesoRestanteKg);
+        Assert.Equal(3000m, detalle.PagoPorKmAdicional);
+        Assert.Equal("Compatible", detalle.Compatibilidad);
+        Assert.True(detalle.PuedeAceptar);
+    }
+
+    [Fact]
+    public async Task ObtenerDetalleOportunidadParaViajeAsync_NoPermiteAceptar_CuandoElPesoNoEntra()
+    {
+        await using var context = CrearContexto();
+        var fecha = ProximaFechaProgramada();
+        context.Viajes.Add(CrearViaje(1, 10, 2, 5m, 2m, fecha));
+        context.Envios.Add(CrearEnvio(1, 20, fecha, 9m, 4000m));
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var detalle = await new EnvioService(context, RutasDePrueba.CrearMock())
+            .ObtenerDetalleOportunidadParaViajeAsync(1, 1, fecha, 10, TestContext.Current.CancellationToken);
+
+        Assert.False(detalle!.PuedeAceptar);
+    }
+
+    [Fact]
+    public async Task ObtenerDetalleOportunidadParaViajeAsync_DevuelveNull_CuandoElViajeNoEsDelUsuario()
+    {
+        await using var context = CrearContexto();
+        var fecha = ProximaFechaProgramada();
+        context.Viajes.Add(CrearViaje(1, 10, 2, 5m, 2m, fecha));
+        context.Envios.Add(CrearEnvio(1, 20, fecha, 1m, 4000m));
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var detalle = await new EnvioService(context, RutasDePrueba.CrearMock())
+            .ObtenerDetalleOportunidadParaViajeAsync(1, 1, fecha, 99, TestContext.Current.CancellationToken);
+
+        Assert.Null(detalle);
+    }
+
     private static RuteaYaDbContext CrearContexto() => new(new DbContextOptionsBuilder<RuteaYaDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
     private static DateTime ProximaFechaProgramada()

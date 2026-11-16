@@ -327,7 +327,29 @@ public class ApiEnvioController : ControllerBase
         return envio == null ? NotFound() : Ok(envio);
     }
 
+    [HttpGet("oportunidades/{id:int}/detalle")]
+    [ProducesResponseType(typeof(DetalleOportunidadViajeDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ObtenerDetalleOportunidadParaViajeApi(
+        int id, [FromQuery] int viajeId, [FromQuery] DateTime fecha, CancellationToken cancellationToken = default)
+    {
+        if (!TryObtenerUsuarioId(out var usuarioId))
+        {
+            return Unauthorized();
+        }
 
+        try
+        {
+            var detalle = await _envioService.ObtenerDetalleOportunidadParaViajeAsync(id, viajeId, fecha, usuarioId, cancellationToken);
+            return detalle is null ? NotFound() : Ok(detalle);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new ProblemDetails { Detail = ex.Message, Status = StatusCodes.Status400BadRequest });
+        }
+    }
 
     /// <summary>
     /// Método privado: Extrae el ID del usuario desde el JWT (Claims).

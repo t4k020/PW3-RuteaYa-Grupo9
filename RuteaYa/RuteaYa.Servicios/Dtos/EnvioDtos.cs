@@ -118,3 +118,23 @@ public sealed class OportunidadesResultadoDto
     public decimal DesvioDisponibleKm { get; set; }
     public List<OportunidadDto> Oportunidades { get; set; } = new();
 }
+
+public class DetalleOportunidadViajeDto
+{
+    public EnvioDto Envio { get; set; } = new();
+    public int ViajeId { get; set; }
+    public DateTime FechaViaje { get; set; }
+    public string ViajeOrigenDir { get; set; } = string.Empty;
+    public string ViajeDestinoDir { get; set; } = string.Empty;
+    public decimal DistanciaHabitualKm { get; set; }
+    public decimal DesvioKm { get; set; }
+    public decimal DistanciaConEnvioKm { get; set; }
+    public int DuracionHabitualMin { get; set; }
+    public int TiempoAdicionalMin { get; set; }
+    public int CupoRestante { get; set; }
+    public decimal PesoRestanteKg { get; set; }
+    public decimal PagoPorKmAdicional { get; set; }
+    public string Compatibilidad { get; set; } = string.Empty;
+    // false si el envío no entra en el viaje (cupo, peso o desvío insuficientes).
+    public bool PuedeAceptar { get; set; }
+}

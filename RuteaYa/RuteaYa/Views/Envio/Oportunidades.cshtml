@@ -81,7 +81,9 @@
                         <span class="compatibility-badge @badgeClass">@oportunidad.Compatibilidad</span>
                         <strong class="opportunity-amount">@oportunidad.Monto.ToString("C")</strong>
                         <div class="text-md-end text-center">
-                            <a asp-action="DetallesOportunidad" asp-route-id="@oportunidad.Id" class="btn btn-outline-secondary rounded-pill px-3 w-100">Ver detalle</a>
+                            <a asp-action="DetallesOportunidad" asp-route-id="@oportunidad.Id" 
+                            asp-route-viajeId="@Model.ViajeId" asp-route-fecha="@Model.Fecha.ToString("yyyy-MM-dd")"
+                            class="btn btn-outline-secondary rounded-pill px-3 w-100">Ver detalle</a>
                         </div>
                     </article>
                 }

@@ -270,7 +270,7 @@ namespace RuteaYa.Controllers
                 if (respuesta.IsSuccessStatusCode)
                 {
                     TempData["Mensaje"] = "¡Envío aceptado y asignado a tu viaje con éxito!";
-                    return RedirectToAction(nameof(Oportunidades));
+                    return RedirectToAction("Mis Transportes", "Viaje");
                 }
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest)
                 {
@@ -293,7 +293,11 @@ namespace RuteaYa.Controllers
                 TempData["Error"] = "No se pudo conectar con el servidor de la API.";
             }
 
-            return RedirectToAction(nameof(Oportunidades));
+            return RedirectToAction(nameof(DetallesOportunidad), new
+            {
+                id = envioId, viajeId,
+                fecha = fechaViaje.ToString("yyyy-MM-dd") 
+            });
         }
         [HttpGet]
         public async Task<IActionResult> Oportunidades(int? viajeId, DateTime? fecha, string orden = "ganancia")
@@ -312,10 +316,10 @@ namespace RuteaYa.Controllers
                 if (respuestaViajes.IsSuccessStatusCode)
                     modelo.Viajes = await respuestaViajes.Content.ReadFromJsonAsync<List<ViajeListadoDto>>() ?? new();
 
-                if (!viajeId.HasValue || !fecha.HasValue)
+                if (!viajeId.HasValue)
                     return View(modelo);
 
-                var ruta = $"{ApiRoute}/oportunidades?viajeId={viajeId}&fecha={modelo.Fecha:yyyy-MM-dd}&orden={Uri.EscapeDataString(orden)}";
+                var ruta = $"{ApiRoute}/oportunidades?viajeId={viajeId}"; //&fecha={modelo.Fecha:yyyy-MM-dd}&orden={Uri.EscapeDataString(orden)} no es necesario 
                 HttpResponseMessage respuesta = await client.GetAsync(ruta);
 
                 if (respuesta.IsSuccessStatusCode)
@@ -337,43 +341,47 @@ namespace RuteaYa.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> DetallesOportunidad(int id)
+        public async Task<IActionResult> DetallesOportunidad(int id, int? viajeId = null, DateTime? fecha = null)
         {
             var client = _httpClientFactory.CreateClient("ApiEnvio");
 
             try
             {
-                // 1. Solicita el envío por ID a la API
+                if (viajeId.HasValue && fecha.HasValue)
+                {
+                    var ruta = $"{ApiRoute}/oportunidades/{id}/detalle?viajeId={viajeId}&fecha={fecha.Value:yyyy-MM-dd}";
+                    var respuestaDetalle = await client.GetAsync(ruta);
+
+                    if (respuestaDetalle.IsSuccessStatusCode)
+                    {
+                        var detalle = await respuestaDetalle.Content.ReadFromJsonAsync<DetalleOportunidadViajeDto>();
+                        return View("DetalleOportunidadViaje", detalle);
+                    }
+
+                    TempData["Error"] = respuestaDetalle.StatusCode == System.Net.HttpStatusCode.NotFound
+                        ? "No se encontró la oportunidad solicitada."
+                        : "No se pudieron obtener los detalles de la oportunidad.";
+                    return RedirectToAction(nameof(Oportunidades), new { viajeId, fecha = fecha.Value.ToString("yyyy-MM-dd") });
+                }
+
+                // --- flujo anterior (sin viaje elegido): se mantiene igual ---
                 HttpResponseMessage respuestaEnvio = await client.GetAsync($"{ApiRoute}/oportunidades/{id}");
 
                 if (!respuestaEnvio.IsSuccessStatusCode)
                 {
-                    if (respuestaEnvio.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    {
-                        TempData["Error"] = "No se encontró la oportunidad solicitada.";
-                    }
-                    else
-                    {
-                        TempData["Error"] = "No se pudieron obtener los detalles de la oportunidad.";
-                    }
+                    TempData["Error"] = respuestaEnvio.StatusCode == System.Net.HttpStatusCode.NotFound
+                        ? "No se encontró la oportunidad solicitada."
+                        : "No se pudieron obtener los detalles de la oportunidad.";
                     return RedirectToAction(nameof(Oportunidades));
                 }
 
                 var envio = await respuestaEnvio.Content.ReadFromJsonAsync<EnvioDto>();
 
-                // 2. Obtiene los viajes del propio usuario para el dropdown de la vista
                 HttpResponseMessage respuestaViajes = await client.GetAsync("api/ApiViaje?soloActivo=true");
-                var misViajes = new List<ViajeListadoDto>();
+                ViewBag.MisViajes = respuestaViajes.IsSuccessStatusCode
+                    ? await respuestaViajes.Content.ReadFromJsonAsync<List<ViajeListadoDto>>() ?? new List<ViajeListadoDto>()
+                    : new List<ViajeListadoDto>();
 
-                if (respuestaViajes.IsSuccessStatusCode)
-                {
-                    misViajes = await respuestaViajes.Content.ReadFromJsonAsync<List<ViajeListadoDto>>()
-                        ?? new List<ViajeListadoDto>();
-                }
-
-                ViewBag.MisViajes = misViajes;
-
-                // 3. Retorna la vista DetalleOportunidad (o Detalles) pasándole el modelo
                 return View("DetalleOportunidad", envio);
             }
             catch (HttpRequestException)
