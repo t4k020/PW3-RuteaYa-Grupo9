@@ -7,15 +7,17 @@ La key nunca queda en el repositorio: se guarda en el almacén de user-secrets d
 usuario actual (%APPDATA%\Microsoft\UserSecrets\<UserSecretsId>\secrets.json).
 Si no pasás -ApiKey, el script la pide de forma segura, así no queda en pantalla
 ni en el historial de la consola.
+Se ejecuta desde la raíz del repo (la carpeta que contiene scripts\): la ruta del
+proyecto se resuelve a partir de la ubicación del script, no del directorio actual.
 
 .EXAMPLE
-powershell -File scripts\configurar-rutas.ps1
+powershell -ExecutionPolicy Bypass -File scripts\configurar-rutas.ps1
 
 .EXAMPLE
-powershell -File scripts\configurar-rutas.ps1 -ApiKey "tu-key"
+powershell -ExecutionPolicy Bypass -File scripts\configurar-rutas.ps1 -ApiKey "tu-key"
 
 .EXAMPLE
-powershell -File scripts\configurar-rutas.ps1 -Quitar
+powershell -ExecutionPolicy Bypass -File scripts\configurar-rutas.ps1 -Quitar
 #>
 [CmdletBinding()]
 param(

@@ -109,18 +109,39 @@ Configuración (`RuteaYa.Servicios/appsettings.json`, sección `Rutas`):
 ### Usar TomTom en local
 
 El proyecto no necesita `dotnet user-secrets init`: el `UserSecretsId` ya está en el `.csproj`.
-Para cargar la key hay un script que evita escribirla en el historial de la consola:
+Para cargar la key hay un script que evita escribirla en el historial de la consola.
+
+> Corré estos comandos **desde la raíz del repo** (la carpeta que contiene `scripts/`), no desde
+> `RuteaYa/`: la ruta `scripts\configurar-rutas.ps1` es relativa a la raíz.
 
 ```powershell
 # Pide la key de forma segura y deja el proveedor en TomTom
-powershell -File scripts\configurar-rutas.ps1
+powershell -ExecutionPolicy Bypass -File scripts\configurar-rutas.ps1
 
 # Variante sin prompt (útil para scripts de setup)
-powershell -File scripts\configurar-rutas.ps1 -ApiKey "<tu-api-key>"
+powershell -ExecutionPolicy Bypass -File scripts\configurar-rutas.ps1 -ApiKey "<tu-api-key>"
 
 # Volver al mock y borrar la key del equipo
-powershell -File scripts\configurar-rutas.ps1 -Quitar
+powershell -ExecutionPolicy Bypass -File scripts\configurar-rutas.ps1 -Quitar
 ```
+
+`-ExecutionPolicy Bypass` se aplica sólo a ese proceso: no cambia la configuración de seguridad del
+equipo y evita el error "la ejecución de scripts está deshabilitada en este sistema", que es el que
+da Windows por defecto.
+
+Si preferís no escribir la invocación completa, `scripts\configurar-rutas.cmd` es un envoltorio que
+hace lo mismo (agrega `-ExecutionPolicy Bypass` y resuelve la ruta solo) y acepta los mismos
+parámetros, desde cualquier carpeta del repo:
+
+```bat
+rem Pide la key y deja el proveedor en TomTom
+scripts\configurar-rutas.cmd
+
+rem Vuelve al mock y borra la key
+scripts\configurar-rutas.cmd -Quitar
+```
+
+También se puede ejecutar con doble clic; si algo falla, la ventana queda abierta para leer el error.
 
 El script sólo orquesta `dotnet user-secrets`: la key queda en
 `%APPDATA%\Microsoft\UserSecrets\<UserSecretsId>\secrets.json`, fuera del repositorio.
@@ -128,7 +149,7 @@ Reiniciá la API después de correrlo.
 
 > **Key compartida del equipo.** Usamos una sola key para todos. Se pasa por el grupo (nunca por el
 > repo) y cada integrante corre el script una vez. El que no la configure sigue trabajando con el
-> mock sin tocar nada, y `scripts/configurar-rutas.ps1 -Quitar` deja el entorno como recién clonado.
+> mock sin tocar nada, y correr el script con `-Quitar` deja el entorno como recién clonado.
 
 Equivalente manual:
 
