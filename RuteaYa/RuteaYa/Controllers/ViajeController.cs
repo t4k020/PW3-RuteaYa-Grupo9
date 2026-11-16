@@ -120,6 +120,7 @@ namespace RuteaYa.Controllers
                 {
                     var viaje = await respuesta.Content.ReadFromJsonAsync<ViajeDetalleDto>();
                     if (viaje is null) { TempData["Error"] = "La API devolvió una respuesta vacía para el viaje."; return RedirectToAction("Index"); }
+                    ViewData["ViajeId"] = id;
                     return View(AModeloEdicion(viaje));
                 }
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound) { TempData["Error"] = "No se encontró el viaje a editar."; return RedirectToAction("Index"); }
@@ -195,7 +196,8 @@ namespace RuteaYa.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Actualizar(int id, CrearViajeDto modelo)
         {
-            if (!ModelState.IsValid) return View(modelo);
+            ViewData["ViajeId"] = id;
+            if (!ModelState.IsValid) return View("Editar", modelo);
             var client = _httpClientFactory.CreateClient("ApiViaje");
             try
             {
@@ -207,7 +209,7 @@ namespace RuteaYa.Controllers
                 else ModelState.AddModelError(string.Empty, "Ocurrió un error inesperado al comunicarse con el servidor.");
             }
             catch (HttpRequestException) { ModelState.AddModelError(string.Empty, "No se pudo conectar con el servidor de la API."); }
-            return View(modelo);
+            return View("Editar", modelo);
         }
 
         [HttpPost]
