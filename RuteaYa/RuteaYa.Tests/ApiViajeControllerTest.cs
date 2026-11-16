@@ -5,6 +5,7 @@ using RuteaYa.Entidades;
 using RuteaYa.Servicios;
 using RuteaYa.Servicios.Controllers;
 using RuteaYa.Servicios.Dtos;
+using RuteaYa.Servicios.Servicios.Rutas;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
@@ -86,7 +87,10 @@ namespace RuteaYa.Tests
 
             // Simulamos que el servicio lanza una excepción no controlada
             _viajeServiceMock
-                .Setup(s => s.CrearViajeAsync(It.IsAny<Viaje>()))
+                .Setup(s => s.CrearViajeAsync(
+                    It.IsAny<CrearViajeDto>(),
+                    It.IsAny<int>(),
+                    It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new Exception("Error de base de datos"));
 
             // Act
@@ -116,17 +120,21 @@ namespace RuteaYa.Tests
         }
 
         [Fact]
-        public async Task Crear_DeberiaMapearElDtoYRetornarCreatedAtAction_CuandoDatosSonValidos()
+        public async Task Crear_DeberiaDelegarEnElServicioYRetornarCreatedAtAction_CuandoDatosSonValidos()
         {
             // Arrange
             ConfigurarUsuarioAutenticado();
             var solicitud = CrearViajeDtoValido();
             var viajeCreado = CrearViajeValido(1);
-            Viaje? viajeMapeado = null;
+            CrearViajeDto? solicitudRecibida = null;
 
             _viajeServiceMock
-                .Setup(s => s.CrearViajeAsync(It.IsAny<Viaje>()))
-                .Callback<Viaje>(viaje => viajeMapeado = viaje)
+                .Setup(s => s.CrearViajeAsync(
+                    It.IsAny<CrearViajeDto>(),
+                    1,
+                    It.IsAny<CancellationToken>()))
+                .Callback<CrearViajeDto, int, CancellationToken>(
+                    (dto, _, _) => solicitudRecibida = dto)
                 .ReturnsAsync(viajeCreado);
 
             _viajeServiceMock
@@ -143,14 +151,57 @@ namespace RuteaYa.Tests
             var detalleRetornado = Assert.IsType<ViajeDetalleDto>(createdAtActionResult.Value);
             Assert.Equal(1, detalleRetornado.Id);
 
-            Assert.NotNull(viajeMapeado);
-            Assert.Equal(1, viajeMapeado.UsuarioId);
-            Assert.True(viajeMapeado.Activo);
-            Assert.Equal(0, viajeMapeado.OrigenLat);
-            Assert.Equal(0, viajeMapeado.OrigenLng);
-            Assert.Equal(new[] { 1, 2 }, viajeMapeado.Paradas.OrderBy(p => p.Orden).Select(p => p.Orden));
-            Assert.Equal("Parada 1", viajeMapeado.Paradas.OrderBy(p => p.Orden).First().Direccion);
-            Assert.Equal(new byte[] { 1, 3 }, viajeMapeado.ViajeDias.OrderBy(d => d.DiaSemana).Select(d => d.DiaSemana));
+            // El controller no arma la entidad: delega el DTO tal cual y el
+            // servicio se encarga de geocodificar y calcular la ruta.
+            Assert.Same(solicitud, solicitudRecibida);
+        }
+
+        [Fact]
+        public async Task Crear_DeberiaRetornarBadRequest_CuandoElServicioNoPuedeGeocodificar()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+            var solicitud = CrearViajeDtoValido();
+
+            _viajeServiceMock
+                .Setup(s => s.CrearViajeAsync(
+                    It.IsAny<CrearViajeDto>(),
+                    1,
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new InvalidOperationException(
+                    "No se pudo ubicar la dirección de origen: Calle Inexistente 0."));
+
+            // Act
+            var resultado = await _controller.Crear(solicitud);
+
+            // Assert
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(resultado);
+            Assert.Equal(400, badRequestResult.StatusCode);
+
+            var detalles = Assert.IsType<ProblemDetails>(badRequestResult.Value);
+            Assert.Contains("No se pudo ubicar la dirección", detalles.Detail);
+        }
+
+        [Fact]
+        public async Task Crear_DeberiaRetornar502_CuandoElProveedorDeRutasFalla()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+            var solicitud = CrearViajeDtoValido();
+
+            _viajeServiceMock
+                .Setup(s => s.CrearViajeAsync(
+                    It.IsAny<CrearViajeDto>(),
+                    1,
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ProveedorRutasException("El proveedor de rutas no respondió."));
+
+            // Act
+            var resultado = await _controller.Crear(solicitud);
+
+            // Assert
+            var statusCodeResult = Assert.IsType<ObjectResult>(resultado);
+            Assert.Equal(502, statusCodeResult.StatusCode);
         }
 
         [Fact]
@@ -158,10 +209,14 @@ namespace RuteaYa.Tests
         {
             // Arrange
             ConfigurarUsuarioAutenticado();
-            var viajeModificado = CrearViajeValido(1);
+            var viajeModificado = CrearViajeDtoValido();
 
             _viajeServiceMock
-                .Setup(s => s.ActualizarViajeAsync(1, viajeModificado, 1))
+                .Setup(s => s.ActualizarViajeAsync(
+                    It.IsAny<int>(),
+                    It.IsAny<CrearViajeDto>(),
+                    It.IsAny<int>(),
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
             // Act
@@ -176,10 +231,14 @@ namespace RuteaYa.Tests
         {
             // Arrange
             ConfigurarUsuarioAutenticado();
-            var viajeModificado = CrearViajeValido(999);
+            var viajeModificado = CrearViajeDtoValido();
 
             _viajeServiceMock
-                .Setup(s => s.ActualizarViajeAsync(999, viajeModificado, 1))
+                .Setup(s => s.ActualizarViajeAsync(
+                    It.IsAny<int>(),
+                    It.IsAny<CrearViajeDto>(),
+                    It.IsAny<int>(),
+                    It.IsAny<CancellationToken>()))
                 .ReturnsAsync(false);
 
             // Act
@@ -195,7 +254,7 @@ namespace RuteaYa.Tests
             ConfigurarUsuarioNoAutenticado();
 
             // Act
-            var resultado = await _controller.Actualizar(1, CrearViajeValido(1));
+            var resultado = await _controller.Actualizar(1, CrearViajeDtoValido());
 
             // Assert
             Assert.IsType<UnauthorizedResult>(resultado);
@@ -207,7 +266,7 @@ namespace RuteaYa.Tests
             // Arrange
             ConfigurarUsuarioAutenticado();
             _controller.ModelState.AddModelError("OrigenDir", "El campo es requerido");
-            var viajeModificado = CrearViajeValido(1);
+            var viajeModificado = CrearViajeDtoValido();
 
             // Act
             var resultado = await _controller.Actualizar(1, viajeModificado);
@@ -221,10 +280,14 @@ namespace RuteaYa.Tests
         {
             // Arrange
             ConfigurarUsuarioAutenticado();
-            var viajeModificado = CrearViajeValido(1);
+            var viajeModificado = CrearViajeDtoValido();
 
             _viajeServiceMock
-                .Setup(s => s.ActualizarViajeAsync(1, It.IsAny<Viaje>(), 1))
+                .Setup(s => s.ActualizarViajeAsync(
+                    It.IsAny<int>(),
+                    It.IsAny<CrearViajeDto>(),
+                    It.IsAny<int>(),
+                    It.IsAny<CancellationToken>()))
                 .ThrowsAsync(new System.Exception("Error de base de datos"));
 
             // Act

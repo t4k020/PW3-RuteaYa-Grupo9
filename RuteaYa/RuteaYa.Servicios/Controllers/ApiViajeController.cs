@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
 using RuteaYa.Servicios.Dtos;
+using RuteaYa.Servicios.Servicios.Rutas;
 using System.Security.Claims;
 
 namespace RuteaYa.Servicios.Controllers
@@ -125,11 +126,32 @@ namespace RuteaYa.Servicios.Controllers
 
             try
             {
-                var viaje = Mapear(solicitud, usuarioId);
-                var viajeCreado = await _viajeService.CrearViajeAsync(viaje);
+                var viajeCreado = await _viajeService.CrearViajeAsync(
+                    solicitud,
+                    usuarioId,
+                    HttpContext.RequestAborted);
+
                 var detalle = await _viajeService.ObtenerDetallePorIdAsync(viajeCreado.Id, usuarioId);
 
                 return CreatedAtAction(nameof(ObtenerPorId), new { id = viajeCreado.Id }, detalle);
+            }
+            catch (ProveedorRutasException ex)
+            {
+                return StatusCode(StatusCodes.Status502BadGateway, new ProblemDetails
+                {
+                    Title = "Servicio de rutas no disponible.",
+                    Detail = ex.Message,
+                    Status = StatusCodes.Status502BadGateway
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Datos inválidos.",
+                    Detail = ex.Message,
+                    Status = StatusCodes.Status400BadRequest
+                });
             }
             catch (Exception)
             {
@@ -139,7 +161,11 @@ namespace RuteaYa.Servicios.Controllers
 
         
         [HttpPut("{id}")]
-        public async Task<IActionResult> Actualizar(int id, [FromBody] Viaje viaje)
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status502BadGateway)]
+        public async Task<IActionResult> Actualizar(int id, [FromBody] CrearViajeDto solicitud)
         {
             if (!TryObtenerUsuarioId(out int usuarioId))
                 return Unauthorized();
@@ -151,7 +177,11 @@ namespace RuteaYa.Servicios.Controllers
 
             try
             {
-                var actualizado = await _viajeService.ActualizarViajeAsync(id, viaje, usuarioId);
+                var actualizado = await _viajeService.ActualizarViajeAsync(
+                    id,
+                    solicitud,
+                    usuarioId,
+                    HttpContext.RequestAborted);
 
                 if (!actualizado)
                 {
@@ -159,6 +189,24 @@ namespace RuteaYa.Servicios.Controllers
                 }
 
                 return NoContent(); // 204 
+            }
+            catch (ProveedorRutasException ex)
+            {
+                return StatusCode(StatusCodes.Status502BadGateway, new ProblemDetails
+                {
+                    Title = "Servicio de rutas no disponible.",
+                    Detail = ex.Message,
+                    Status = StatusCodes.Status502BadGateway
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Datos inválidos.",
+                    Detail = ex.Message,
+                    Status = StatusCodes.Status400BadRequest
+                });
             }
             catch (Exception)
             {
@@ -239,47 +287,6 @@ namespace RuteaYa.Servicios.Controllers
             {
                 return StatusCode(500, "Ocurrió un error interno al activar el viaje.");
             }
-        }
-
-        // Construye la entidad a partir del DTO. El usuario, las coordenadas y
-        // la distancia/duración los define el servidor, nunca el cliente.
-        private static Viaje Mapear(CrearViajeDto solicitud, int usuarioId)
-        {
-            var paradas = solicitud.Paradas ?? new List<ParadaViajeDto>();
-            var dias = solicitud.DiasSemana ?? new List<byte>();
-
-            return new Viaje
-            {
-                UsuarioId = usuarioId,
-                OrigenDir = solicitud.OrigenDir.Trim(),
-                OrigenLat = 0,
-                OrigenLng = 0,
-                DestinoDir = solicitud.DestinoDir.Trim(),
-                DestinoLat = 0,
-                DestinoLng = 0,
-                HoraSalida = solicitud.HoraSalida!.Value,
-                HoraLlegada = solicitud.HoraLlegada!.Value,
-                MaxPaquetes = solicitud.MaxPaquetes,
-                PesoMaxKg = solicitud.PesoMaxKg,
-                DesvioMaxKm = solicitud.DesvioMaxKm,
-                DistanciaKm = 0,
-                DuracionMin = 0,
-                Activo = true,
-                ViajeDias = dias
-                    .Distinct()
-                    .OrderBy(dia => dia)
-                    .Select(dia => new ViajeDia { DiaSemana = dia })
-                    .ToList(),
-                Paradas = paradas
-                    .Select((parada, indice) => new Parada
-                    {
-                        Orden = indice + 1,
-                        Direccion = parada.Direccion.Trim(),
-                        Lat = 0,
-                        Lng = 0
-                    })
-                    .ToList()
-            };
         }
 
         // Obtiene el ID del usuario autenticado desde el JWT

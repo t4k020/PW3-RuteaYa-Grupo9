@@ -1,13 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using RuteaYa.Entidades;
 using RuteaYa.Repositorios;
 using RuteaYa.Servicios;
+using RuteaYa.Servicios.Dtos;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using Xunit;
-
-
 
 
 namespace RuteaYa.Tests
@@ -26,28 +25,36 @@ namespace RuteaYa.Tests
                 .Options;
 
             using var context = new RuteaYaDbContext(options);
-            var service = new EnvioService(context);
 
-            // Creamos un objeto de prueba válido cumpliendo con las validaciones de la entidad
-            var nuevoEnvio = new Envio
+            // El envío pertenece a un usuario ya registrado.
+            context.Usuarios.Add(new Usuario
             {
-                UsuarioId = 1,
+                Id = 1,
+                Nombre = "Ana",
+                Apellido = "Paz",
+                Email = "ana@example.com",
+                PasswordHash = "hash-de-prueba"
+            });
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
+
+            // DTO con los datos que completa el remitente. Las coordenadas no
+            // se envían: las resuelve la API a partir de las direcciones.
+            var nuevoEnvio = new CrearEnvioDto
+            {
                 OrigenDir = "Av. Corrientes 1234, CABA",
-                OrigenLat = -34.603722m,
-                OrigenLng = -58.381592m,
-                DestinoDir = "Av. Santa Fe 4321, CABA",
-                DestinoLat = -34.595555m,
-                DestinoLng = -58.393333m,
+                DestinoDir = "Av. Santa Fe 1000, CABA",
                 FechaLimite = DateTime.Now.AddDays(3),
                 PesoKg = 2.50m,
                 Tamano = 1,
                 Descripcion = "Documentación importante",
-                Monto = 2500.00m,
-                Estado = 0
+                Monto = 2500.00m
             };
 
             // Act 
-            var resultado = await service.CrearEnvioAsync(nuevoEnvio);
+            var resultado = await service.CrearEnvioAsync(
+                nuevoEnvio, 1, TestContext.Current.CancellationToken);
 
             // Assert 
             // 1. Verificamos que devuelva el objeto y se le asigne un ID
@@ -60,7 +67,50 @@ namespace RuteaYa.Tests
             Assert.Equal("Av. Corrientes 1234, CABA", envioEnDb.OrigenDir);
             Assert.Equal(2500.00m, envioEnDb.Monto);
             Assert.Equal(1, envioEnDb.UsuarioId);
+
+            // 3. El servidor completó las coordenadas con el proveedor de rutas.
+            Assert.NotEqual(0m, envioEnDb.OrigenLat);
+            Assert.NotEqual(0m, envioEnDb.DestinoLng);
         }
+
+        [Fact]
+        public async Task CuandoCreoUnEnvioConOrigenIgualAlDestinoFalla()
+        {
+            // Arrange
+            var options = new DbContextOptionsBuilder<RuteaYaDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            using var context = new RuteaYaDbContext(options);
+
+            context.Usuarios.Add(new Usuario
+            {
+                Id = 1,
+                Nombre = "Ana",
+                Apellido = "Paz",
+                Email = "ana@example.com",
+                PasswordHash = "hash-de-prueba"
+            });
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
+
+            var nuevoEnvio = new CrearEnvioDto
+            {
+                OrigenDir = "Av. Corrientes 1234, CABA",
+                DestinoDir = "Av. Corrientes 1234, CABA",
+                FechaLimite = DateTime.Now.AddDays(3),
+                PesoKg = 2.50m,
+                Tamano = 1,
+                Descripcion = "Documentación importante",
+                Monto = 2500.00m
+            };
+
+            // Act + Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.CrearEnvioAsync(nuevoEnvio, 1, TestContext.Current.CancellationToken));
+        }
+
         [Fact]
         public async Task ObtenerPorIdAsync_DeberiaRetornarEnvio_CuandoElIdExiste()
         {
@@ -79,7 +129,7 @@ namespace RuteaYa.Tests
             // Act
             using (var context = new RuteaYaDbContext(options))
             {
-                var service = new EnvioService(context);
+                var service = new EnvioService(context, RutasDePrueba.CrearMock());
                 var resultado = await service.ObtenerPorIdAsync(1);
 
                 // Assert
@@ -99,7 +149,7 @@ namespace RuteaYa.Tests
 
             using (var context = new RuteaYaDbContext(options))
             {
-                var service = new EnvioService(context);
+                var service = new EnvioService(context, RutasDePrueba.CrearMock());
 
                 // Act
                 var resultado = await service.ObtenerPorIdAsync(999);
@@ -127,7 +177,7 @@ namespace RuteaYa.Tests
             // Act
             using (var context = new RuteaYaDbContext(options))
             {
-                var service = new EnvioService(context);
+                var service = new EnvioService(context, RutasDePrueba.CrearMock());
                 var resultado = await service.EliminarEnvioAsync(1);
 
                 // Assert
@@ -149,7 +199,7 @@ namespace RuteaYa.Tests
 
             using (var context = new RuteaYaDbContext(options))
             {
-                var service = new EnvioService(context);
+                var service = new EnvioService(context, RutasDePrueba.CrearMock());
 
                 // Act
                 var resultado = await service.EliminarEnvioAsync(999);
@@ -219,7 +269,7 @@ namespace RuteaYa.Tests
 
             using (var context = new RuteaYaDbContext(options))
             {
-                var service = new EnvioService(context);
+                var service = new EnvioService(context, RutasDePrueba.CrearMock());
 
                 // Act
                 var resultado = await service.EliminarEnvioAsync(20, 1);
@@ -289,7 +339,7 @@ namespace RuteaYa.Tests
             });
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
 
             var resultado = await service.ObtenerListadoPorUsuarioAsync(
                 10,
@@ -322,7 +372,7 @@ namespace RuteaYa.Tests
             });
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
             var resultado = await service.CancelarEnvioAsync(1, 10);
 
             Assert.True(resultado);
@@ -354,7 +404,7 @@ namespace RuteaYa.Tests
             });
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
 
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 service.CancelarEnvioAsync(1, 10));
@@ -369,7 +419,7 @@ namespace RuteaYa.Tests
             EstadoEnvio estado)
         {
             using var context = await CrearContextoConEnvioAsignadoAsync(estado);
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
 
             var resultado = await service.ObtenerDetalleDtoAsync(
                 20,
@@ -388,7 +438,7 @@ namespace RuteaYa.Tests
             EstadoEnvio estado)
         {
             using var context = await CrearContextoConEnvioAsignadoAsync(estado);
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
 
             var resultado = await service.ObtenerDetalleDtoAsync(
                 20,
@@ -404,7 +454,7 @@ namespace RuteaYa.Tests
         public async Task ObtenerDetalleDtoAsync_NoDeberiaMostrarViaje_CuandoElEnvioEstaBuscandoConductor()
         {
             using var context = await CrearContextoConEnvioAsignadoAsync(EstadoEnvio.BuscandoConductor);
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
 
             var resultado = await service.ObtenerDetalleDtoAsync(
                 20,
@@ -419,7 +469,7 @@ namespace RuteaYa.Tests
         public async Task ObtenerDetalleDtoAsync_DeberiaPermitirEliminar_CuandoElEnvioEstaCancelado()
         {
             using var context = await CrearContextoConEnvioAsignadoAsync(EstadoEnvio.Cancelado);
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
 
             var resultado = await service.ObtenerDetalleDtoAsync(
                 20,
@@ -497,7 +547,7 @@ namespace RuteaYa.Tests
         public async Task ActualizarEnvioAsync_DeberiaActualizarDatos_CuandoElEnvioBuscaConductor()
         {
             using var context = await CrearContextoConEnvioEditableAsync(EstadoEnvio.BuscandoConductor);
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
             var datos = CrearDatosEdicionValidos();
             datos.OrigenDir = "  Nuevo origen  ";
             datos.Descripcion = "  Nueva descripción  ";
@@ -521,7 +571,7 @@ namespace RuteaYa.Tests
         public async Task ActualizarEnvioAsync_NoDeberiaModificarEstadoNiUsuario()
         {
             using var context = await CrearContextoConEnvioEditableAsync(EstadoEnvio.BuscandoConductor);
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
             var datos = CrearDatosEdicionValidos();
             // Aunque el cliente intente cambiarlos, el servicio los ignora.
             datos.UsuarioId = 99;
@@ -539,7 +589,7 @@ namespace RuteaYa.Tests
         public async Task ActualizarEnvioAsync_DeberiaRetornarFalse_CuandoElEnvioNoExiste()
         {
             using var context = await CrearContextoConEnvioEditableAsync(EstadoEnvio.BuscandoConductor);
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
 
             var resultado = await service.ActualizarEnvioAsync(999, CrearDatosEdicionValidos(), UsuarioEditorId);
 
@@ -550,7 +600,7 @@ namespace RuteaYa.Tests
         public async Task ActualizarEnvioAsync_DeberiaRetornarFalse_CuandoElEnvioEsDeOtroUsuario()
         {
             using var context = await CrearContextoConEnvioEditableAsync(EstadoEnvio.BuscandoConductor);
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
 
             var resultado = await service.ActualizarEnvioAsync(1, CrearDatosEdicionValidos(), usuarioId: 55);
 
@@ -569,7 +619,7 @@ namespace RuteaYa.Tests
         public async Task ActualizarEnvioAsync_DeberiaRechazarEstadosNoEditables(EstadoEnvio estado)
         {
             using var context = await CrearContextoConEnvioEditableAsync(estado);
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
 
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 service.ActualizarEnvioAsync(1, CrearDatosEdicionValidos(), UsuarioEditorId));
@@ -590,7 +640,7 @@ namespace RuteaYa.Tests
                 FechaViaje = DateTime.Today.AddDays(1)
             });
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
 
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 service.ActualizarEnvioAsync(1, CrearDatosEdicionValidos(), UsuarioEditorId));
@@ -619,7 +669,7 @@ namespace RuteaYa.Tests
         public async Task ActualizarEnvioAsync_DeberiaAceptar_CuandoLaFechaLimiteEsHoy()
         {
             using var context = await CrearContextoConEnvioEditableAsync(EstadoEnvio.BuscandoConductor);
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
             var datos = CrearDatosEdicionValidos();
             datos.FechaLimite = DateTime.Today;
 
@@ -678,7 +728,7 @@ namespace RuteaYa.Tests
         public async Task ActualizarEnvioAsync_DeberiaAceptar_CuandoLaDescripcionTiene70Caracteres()
         {
             using var context = await CrearContextoConEnvioEditableAsync(EstadoEnvio.BuscandoConductor);
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
             var datos = CrearDatosEdicionValidos();
             datos.Descripcion = new string('a', 70);
 
@@ -698,7 +748,7 @@ namespace RuteaYa.Tests
             EstadoEnvio estado, bool esperado)
         {
             using var context = await CrearContextoConEnvioEditableAsync(estado);
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
 
             var dto = await service.ObtenerDetalleDtoAsync(
                 1, UsuarioEditorId, TestContext.Current.CancellationToken);
@@ -721,7 +771,7 @@ namespace RuteaYa.Tests
                 CreadoEn = DateTime.Now.AddMinutes(-5)
             });
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
 
             var listado = await service.ObtenerListadoPorUsuarioAsync(
                 UsuarioEditorId, null, TestContext.Current.CancellationToken);
@@ -736,7 +786,7 @@ namespace RuteaYa.Tests
         private static async Task AssertEdicionRechazadaAsync(Envio datos, string mensajeEsperado)
         {
             using var context = await CrearContextoConEnvioEditableAsync(EstadoEnvio.BuscandoConductor);
-            var service = new EnvioService(context);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
 
             var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 service.ActualizarEnvioAsync(1, datos, UsuarioEditorId));

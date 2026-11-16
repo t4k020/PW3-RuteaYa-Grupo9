@@ -2,13 +2,16 @@
 using RuteaYa.Repositorios;
 using Microsoft.EntityFrameworkCore;
 using RuteaYa.Servicios.Dtos;
+using RuteaYa.Servicios.Servicios.Rutas;
 
 namespace RuteaYa.Servicios
 {
     public interface IEnvioService
     {
-        Task<Envio> CrearEnvioAsync(Envio envio);
-        Task<Envio> CrearEnvioAsync(Envio envio, int usuarioId);
+        Task<Envio> CrearEnvioAsync(
+            CrearEnvioDto solicitud,
+            int usuarioId,
+            CancellationToken cancellationToken = default);
         Task<Envio?> ObtenerPorIdAsync(int id);
         Task<Envio?> ObtenerPorIdAsync(int id, int usuarioId);
         Task<EnvioDto?> ObtenerDetalleDtoAsync(
@@ -32,73 +35,105 @@ namespace RuteaYa.Servicios
     }
     public class EnvioService : IEnvioService {
         private readonly RuteaYaDbContext _context;
+        private readonly IRutaService _rutaService;
 
-        public EnvioService(RuteaYaDbContext context)
+        public EnvioService(RuteaYaDbContext context, IRutaService rutaService)
         {
             _context = context;
+            _rutaService = rutaService;
         }
 
-        public async Task<Envio> CrearEnvioAsync(Envio envio)
-        {
-            envio.CreadoEn = DateTime.Now;
-            _context.Envios.Add(envio);
-            await _context.SaveChangesAsync();
-            return envio;
-        }
-
-        public async Task<Envio> CrearEnvioAsync(Envio envio, int usuarioId)
+        public async Task<Envio> CrearEnvioAsync(
+            CrearEnvioDto solicitud,
+            int usuarioId,
+            CancellationToken cancellationToken = default)
         {
             // La validación se repite en el servicio porque la API es la autoridad
             // y no debe depender únicamente de las validaciones del formulario MVC.
             var usuarioExiste = await _context.Usuarios
-                .AnyAsync(usuario => usuario.Id == usuarioId);
+                .AnyAsync(usuario => usuario.Id == usuarioId, cancellationToken);
 
             if (!usuarioExiste)
             {
                 throw new InvalidOperationException("El usuario autenticado no existe.");
             }
 
-            if (string.Equals(
-                    envio.OrigenDir.Trim(),
-                    envio.DestinoDir.Trim(),
-                    StringComparison.OrdinalIgnoreCase))
+            var origenDir = solicitud.OrigenDir.Trim();
+            var destinoDir = solicitud.DestinoDir.Trim();
+
+            if (string.Equals(origenDir, destinoDir, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException("El origen y el destino deben ser diferentes.");
             }
 
-            if (envio.FechaLimite.Date < DateTime.Today)
+            if (solicitud.FechaLimite.Date < DateTime.Today)
             {
                 throw new InvalidOperationException("La fecha límite no puede ser anterior a la fecha actual.");
             }
 
-            if (envio.PesoKg <= 0 || envio.Monto <= 0)
+            if (solicitud.PesoKg <= 0 || solicitud.Monto <= 0)
             {
                 throw new InvalidOperationException("El peso y el monto ofrecido deben ser mayores que cero.");
             }
 
-            if (envio.Tamano is < 1 or > 3)
+            if (solicitud.Tamano is < 1 or > 3)
             {
                 throw new InvalidOperationException("El tamaño del envío no es válido.");
             }
 
-            if (string.IsNullOrWhiteSpace(envio.Descripcion))
+            if (string.IsNullOrWhiteSpace(solicitud.Descripcion))
             {
                 throw new InvalidOperationException("La descripción es obligatoria.");
             }
 
-            if (envio.Descripcion.Trim().Length > 70)
+            if (solicitud.Descripcion.Trim().Length > 70)
             {
                 throw new InvalidOperationException("La descripción no puede superar los 70 caracteres.");
             }
 
-            envio.UsuarioId = usuarioId;
-            envio.Usuario = null;
-            // Todos los envíos nuevos comienzan buscando conductor.
-            envio.Estado = (byte)EstadoEnvio.BuscandoConductor;
-            envio.CreadoEn = DateTime.Now;
+            // Las coordenadas las resuelve el servidor: el cliente sólo manda direcciones.
+            var origen = await GeocodificarAsync(origenDir, "origen", cancellationToken);
+            var destino = await GeocodificarAsync(destinoDir, "destino", cancellationToken);
+
+            var envio = new Envio
+            {
+                UsuarioId = usuarioId,
+                OrigenDir = origenDir,
+                OrigenLat = origen.Lat,
+                OrigenLng = origen.Lng,
+                DestinoDir = destinoDir,
+                DestinoLat = destino.Lat,
+                DestinoLng = destino.Lng,
+                FechaLimite = solicitud.FechaLimite.Date,
+                PesoKg = solicitud.PesoKg,
+                Tamano = solicitud.Tamano,
+                Descripcion = solicitud.Descripcion.Trim(),
+                Monto = solicitud.Monto,
+                // Todos los envíos nuevos comienzan buscando conductor.
+                Estado = (byte)EstadoEnvio.BuscandoConductor,
+                CreadoEn = DateTime.Now
+            };
+
             _context.Envios.Add(envio);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
+
             return envio;
+        }
+
+        private async Task<CoordenadaDto> GeocodificarAsync(
+            string direccion,
+            string descripcion,
+            CancellationToken cancellationToken)
+        {
+            var coordenada = await _rutaService.GeocodificarAsync(direccion, cancellationToken);
+
+            if (coordenada is null)
+            {
+                throw new InvalidOperationException(
+                    $"No se pudo ubicar la dirección de {descripcion}: {direccion}.");
+            }
+
+            return coordenada;
         }
 
         public async Task<Envio?> ObtenerPorIdAsync(int id)

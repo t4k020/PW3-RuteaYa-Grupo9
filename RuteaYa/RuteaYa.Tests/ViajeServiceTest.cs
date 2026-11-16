@@ -2,6 +2,7 @@
 using RuteaYa.Entidades;
 using RuteaYa.Repositorios;
 using RuteaYa.Servicios;
+using RuteaYa.Servicios.Dtos;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -18,21 +19,29 @@ namespace RuteaYa.Tests
         {
             // Arrange 
             using var context = new RuteaYaDbContext(CrearOpcionesMemoria());
-            var service = new ViajeService(context);
-            var nuevoViaje = CrearViajeValido(0);
+            var service = new ViajeService(context, RutasDePrueba.CrearMock());
+            var nuevoViaje = CrearViajeDtoValido();
 
             // Act
-            var resultado = await service.CrearViajeAsync(nuevoViaje);
+            var resultado = await service.CrearViajeAsync(
+                nuevoViaje, 1, TestContext.Current.CancellationToken);
 
             // Assert
             Assert.NotNull(resultado);
             Assert.True(resultado.Id > 0, "El ID del viaje debería generarse correctamente.");
 
-            var viajeEnDb = await context.Viajes.FindAsync(new object[] { resultado.Id }, TestContext.Current.CancellationToken);
+            var viajeEnDb = await context.Viajes
+                .FirstAsync(v => v.Id == resultado.Id, TestContext.Current.CancellationToken);
             Assert.NotNull(viajeEnDb);
             Assert.Equal("Av. Corrientes 1234, CABA", viajeEnDb.OrigenDir);
             Assert.Equal(5, viajeEnDb.MaxPaquetes);
             Assert.Equal(1, viajeEnDb.UsuarioId);
+
+            // Las coordenadas y la ruta las calcula el servidor, no el cliente.
+            Assert.NotEqual(0m, viajeEnDb.OrigenLat);
+            Assert.NotEqual(0m, viajeEnDb.DestinoLng);
+            Assert.True(viajeEnDb.DistanciaKm > 0, "La distancia debería calcularse.");
+            Assert.True(viajeEnDb.DuracionMin > 0, "La duración debería calcularse.");
         }
 
         [Fact]
@@ -40,15 +49,15 @@ namespace RuteaYa.Tests
         {
             // Arrange
             using var context = new RuteaYaDbContext(CrearOpcionesMemoria());
-            var service = new ViajeService(context);
-            var nuevoViaje = CrearViajeValido(0);
-            nuevoViaje.Paradas.Add(new Parada { Orden = 1, Direccion = "Parada 1" });
-            nuevoViaje.Paradas.Add(new Parada { Orden = 2, Direccion = "Parada 2" });
-            nuevoViaje.ViajeDias.Add(new ViajeDia { DiaSemana = 1 });
-            nuevoViaje.ViajeDias.Add(new ViajeDia { DiaSemana = 3 });
+            var service = new ViajeService(context, RutasDePrueba.CrearMock());
+            var nuevoViaje = CrearViajeDtoValido();
+            nuevoViaje.Paradas.Add(new ParadaViajeDto { Direccion = "Av. Callao 600, CABA" });
+            nuevoViaje.Paradas.Add(new ParadaViajeDto { Direccion = "Av. Belgrano 900, CABA" });
+            nuevoViaje.DiasSemana = new List<byte> { 1, 3 };
 
             // Act
-            var resultado = await service.CrearViajeAsync(nuevoViaje);
+            var resultado = await service.CrearViajeAsync(
+                nuevoViaje, 1, TestContext.Current.CancellationToken);
 
             // Assert
             var viajeEnDb = await context.Viajes
@@ -59,7 +68,7 @@ namespace RuteaYa.Tests
             Assert.Equal(2, viajeEnDb.Paradas.Count);
             Assert.Equal(2, viajeEnDb.ViajeDias.Count);
             Assert.Equal(
-                new[] { "Parada 1", "Parada 2" },
+                new[] { "Av. Callao 600, CABA", "Av. Belgrano 900, CABA" },
                 viajeEnDb.Paradas.OrderBy(p => p.Orden).Select(p => p.Direccion));
             Assert.Equal(
                 new byte[] { 1, 3 },
@@ -86,7 +95,7 @@ namespace RuteaYa.Tests
             // Act
             using (var context = new RuteaYaDbContext(options))
             {
-                var service = new ViajeService(context);
+                var service = new ViajeService(context, RutasDePrueba.CrearMock());
                 var resultado = await service.ObtenerPorIdAsync(1);
 
                 // Assert
@@ -102,7 +111,7 @@ namespace RuteaYa.Tests
             // Arrange
             using (var context = new RuteaYaDbContext(CrearOpcionesMemoria()))
             {
-                var service = new ViajeService(context);
+                var service = new ViajeService(context, RutasDePrueba.CrearMock());
 
                 // Act
                 var resultado = await service.ObtenerPorIdAsync(999);
@@ -113,36 +122,65 @@ namespace RuteaYa.Tests
         }
 
         [Fact]
-        public async Task ActualizarViajeAsync_DeberiaRetornarTrue_CuandoElViajeExiste()
+        public async Task ActualizarViajeAsync_DeberiaRecalcularRecorridoYReemplazarParadasYDias()
         {
             // Arrange
             var options = CrearOpcionesMemoria();
 
             using (var context = new RuteaYaDbContext(options))
             {
-                context.Viajes.Add(CrearViajeValido(1));
+                var viajeOriginal = CrearViajeValido(1);
+                viajeOriginal.Activo = false;
+                viajeOriginal.Paradas.Add(new Parada { Orden = 1, Direccion = "Av. Callao 600, CABA" });
+                viajeOriginal.ViajeDias.Add(new ViajeDia { DiaSemana = 1 });
+
+                context.Viajes.Add(viajeOriginal);
                 await context.SaveChangesAsync(TestContext.Current.CancellationToken);
             }
 
-            var viajeModificado = CrearViajeValido(1);
-            viajeModificado.OrigenDir = "Origen Nuevo";
+            var viajeModificado = CrearViajeDtoValido();
+            viajeModificado.OrigenDir = "Mitre 450, San Justo";
             viajeModificado.MaxPaquetes = 10;
-            viajeModificado.Activo = false;
+            viajeModificado.DiasSemana = new List<byte> { 3, 5 };
+            viajeModificado.Paradas = new List<ParadaViajeDto>
+            {
+                new() { Direccion = "Av. Belgrano 900, CABA" },
+                new() { Direccion = "Av. Córdoba 1200, CABA" }
+            };
 
             // Act 
             using (var context = new RuteaYaDbContext(options))
             {
-                var service = new ViajeService(context);
-                var resultado = await service.ActualizarViajeAsync(1, viajeModificado, 1);
-                
-                //assert
+                var service = new ViajeService(context, RutasDePrueba.CrearMock());
+                var resultado = await service.ActualizarViajeAsync(
+                    1, viajeModificado, 1, TestContext.Current.CancellationToken);
+
+                // Assert
                 Assert.True(resultado);
 
-                var enDb = await context.Viajes.FindAsync(new object[] { 1 }, TestContext.Current.CancellationToken);
-                Assert.NotNull(enDb);
-                Assert.Equal("Origen Nuevo", enDb.OrigenDir);
+                var enDb = await context.Viajes
+                    .Include(v => v.Paradas)
+                    .Include(v => v.ViajeDias)
+                    .FirstAsync(v => v.Id == 1, TestContext.Current.CancellationToken);
+
+                Assert.Equal("Mitre 450, San Justo", enDb.OrigenDir);
                 Assert.Equal(10, enDb.MaxPaquetes);
+
+                // Activar o desactivar es una acción aparte: la edición no la pisa.
                 Assert.False(enDb.Activo);
+
+                // El recorrido se recalcula con las direcciones nuevas.
+                Assert.NotEqual(0m, enDb.OrigenLat);
+                Assert.True(enDb.DistanciaKm > 0);
+                Assert.True(enDb.DuracionMin > 0);
+
+                Assert.Equal(
+                    new[] { "Av. Belgrano 900, CABA", "Av. Córdoba 1200, CABA" },
+                    enDb.Paradas.OrderBy(p => p.Orden).Select(p => p.Direccion));
+
+                Assert.Equal(
+                    new byte[] { 3, 5 },
+                    enDb.ViajeDias.OrderBy(d => d.DiaSemana).Select(d => d.DiaSemana));
             }
         }
 
@@ -150,13 +188,14 @@ namespace RuteaYa.Tests
         public async Task ActualizarViajeAsync_DeberiaRetornarFalse_CuandoElViajeNoExiste()
         {
             // Arrange
-            var viajeModificado = CrearViajeValido(999);
+            var viajeModificado = CrearViajeDtoValido();
 
             // Act 
             using (var context = new RuteaYaDbContext(CrearOpcionesMemoria()))
             {
-                var service = new ViajeService(context);
-                var resultado = await service.ActualizarViajeAsync(999, viajeModificado, 1);
+                var service = new ViajeService(context, RutasDePrueba.CrearMock());
+                var resultado = await service.ActualizarViajeAsync(
+                    999, viajeModificado, 1, TestContext.Current.CancellationToken);
                 //assert
                 Assert.False(resultado);
             }
@@ -177,7 +216,7 @@ namespace RuteaYa.Tests
             // Act
             using (var context = new RuteaYaDbContext(options))
             {
-                var service = new ViajeService(context);
+                var service = new ViajeService(context, RutasDePrueba.CrearMock());
                 var resultado = await service.EliminarViajeAsync(1, 1);
 
                 // Assert
@@ -194,7 +233,7 @@ namespace RuteaYa.Tests
                 Assert.NotNull(viajeEnDb);
                 Assert.NotNull(viajeEnDb.EliminadoEn);
 
-                var service = new ViajeService(context);
+                var service = new ViajeService(context, RutasDePrueba.CrearMock());
                 Assert.Null(await service.ObtenerDetallePorIdAsync(1, 1));
                 Assert.Empty(await service.ObtenerParaListadoAsync(null, 1));
             }
@@ -215,7 +254,7 @@ namespace RuteaYa.Tests
             // Act
             using (var context = new RuteaYaDbContext(options))
             {
-                var service = new ViajeService(context);
+                var service = new ViajeService(context, RutasDePrueba.CrearMock());
                 var resultado = await service.EliminarViajeAsync(1, 99);
 
                 // Assert
@@ -240,7 +279,7 @@ namespace RuteaYa.Tests
             // Act
             using (var context = new RuteaYaDbContext(options))
             {
-                var service = new ViajeService(context);
+                var service = new ViajeService(context, RutasDePrueba.CrearMock());
                 var resultado = await service.ActivarViajeAsync(1, 1);
 
                 // Assert
@@ -257,7 +296,7 @@ namespace RuteaYa.Tests
         {
             // Arrange
             using var context = new RuteaYaDbContext(CrearOpcionesMemoria());
-            var service = new ViajeService(context);
+            var service = new ViajeService(context, RutasDePrueba.CrearMock());
 
             // Act
             var resultado = await service.ActivarViajeAsync(999, 1);
@@ -319,7 +358,7 @@ namespace RuteaYa.Tests
             // Act
             using (var context = new RuteaYaDbContext(options))
             {
-                var service = new ViajeService(context);
+                var service = new ViajeService(context, RutasDePrueba.CrearMock());
                 var detalle = await service.ObtenerDetallePorIdAsync(1, 1);
 
                 // Assert
@@ -342,7 +381,7 @@ namespace RuteaYa.Tests
             // Arrange
             using (var context = new RuteaYaDbContext(CrearOpcionesMemoria()))
             {
-                var service = new ViajeService(context);
+                var service = new ViajeService(context, RutasDePrueba.CrearMock());
 
                 // Act
                 var resultado = await service.EliminarViajeAsync(999, 1);
@@ -366,7 +405,7 @@ namespace RuteaYa.Tests
             // Act
             using (var context = new RuteaYaDbContext(options))
             {
-                var service = new ViajeService(context);
+                var service = new ViajeService(context, RutasDePrueba.CrearMock());
                 var paquete = await service.ObtenerPaqueteAsignadoAsync(
                     1, 10, 1, TestContext.Current.CancellationToken);
 
@@ -399,7 +438,7 @@ namespace RuteaYa.Tests
             // Act
             using (var context = new RuteaYaDbContext(options))
             {
-                var service = new ViajeService(context);
+                var service = new ViajeService(context, RutasDePrueba.CrearMock());
                 var paquete = await service.ObtenerPaqueteAsignadoAsync(
                     1, 10, 99, TestContext.Current.CancellationToken);
 
@@ -422,7 +461,7 @@ namespace RuteaYa.Tests
             // Act
             using (var context = new RuteaYaDbContext(options))
             {
-                var service = new ViajeService(context);
+                var service = new ViajeService(context, RutasDePrueba.CrearMock());
                 var paquete = await service.ObtenerPaqueteAsignadoAsync(
                     1, 999, 1, TestContext.Current.CancellationToken);
 
@@ -445,7 +484,7 @@ namespace RuteaYa.Tests
             // Act
             using (var context = new RuteaYaDbContext(options))
             {
-                var service = new ViajeService(context);
+                var service = new ViajeService(context, RutasDePrueba.CrearMock());
                 var paquete = await service.ObtenerPaqueteAsignadoAsync(
                     999, 10, 1, TestContext.Current.CancellationToken);
 
@@ -468,7 +507,7 @@ namespace RuteaYa.Tests
             // Act
             using (var context = new RuteaYaDbContext(options))
             {
-                var service = new ViajeService(context);
+                var service = new ViajeService(context, RutasDePrueba.CrearMock());
                 var paquete = await service.ObtenerPaqueteAsignadoAsync(
                     1, 10, 1, TestContext.Current.CancellationToken);
 
@@ -529,6 +568,23 @@ namespace RuteaYa.Tests
             });
 
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }
+
+        // DTO que usa la API para crear y editar viajes.
+        private CrearViajeDto CrearViajeDtoValido()
+        {
+            return new CrearViajeDto
+            {
+                OrigenDir = "Av. Corrientes 1234, CABA",
+                DestinoDir = "Av. Santa Fe 1000, CABA",
+                HoraSalida = new TimeOnly(8, 0),
+                HoraLlegada = new TimeOnly(10, 0),
+                DiasSemana = new List<byte> { 1, 2 },
+                MaxPaquetes = 5,
+                PesoMaxKg = 50.0m,
+                DesvioMaxKm = 2.5m,
+                Paradas = new List<ParadaViajeDto>()
+            };
         }
 
         private Viaje CrearViajeValido(int id = 1)
