@@ -419,6 +419,15 @@ namespace RuteaYa.Tests
 
         private void ConfigurarRespuestaHttp(HttpResponseMessage respuesta)
         {
+            // HttpClient entrega una respuesta nueva por cada request. El mock
+            // devuelve el mismo objeto, así que se guardan el código y el
+            // cuerpo para recrearlos: si no, la segunda llamada encuentra el
+            // contenido ya consumido.
+            var codigo = respuesta.StatusCode;
+            var contenido = respuesta.Content?.ReadAsStringAsync()
+                .GetAwaiter()
+                .GetResult();
+
             _httpMessageHandlerMock
                 .Protected()
                 .Setup<Task<HttpResponseMessage>>(
@@ -426,7 +435,12 @@ namespace RuteaYa.Tests
                     ItExpr.IsAny<HttpRequestMessage>(),
                     ItExpr.IsAny<CancellationToken>()
                 )
-                .ReturnsAsync(respuesta);
+                .ReturnsAsync(() => new HttpResponseMessage(codigo)
+                {
+                    Content = contenido is null
+                        ? null
+                        : new StringContent(contenido, System.Text.Encoding.UTF8, "application/json")
+                });
         }
 
         private void SetHttpServerError(Exception excepcion)
@@ -745,6 +759,79 @@ namespace RuteaYa.Tests
 
             Assert.IsType<ViewResult>(resultado);
             Assert.Equal("No se pudo conectar con el servidor de la API.", ObtenerErrorGeneral());
+        }
+
+        [Fact]
+        public async Task PrevisualizarRecorrido_DeberiaRetornarJson_CuandoLaApiCalculaLaRuta()
+        {
+            // Arrange
+            var recorrido = new RecorridoViajeDto
+            {
+                Puntos = new List<PuntoRecorridoDto>
+                {
+                    new() { Orden = 0, Direccion = "Origen", Lat = -34.60m, Lng = -58.39m },
+                    new() { Orden = 1, Direccion = "Destino", Lat = -34.59m, Lng = -58.40m }
+                },
+                DistanciaKm = 5m,
+                DuracionMin = 15,
+                Fuente = "Mock"
+            };
+
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(recorrido)
+            });
+
+            // Act
+            var resultado = await _controller.PrevisualizarRecorrido(CrearViajeDtoValido());
+
+            // Assert
+            var jsonResult = Assert.IsType<JsonResult>(resultado);
+            var recorridoDevuelto = Assert.IsType<RecorridoViajeDto>(jsonResult.Value);
+            Assert.Equal(2, recorridoDevuelto.Puntos.Count);
+            Assert.Equal("Mock", recorridoDevuelto.Fuente);
+        }
+
+        [Fact]
+        public async Task PrevisualizarRecorrido_DeberiaRetornarBadRequest_CuandoElModeloEsInvalido()
+        {
+            // Arrange
+            _controller.ModelState.AddModelError("OrigenDir", "El origen es obligatorio.");
+
+            // Act
+            var resultado = await _controller.PrevisualizarRecorrido(new CrearViajeDto());
+
+            // Assert
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(resultado);
+            var detalles = Assert.IsType<ValidationProblemDetails>(badRequestResult.Value);
+            Assert.True(detalles.Errors.ContainsKey("OrigenDir"));
+
+            // No se debe llamar a la API si el formulario no es válido.
+            VerificarQueNoSeLlamoALaApi();
+        }
+
+        [Fact]
+        public async Task PrevisualizarRecorrido_DeberiaRetornarElErrorDeLaApi_CuandoElProveedorFalla()
+        {
+            // Arrange
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.BadGateway)
+            {
+                Content = JsonContent.Create(new ProblemDetails
+                {
+                    Detail = "El proveedor de rutas no respondió.",
+                    Status = (int)HttpStatusCode.BadGateway
+                })
+            });
+
+            // Act
+            var resultado = await _controller.PrevisualizarRecorrido(CrearViajeDtoValido());
+
+            // Assert
+            var objectResult = Assert.IsType<ObjectResult>(resultado);
+            Assert.Equal(502, objectResult.StatusCode);
+
+            var problem = Assert.IsType<ProblemDetails>(objectResult.Value);
+            Assert.Contains("proveedor de rutas", problem.Detail);
         }
 
         // ---------- Métodos auxiliares ----------

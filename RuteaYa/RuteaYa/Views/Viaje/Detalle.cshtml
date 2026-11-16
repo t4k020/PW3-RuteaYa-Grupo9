@@ -8,6 +8,8 @@
 
     var dias = Model.DiasSemana.Any() ? string.Join(", ", Model.DiasSemana) : "Sin días especificados";
     var paquetes = Model.PaquetesAsignados ?? new List<RuteaYa.Servicios.Dtos.PaqueteDto>();
+    var recorrido = ViewBag.Recorrido as RuteaYa.Servicios.Dtos.RecorridoViajeDto;
+    var mapaError = ViewBag.MapaError as string;
 }
 
 <div class="container my-4">
@@ -143,38 +145,42 @@
             </div>
         </div>
 
-        <!-- Columna derecha: espacio reservado para el mapa -->
+        <!-- Columna derecha: mapa del recorrido -->
         <div class="col-lg-5">
             <div class="card border-0 shadow-sm rounded-4 p-4 mapa-panel">
                 <h4 class="fw-bold mb-1">Mapa del recorrido</h4>
-                <p class="text-muted small mb-3">Acá vas a ver el trazado completo con sus paradas.</p>
+                <p class="text-muted small mb-3">El trazado completo con sus paradas.</p>
 
-                @* Espacio reservado para la Fase 2: la API de mapas debe inicializarse sobre
-                   este mismo contenedor leyendo los atributos data-*, sin tocar el layout. *@
-                <div id="mapa-viaje"
-                     class="mapa-placeholder"
-                     role="group"
-                     aria-label="Mapa del recorrido en desarrollo"
-                     data-origen-lat="@Model.OrigenLat.ToString(CultureInfo.InvariantCulture)"
-                     data-origen-lng="@Model.OrigenLng.ToString(CultureInfo.InvariantCulture)"
-                     data-destino-lat="@Model.DestinoLat.ToString(CultureInfo.InvariantCulture)"
-                     data-destino-lng="@Model.DestinoLng.ToString(CultureInfo.InvariantCulture)">
-                    <span class="mapa-placeholder__icono" aria-hidden="true">🗺️</span>
-                    <p class="fw-semibold mb-1">Mapa en desarrollo</p>
-                    <p class="small mb-0">El servicio de mapas todavía no está conectado en este entorno.</p>
-                </div>
+                @if (recorrido is not null)
+                {
+                    <div id="mapa-viaje"
+                         class="mapa-recorrido"
+                         role="group"
+                         aria-label="Mapa del recorrido del viaje"></div>
 
-                <p class="text-muted small mb-0 mt-3">
-                    @Model.Paradas.Count parada(s) intermedia(s)
-                    @if (Model.DistanciaKm > 0)
-                    {
-                        <span>&middot; @Model.DistanciaKm.ToString("0.#") km</span>
-                    }
-                    @if (Model.DuracionMin > 0)
-                    {
-                        <span>&middot; @Model.DuracionMin min</span>
-                    }
-                </p>
+                    <p class="text-muted small mb-0 mt-3">
+                        @recorrido.Puntos.Count punto(s) del recorrido
+                        @if (recorrido.DistanciaKm > 0)
+                        {
+                            <span>&middot; @recorrido.DistanciaKm.ToString("0.#") km</span>
+                        }
+                        @if (recorrido.DuracionMin > 0)
+                        {
+                            <span>&middot; @recorrido.DuracionMin min</span>
+                        }
+                        <span class="d-block mapa-atribucion mt-1">
+                            &copy; OpenStreetMap contributors &middot; Ruta: @recorrido.Fuente
+                        </span>
+                    </p>
+
+                    <script type="application/json" id="datos-recorrido">@Json.Serialize(recorrido)</script>
+                }
+                else
+                {
+                    <div class="alert alert-warning border-0 rounded-3 mb-0" role="status">
+                        @(mapaError ?? "No se pudo cargar el recorrido del viaje.")
+                    </div>
+                }
             </div>
         </div>
     </div>
@@ -236,3 +242,12 @@
         }
     </div>
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="~/lib/leaflet/leaflet.css" />
+}
+
+@section Scripts {
+    <script src="~/lib/leaflet/leaflet.js"></script>
+    <script src="~/js/mapa-recorrido.js" asp-append-version="true"></script>
+}

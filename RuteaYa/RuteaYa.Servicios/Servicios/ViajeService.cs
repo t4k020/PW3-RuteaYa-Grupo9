@@ -1,8 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using RuteaYa.Entidades;
 using RuteaYa.Repositorios;
 using RuteaYa.Servicios.Dtos;
 using RuteaYa.Servicios.Servicios.Rutas;
+using System.Globalization;
 
 namespace RuteaYa.Servicios
 {
@@ -24,6 +26,13 @@ namespace RuteaYa.Servicios
         Task<bool> DesactivarViajeAsync(int id, int usuarioId);
         Task<bool> ActivarViajeAsync(int id, int usuarioId);
         Task<ViajeDetalleDto?> ObtenerDetallePorIdAsync(int id, int usuarioId);
+        Task<RecorridoViajeDto?> ObtenerRecorridoAsync(
+            int viajeId,
+            int usuarioId,
+            CancellationToken cancellationToken = default);
+        Task<RecorridoViajeDto> PrevisualizarRecorridoAsync(
+            CrearViajeDto solicitud,
+            CancellationToken cancellationToken = default);
         Task<PaqueteDetalleDto?> ObtenerPaqueteAsignadoAsync(
             int viajeId,
             int envioId,
@@ -37,11 +46,20 @@ namespace RuteaYa.Servicios
     {
         private readonly RuteaYaDbContext _context;
         private readonly IRutaService _rutaService;
+        private readonly IMemoryCache? _cache;
 
-        public ViajeService(RuteaYaDbContext context, IRutaService rutaService)
+        // La geometría se calcula on-demand; se guarda unos minutos para no
+        // gastar cuota del proveedor en cada visita al detalle.
+        private const int MinutosCacheRecorrido = 10;
+
+        public ViajeService(
+            RuteaYaDbContext context,
+            IRutaService rutaService,
+            IMemoryCache? cache = null)
         {
             _context = context;
             _rutaService = rutaService;
+            _cache = cache;
         }
 
         public async Task<Viaje> CrearViajeAsync(
@@ -405,6 +423,146 @@ namespace RuteaYa.Servicios
             };
 
             return detalleDto;
+        }
+
+        public async Task<RecorridoViajeDto?> ObtenerRecorridoAsync(
+            int viajeId,
+            int usuarioId,
+            CancellationToken cancellationToken = default)
+        {
+            var viaje = await _context.Viajes
+                .AsNoTracking()
+                .Include(v => v.Paradas)
+                .FirstOrDefaultAsync(
+                    v => v.Id == viajeId && v.UsuarioId == usuarioId,
+                    cancellationToken);
+
+            if (viaje is null)
+            {
+                return null;
+            }
+
+            var paradas = viaje.Paradas.OrderBy(p => p.Orden).ToList();
+
+            var puntos = new List<PuntoRecorridoDto>
+            {
+                new()
+                {
+                    Orden = 0,
+                    Direccion = viaje.OrigenDir,
+                    Lat = viaje.OrigenLat,
+                    Lng = viaje.OrigenLng
+                }
+            };
+
+            puntos.AddRange(paradas.Select(parada => new PuntoRecorridoDto
+            {
+                Orden = parada.Orden,
+                Direccion = parada.Direccion,
+                Lat = parada.Lat,
+                Lng = parada.Lng
+            }));
+
+            puntos.Add(new PuntoRecorridoDto
+            {
+                Orden = paradas.Count + 1,
+                Direccion = viaje.DestinoDir,
+                Lat = viaje.DestinoLat,
+                Lng = viaje.DestinoLng
+            });
+
+            var coordenadas = puntos
+                .Select(punto => new CoordenadaDto(punto.Lat, punto.Lng))
+                .ToList();
+
+            // La clave incluye las coordenadas: si el viaje cambia de recorrido
+            // se calcula una geometría nueva sin necesidad de invalidar nada.
+            var clave = CrearClaveRecorrido(viaje.Id, coordenadas);
+
+            if (_cache is not null
+                && _cache.TryGetValue(clave, out RecorridoViajeDto? cacheado)
+                && cacheado is not null)
+            {
+                return cacheado;
+            }
+
+            var ruta = await _rutaService.CalcularRutaAsync(coordenadas, cancellationToken);
+
+            var recorrido = new RecorridoViajeDto
+            {
+                ViajeId = viaje.Id,
+                Puntos = puntos,
+                // Si el proveedor no devuelve puntos intermedios se une cada
+                // parada con una línea recta: el mapa sigue siendo útil.
+                Geometria = (ruta.Geometria ?? coordenadas).ToList(),
+                DistanciaKm = ruta.DistanciaKm,
+                DuracionMin = ruta.DuracionMin,
+                Fuente = _rutaService.NombreProveedor
+            };
+
+            _cache?.Set(clave, recorrido, TimeSpan.FromMinutes(MinutosCacheRecorrido));
+
+            return recorrido;
+        }
+
+        // Calcula el recorrido sin guardarlo. Se usa al crear un viaje, antes
+        // de que exista el registro, para mostrar la previsualización del mapa.
+        public async Task<RecorridoViajeDto> PrevisualizarRecorridoAsync(
+            CrearViajeDto solicitud,
+            CancellationToken cancellationToken = default)
+        {
+            var recorrido = await PrepararRecorridoAsync(solicitud, cancellationToken);
+
+            var puntos = new List<PuntoRecorridoDto>
+            {
+                new()
+                {
+                    Orden = 0,
+                    Direccion = recorrido.OrigenDir,
+                    Lat = recorrido.Origen.Lat,
+                    Lng = recorrido.Origen.Lng
+                }
+            };
+
+            puntos.AddRange(recorrido.Paradas.Select((parada, indice) => new PuntoRecorridoDto
+            {
+                Orden = indice + 1,
+                Direccion = parada.Direccion,
+                Lat = parada.Coordenada.Lat,
+                Lng = parada.Coordenada.Lng
+            }));
+
+            puntos.Add(new PuntoRecorridoDto
+            {
+                Orden = recorrido.Paradas.Count + 1,
+                Direccion = recorrido.DestinoDir,
+                Lat = recorrido.Destino.Lat,
+                Lng = recorrido.Destino.Lng
+            });
+
+            var coordenadas = puntos
+                .Select(punto => new CoordenadaDto(punto.Lat, punto.Lng))
+                .ToList();
+
+            return new RecorridoViajeDto
+            {
+                Puntos = puntos,
+                Geometria = (recorrido.Ruta.Geometria ?? coordenadas).ToList(),
+                DistanciaKm = recorrido.Ruta.DistanciaKm,
+                DuracionMin = recorrido.Ruta.DuracionMin,
+                Fuente = _rutaService.NombreProveedor
+            };
+        }
+
+        private static string CrearClaveRecorrido(
+            int viajeId,
+            IReadOnlyList<CoordenadaDto> puntos)
+        {
+            var coordenadas = puntos.Select(punto =>
+                $"{punto.Lat.ToString(CultureInfo.InvariantCulture)}," +
+                $"{punto.Lng.ToString(CultureInfo.InvariantCulture)}");
+
+            return $"recorrido:{viajeId}:{string.Join(';', coordenadas)}";
         }
 
         public async Task<PaqueteDetalleDto?> ObtenerPaqueteAsignadoAsync(

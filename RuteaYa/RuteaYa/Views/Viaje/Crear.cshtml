@@ -188,21 +188,28 @@
         <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
             <div class="bg-light border-bottom px-4 py-3">
                 <h5 class="mb-1">Ruta del viaje</h5>
-                <p class="text-muted small mb-0">Visualizá y actualizá el recorrido cuando el servicio de mapas esté disponible.</p>
+                <p class="text-muted small mb-0">Completá origen y destino y presioná "Mostrar ruta" para ver el recorrido.</p>
             </div>
             <div class="p-4">
+                <div id="mapa-viaje"
+                     class="mapa-recorrido mb-3"
+                     role="group"
+                     aria-label="Mapa del recorrido del viaje"
+                     data-preview-url="@Url.Action("PrevisualizarRecorrido", "Viaje")"></div>
+
                 <div class="d-flex flex-wrap gap-2">
-                    <button type="button" class="btn btn-outline-dark rounded-pill px-3" id="btn-mostrar-ruta"
-                            data-ruta-mensaje="Todavía no hay una ruta calculada. El servicio de mapas no está conectado en este entorno.">
+                    <button type="button" class="btn btn-outline-dark rounded-pill px-3" id="btn-mostrar-ruta">
                         Mostrar ruta
                     </button>
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3" id="btn-actualizar-ruta"
-                            data-ruta-mensaje="No se pudo actualizar la ruta: el proveedor de mapas no está configurado.">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-3" id="btn-actualizar-ruta">
                         Actualizar ruta
                     </button>
                 </div>
                 <div id="ruta-aviso" class="alert alert-info border-start border-4 border-info rounded-3 mt-3 mb-0 d-none"
                      role="status" aria-live="polite"></div>
+                <p class="mapa-atribucion mb-0 mt-2">
+                    &copy; OpenStreetMap contributors
+                </p>
             </div>
         </div>
 
@@ -243,7 +250,13 @@
     </div>
 </template>
 
+@section Styles {
+    <link rel="stylesheet" href="~/lib/leaflet/leaflet.css" />
+}
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="~/lib/leaflet/leaflet.js"></script>
+    <script src="~/js/mapa-recorrido.js" asp-append-version="true"></script>
     <script src="~/js/viaje-crear.js" asp-append-version="true"></script>
 }

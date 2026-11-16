@@ -167,6 +167,21 @@ Si `Proveedor` está en `TomTom` pero falta la key, la API avisa por log y arran
 Al crear o editar un viaje y al crear un envío, la API geocodifica las direcciones y calcula
 la ruta: las coordenadas, la distancia y la duración las define el servidor, nunca el cliente.
 
+### Mapa del recorrido
+
+El detalle de un viaje dibuja el trazado con **Leaflet + OpenStreetMap**: la API devuelve la
+geometría en `GET api/ApiViaje/{id}/recorrido` y el MVC la pasa a la vista. En la pantalla de alta,
+el botón **Mostrar ruta** pide una previsualización (`POST api/ApiViaje/recorrido/previsualizar`)
+sin guardar el viaje.
+
+- Leaflet 1.9.4 está vendorizado en `wwwroot/lib/leaflet` (no depende de un CDN).
+- Los tiles se descargan de `tile.openstreetmap.org`: el navegador necesita internet, aunque la
+  API use el mock.
+- La geometría **no se persiste**: se calcula on-demand y se cachea en memoria 10 minutos por
+  viaje y conjunto de coordenadas.
+- Donde se muestran datos de ruta se incluye la atribución `© OpenStreetMap contributors` y el
+  proveedor que resolvió el trazado (`TomTom` o `Mock`).
+
 ## Usuarios de prueba
 
 | Email | Contraseña |

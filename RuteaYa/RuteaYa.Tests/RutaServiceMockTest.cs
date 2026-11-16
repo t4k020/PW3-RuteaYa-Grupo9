@@ -67,7 +67,44 @@ public class RutaServiceMockTest
 
         Assert.True(ruta.DistanciaKm > 0);
         Assert.True(ruta.DuracionMin >= 1);
-        Assert.Null(ruta.Geometria);
+        Assert.NotNull(ruta.Geometria);
+        Assert.True(ruta.Geometria!.Count > 2);
+        Assert.Equal(new CoordenadaDto(-34.608344m, -58.392612m), ruta.Geometria[0]);
+        Assert.Equal(new CoordenadaDto(-34.562700m, -58.459000m), ruta.Geometria[^1]);
+        Assert.Equal("Mock", servicio.NombreProveedor);
+    }
+
+    [Fact]
+    public async Task CalcularRutaAsync_DeberiaPasarPorLasParadasIntermedias()
+    {
+        var servicio = CrearMock();
+
+        var origen = new CoordenadaDto(-34.608300m, -58.371200m);
+        var parada = new CoordenadaDto(-34.562700m, -58.459000m);
+        var destino = new CoordenadaDto(-34.626540m, -58.426280m);
+
+        var ruta = await servicio.CalcularRutaAsync(new[] { origen, parada, destino }, Ct);
+
+        Assert.NotNull(ruta.Geometria);
+        Assert.Contains(parada, ruta.Geometria!);
+        Assert.Equal(origen, ruta.Geometria![0]);
+        Assert.Equal(destino, ruta.Geometria[^1]);
+    }
+
+    [Fact]
+    public async Task CalcularRutaAsync_DeberiaDevolverLaMismaGeometriaSiempre()
+    {
+        var servicio = CrearMock();
+        var puntos = new[]
+        {
+            new CoordenadaDto(-34.608344m, -58.392612m),
+            new CoordenadaDto(-34.562700m, -58.459000m)
+        };
+
+        var primera = await servicio.CalcularRutaAsync(puntos, Ct);
+        var segunda = await servicio.CalcularRutaAsync(puntos, Ct);
+
+        Assert.Equal(primera.Geometria, segunda.Geometria);
     }
 
     [Fact]

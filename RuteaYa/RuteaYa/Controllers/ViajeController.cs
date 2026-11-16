@@ -75,13 +75,133 @@ namespace RuteaYa.Controllers
             try
             {
                 HttpResponseMessage respuesta = await client.GetAsync($"{ApiRoute}/{id}");
-                if (respuesta.IsSuccessStatusCode) { var viaje = await respuesta.Content.ReadFromJsonAsync<ViajeDetalleDto>(); return View(viaje); }
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    var viaje = await respuesta.Content.ReadFromJsonAsync<ViajeDetalleDto>();
+
+                    // El mapa es opcional: si el proveedor de rutas falla, el
+                    // resto del detalle se sigue mostrando.
+                    var (recorrido, mapaError) = await ObtenerRecorridoAsync(client, id);
+                    ViewBag.Recorrido = recorrido;
+                    ViewBag.MapaError = mapaError;
+
+                    return View(viaje);
+                }
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound) { TempData["Error"] = "No se encontró este viaje."; return RedirectToAction("Index"); }
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized) { TempData["Error"] = "No tienes autorización para realizar esta acción."; return RedirectToAction("Index"); }
                 else ModelState.AddModelError(string.Empty, "Ocurrió un error inesperado al comunicarse con el servidor.");
             }
             catch (HttpRequestException) { ModelState.AddModelError(string.Empty, "No se pudo conectar con el servidor de la API."); }
             return RedirectToAction("Index");
+        }
+
+        private static async Task<(RecorridoViajeDto? Recorrido, string? Error)> ObtenerRecorridoAsync(
+            HttpClient client,
+            int viajeId)
+        {
+            try
+            {
+                var respuesta = await client.GetAsync($"{ApiRoute}/{viajeId}/recorrido");
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    var recorrido = await respuesta.Content
+                        .ReadFromJsonAsync<RecorridoViajeDto>(OpcionesJson);
+
+                    return recorrido is null
+                        ? (null, "La API devolvió una respuesta vacía para el recorrido.")
+                        : (recorrido, null);
+                }
+
+                if (respuesta.StatusCode == System.Net.HttpStatusCode.BadGateway)
+                {
+                    return (null, "El servicio de rutas no está disponible en este momento. El resto del viaje se muestra normalmente.");
+                }
+
+                return (null, "No se pudo cargar el mapa del recorrido.");
+            }
+            catch (HttpRequestException)
+            {
+                return (null, "No se pudo conectar con el servidor de la API para dibujar el mapa.");
+            }
+            catch (JsonException)
+            {
+                return (null, "La respuesta del recorrido no es válida.");
+            }
+        }
+
+        // Calcula el recorrido mientras se completa el formulario de alta.
+        // No guarda el viaje: sólo devuelve la geometría para el mapa.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> PrevisualizarRecorrido(CrearViajeDto modelo)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errores = ModelState
+                    .Where(entrada => entrada.Value?.Errors.Count > 0)
+                    .ToDictionary(
+                        entrada => entrada.Key,
+                        entrada => entrada.Value!.Errors
+                            .Select(error => error.ErrorMessage)
+                            .ToArray());
+
+                return BadRequest(new ValidationProblemDetails(errores));
+            }
+
+            var client = _httpClientFactory.CreateClient("ApiViaje");
+
+            try
+            {
+                var respuesta = await client.PostAsJsonAsync(
+                    $"{ApiRoute}/recorrido/previsualizar", modelo);
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    var recorrido = await respuesta.Content
+                        .ReadFromJsonAsync<RecorridoViajeDto>(OpcionesJson);
+
+                    return recorrido is null
+                        ? Problem("La API no devolvió el recorrido.", statusCode: StatusCodes.Status502BadGateway)
+                        : Json(recorrido, OpcionesJson);
+                }
+
+                var detalle = await LeerDetalleErrorAsync(respuesta);
+                return Problem(detalle, statusCode: (int)respuesta.StatusCode);
+            }
+            catch (HttpRequestException)
+            {
+                return Problem(
+                    "No se pudo conectar con el servidor de la API.",
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+        }
+
+        private static async Task<string> LeerDetalleErrorAsync(HttpResponseMessage respuesta)
+        {
+            var contenido = await respuesta.Content.ReadAsStringAsync();
+
+            ProblemDetails? problema = null;
+            try
+            {
+                problema = JsonSerializer.Deserialize<ProblemDetails>(contenido, OpcionesJson);
+            }
+            catch (JsonException)
+            {
+                // El cuerpo no era un ProblemDetails: se usa el mensaje genérico.
+            }
+
+            if (!string.IsNullOrWhiteSpace(problema?.Detail))
+            {
+                return problema.Detail;
+            }
+
+            if (!string.IsNullOrWhiteSpace(problema?.Title))
+            {
+                return problema.Title;
+            }
+
+            return "No se pudo calcular el recorrido.";
         }
 
         [HttpGet]

@@ -508,6 +508,160 @@ namespace RuteaYa.Tests
             Assert.Equal(500, statusCodeResult.StatusCode);
         }
 
+        [Fact]
+        public async Task ObtenerRecorrido_DeberiaRetornarUnauthorized_CuandoUsuarioNoEstaAutenticado()
+        {
+            ConfigurarUsuarioNoAutenticado();
+
+            var resultado = await _controller.ObtenerRecorrido(
+                1, TestContext.Current.CancellationToken);
+
+            Assert.IsType<UnauthorizedResult>(resultado);
+        }
+
+        [Fact]
+        public async Task ObtenerRecorrido_DeberiaRetornarOkConLaGeometria_CuandoElViajeEsDelUsuario()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+            var recorrido = new RecorridoViajeDto
+            {
+                ViajeId = 1,
+                Puntos = new List<PuntoRecorridoDto>
+                {
+                    new() { Orden = 0, Direccion = "Origen", Lat = -34.60m, Lng = -58.39m },
+                    new() { Orden = 1, Direccion = "Destino", Lat = -34.59m, Lng = -58.40m }
+                },
+                Geometria = new List<CoordenadaDto>
+                {
+                    new(-34.60m, -58.39m),
+                    new(-34.59m, -58.40m)
+                },
+                DistanciaKm = 5m,
+                DuracionMin = 15,
+                Fuente = "Mock"
+            };
+
+            _viajeServiceMock
+                .Setup(s => s.ObtenerRecorridoAsync(1, 1, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(recorrido);
+
+            // Act
+            var resultado = await _controller.ObtenerRecorrido(
+                1, TestContext.Current.CancellationToken);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(resultado);
+            Assert.Same(recorrido, okResult.Value);
+        }
+
+        [Fact]
+        public async Task ObtenerRecorrido_DeberiaRetornarNotFound_CuandoElViajeNoExiste()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+
+            _viajeServiceMock
+                .Setup(s => s.ObtenerRecorridoAsync(999, 1, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((RecorridoViajeDto?)null);
+
+            // Act
+            var resultado = await _controller.ObtenerRecorrido(
+                999, TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(resultado);
+        }
+
+        [Fact]
+        public async Task ObtenerRecorrido_DeberiaRetornar502_CuandoElProveedorDeRutasFalla()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+
+            _viajeServiceMock
+                .Setup(s => s.ObtenerRecorridoAsync(1, 1, It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ProveedorRutasException("El proveedor de rutas no respondió."));
+
+            // Act
+            var resultado = await _controller.ObtenerRecorrido(
+                1, TestContext.Current.CancellationToken);
+
+            // Assert
+            var statusCodeResult = Assert.IsType<ObjectResult>(resultado);
+            Assert.Equal(502, statusCodeResult.StatusCode);
+        }
+
+        [Fact]
+        public async Task PrevisualizarRecorrido_DeberiaRetornarBadRequest_CuandoElModelStateEsInvalido()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+            _controller.ModelState.AddModelError("OrigenDir", "El campo es requerido");
+
+            // Act
+            var resultado = await _controller.PrevisualizarRecorrido(
+                new CrearViajeDto(), TestContext.Current.CancellationToken);
+
+            // Assert
+            var badRequestResult = Assert.IsType<BadRequestObjectResult>(resultado);
+            Assert.Equal(400, badRequestResult.StatusCode);
+        }
+
+        [Fact]
+        public async Task PrevisualizarRecorrido_DeberiaRetornarOk_CuandoElServicioCalculaLaRuta()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+            var solicitud = CrearViajeDtoValido();
+            var recorrido = new RecorridoViajeDto
+            {
+                Puntos = new List<PuntoRecorridoDto>
+                {
+                    new() { Orden = 0, Direccion = "Origen", Lat = -34.60m, Lng = -58.39m },
+                    new() { Orden = 1, Direccion = "Destino", Lat = -34.59m, Lng = -58.40m }
+                },
+                DistanciaKm = 5m,
+                DuracionMin = 15,
+                Fuente = "Mock"
+            };
+
+            _viajeServiceMock
+                .Setup(s => s.PrevisualizarRecorridoAsync(
+                    It.IsAny<CrearViajeDto>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(recorrido);
+
+            // Act
+            var resultado = await _controller.PrevisualizarRecorrido(
+                solicitud, TestContext.Current.CancellationToken);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(resultado);
+            Assert.Same(recorrido, okResult.Value);
+        }
+
+        [Fact]
+        public async Task PrevisualizarRecorrido_DeberiaRetornar502_CuandoElProveedorDeRutasFalla()
+        {
+            // Arrange
+            ConfigurarUsuarioAutenticado();
+
+            _viajeServiceMock
+                .Setup(s => s.PrevisualizarRecorridoAsync(
+                    It.IsAny<CrearViajeDto>(),
+                    It.IsAny<CancellationToken>()))
+                .ThrowsAsync(new ProveedorRutasException("El proveedor de rutas no respondió."));
+
+            // Act
+            var resultado = await _controller.PrevisualizarRecorrido(
+                CrearViajeDtoValido(), TestContext.Current.CancellationToken);
+
+            // Assert
+            var statusCodeResult = Assert.IsType<ObjectResult>(resultado);
+            Assert.Equal(502, statusCodeResult.StatusCode);
+        }
+
         private void ConfigurarUsuarioAutenticado()
         {
             var user = new ClaimsPrincipal(new ClaimsIdentity(new[]

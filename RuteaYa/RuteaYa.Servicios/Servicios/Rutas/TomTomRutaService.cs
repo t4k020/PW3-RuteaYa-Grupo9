@@ -20,7 +20,12 @@ public sealed class TomTomRutaService : IRutaService
     // Los índices continúan la numeración de la plantilla de la ruta: {0} es
     // el recorrido y {1} la API key.
     private const string ParametrosCalculo =
-        "routeRepresentation=summaryOnly&traffic=false&routeType=fastest&key={1}";
+        "traffic=false&routeType=fastest&key={1}";
+
+    // La geometría se usa solo para dibujar: alcanza con 5 decimales (≈1 m)
+    // y con unos 2.000 puntos para no inflar la respuesta sin perder forma.
+    private const int DecimalesGeometria = 5;
+    private const int MaximoPuntosGeometria = 2000;
 
     // {0} es la dirección, {1} el país y {2} la API key.
     private const string ParametrosGeocodificacion =
@@ -31,6 +36,8 @@ public sealed class TomTomRutaService : IRutaService
 
     private readonly HttpClient _httpClient;
     private readonly RutasOptions _opciones;
+
+    public string NombreProveedor => "TomTom";
 
     public TomTomRutaService(HttpClient httpClient, IOptions<RutasOptions> opciones)
     {
@@ -106,7 +113,8 @@ public sealed class TomTomRutaService : IRutaService
                 "El proveedor de rutas no devolvió ningún recorrido para los puntos enviados.");
         }
 
-        var resumen = rutas[0].GetProperty("summary");
+        var ruta = rutas[0];
+        var resumen = ruta.GetProperty("summary");
         var metros = resumen.GetProperty("lengthInMeters").GetDouble();
         var segundos = resumen.GetProperty("travelTimeInSeconds").GetDouble();
 
@@ -115,7 +123,75 @@ public sealed class TomTomRutaService : IRutaService
         return new RutaDto(
             Redondear(metros / 1000d),
             duracionMin < 1 ? 1 : duracionMin,
-            Geometria: null);
+            LeerGeometria(ruta));
+    }
+
+    // TomTom devuelve un arreglo de puntos por cada tramo del recorrido.
+    // Se concatenan sin repetir el punto de unión entre tramos.
+    private static IReadOnlyList<CoordenadaDto>? LeerGeometria(JsonElement ruta)
+    {
+        if (!ruta.TryGetProperty("legs", out var tramos)
+            || tramos.ValueKind != JsonValueKind.Array)
+        {
+            return null;
+        }
+
+        var puntos = new List<CoordenadaDto>();
+
+        foreach (var tramo in tramos.EnumerateArray())
+        {
+            if (!tramo.TryGetProperty("points", out var puntosTramo)
+                || puntosTramo.ValueKind != JsonValueKind.Array)
+            {
+                continue;
+            }
+
+            foreach (var punto in puntosTramo.EnumerateArray())
+            {
+                if (!punto.TryGetProperty("latitude", out var latitud)
+                    || !punto.TryGetProperty("longitude", out var longitud))
+                {
+                    continue;
+                }
+
+                var coordenada = new CoordenadaDto(
+                    Redondear(latitud.GetDouble(), DecimalesGeometria),
+                    Redondear(longitud.GetDouble(), DecimalesGeometria));
+
+                if (puntos.Count == 0 || puntos[^1] != coordenada)
+                {
+                    puntos.Add(coordenada);
+                }
+            }
+        }
+
+        return puntos.Count >= 2 ? Muestrear(puntos) : null;
+    }
+
+    // Si el recorrido trae demasiados puntos se conserva uno de cada N para
+    // acotar el tamaño del JSON que recibe el mapa.
+    private static IReadOnlyList<CoordenadaDto> Muestrear(
+        IReadOnlyList<CoordenadaDto> puntos)
+    {
+        if (puntos.Count <= MaximoPuntosGeometria)
+        {
+            return puntos;
+        }
+
+        var paso = (int)Math.Ceiling((double)puntos.Count / MaximoPuntosGeometria);
+        var muestreados = new List<CoordenadaDto>(MaximoPuntosGeometria + 1);
+
+        for (var indice = 0; indice < puntos.Count; indice += paso)
+        {
+            muestreados.Add(puntos[indice]);
+        }
+
+        if (muestreados[^1] != puntos[^1])
+        {
+            muestreados.Add(puntos[^1]);
+        }
+
+        return muestreados;
     }
 
     // Un reintento simple alcanza para los cortes transitorios del proveedor.
@@ -188,4 +264,7 @@ public sealed class TomTomRutaService : IRutaService
 
     private static decimal Redondear(double valor) =>
         Math.Round((decimal)valor, 2, MidpointRounding.AwayFromZero);
+
+    private static decimal Redondear(double valor, int decimales) =>
+        Math.Round((decimal)valor, decimales, MidpointRounding.AwayFromZero);
 }
