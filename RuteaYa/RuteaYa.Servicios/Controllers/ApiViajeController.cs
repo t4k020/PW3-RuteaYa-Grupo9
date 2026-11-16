@@ -64,6 +64,116 @@ namespace RuteaYa.Servicios.Controllers
 
         
         /// <summary>
+        /// Obtiene el recorrido con geometría para dibujar el mapa del viaje.
+        /// </summary>
+        /// <param name="id">Identificador del viaje del usuario autenticado.</param>
+        /// <param name="cancellationToken">Token para cancelar la operación.</param>
+        [HttpGet("{id:int}/recorrido")]
+        [ProducesResponseType(typeof(RecorridoViajeDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status502BadGateway)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ObtenerRecorrido(
+            int id,
+            CancellationToken cancellationToken = default)
+        {
+            if (!TryObtenerUsuarioId(out int usuarioId))
+                return Unauthorized();
+
+            try
+            {
+                var recorrido = await _viajeService.ObtenerRecorridoAsync(
+                    id, usuarioId, cancellationToken);
+
+                // 404 tanto si el viaje no existe como si es de otro usuario.
+                return recorrido is null ? NotFound() : Ok(recorrido);
+            }
+            catch (ProveedorRutasException ex)
+            {
+                return StatusCode(StatusCodes.Status502BadGateway, new ProblemDetails
+                {
+                    Title = "Servicio de rutas no disponible.",
+                    Detail = ex.Message,
+                    Status = StatusCodes.Status502BadGateway
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+                {
+                    Title = "Error interno.",
+                    Detail = "Ocurrió un error interno al calcular el recorrido.",
+                    Status = StatusCodes.Status500InternalServerError
+                });
+            }
+        }
+
+        /// <summary>
+        /// Previsualiza el recorrido de un viaje que todavía no fue guardado.
+        /// No persiste nada: solo geocodifica y calcula la ruta.
+        /// </summary>
+        /// <param name="solicitud">Datos del viaje que se está creando.</param>
+        /// <param name="cancellationToken">Token para cancelar la operación.</param>
+        [HttpPost("recorrido/previsualizar")]
+        [ProducesResponseType(typeof(RecorridoViajeDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status502BadGateway)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> PrevisualizarRecorrido(
+            [FromBody] CrearViajeDto solicitud,
+            CancellationToken cancellationToken = default)
+        {
+            if (!TryObtenerUsuarioId(out _))
+                return Unauthorized();
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new ValidationProblemDetails(ModelState)
+                {
+                    Title = "Datos inválidos.",
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+
+            try
+            {
+                var recorrido = await _viajeService.PrevisualizarRecorridoAsync(
+                    solicitud, cancellationToken);
+
+                return Ok(recorrido);
+            }
+            catch (ProveedorRutasException ex)
+            {
+                return StatusCode(StatusCodes.Status502BadGateway, new ProblemDetails
+                {
+                    Title = "Servicio de rutas no disponible.",
+                    Detail = ex.Message,
+                    Status = StatusCodes.Status502BadGateway
+                });
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+            {
+                return BadRequest(new ProblemDetails
+                {
+                    Title = "Datos inválidos.",
+                    Detail = ex.Message,
+                    Status = StatusCodes.Status400BadRequest
+                });
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+                {
+                    Title = "Error interno.",
+                    Detail = "Ocurrió un error interno al previsualizar el recorrido.",
+                    Status = StatusCodes.Status500InternalServerError
+                });
+            }
+        }
+
+        /// <summary>
         /// Obtiene el detalle de un envío asignado a un viaje del usuario autenticado.
         /// </summary>
         /// <param name="viajeId">Identificador del viaje.</param>

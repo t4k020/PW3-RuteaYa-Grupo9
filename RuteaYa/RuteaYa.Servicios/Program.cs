@@ -56,6 +56,9 @@ builder.Services.AddScoped<IViajeService, ViajeService>();
 builder.Services.AddScoped<IHomeService, HomeService>();
 builder.Services.AddScoped<IOptimizadorService, OptimizadorService>();
 
+// Caché en memoria para no pedir la geometría al proveedor en cada vista.
+builder.Services.AddMemoryCache();
+
 // Rutas y mapas: proveedor real o mock según configuración.
 builder.Services.AddRutas(builder.Configuration);
 

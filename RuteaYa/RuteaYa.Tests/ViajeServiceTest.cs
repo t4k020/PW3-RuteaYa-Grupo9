@@ -1,8 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using Moq;
 using RuteaYa.Entidades;
 using RuteaYa.Repositorios;
 using RuteaYa.Servicios;
 using RuteaYa.Servicios.Dtos;
+using RuteaYa.Servicios.Servicios.Rutas;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -570,9 +573,159 @@ namespace RuteaYa.Tests
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
         }
 
-        // DTO que usa la API para crear y editar viajes.
-        private CrearViajeDto CrearViajeDtoValido()
+        [Fact]
+        public async Task ObtenerRecorridoAsync_DeberiaOrdenarOrigenParadasYDestino()
         {
+            // Arrange
+            var options = CrearOpcionesMemoria();
+
+            using (var context = new RuteaYaDbContext(options))
+            {
+                context.Usuarios.Add(new Usuario { Id = 1 });
+
+                var viaje = CrearViajeValido(1);
+                viaje.Paradas.Add(new Parada
+                {
+                    Orden = 2,
+                    Direccion = "Segunda parada",
+                    Lat = -34.600000m,
+                    Lng = -58.400000m
+                });
+                viaje.Paradas.Add(new Parada
+                {
+                    Orden = 1,
+                    Direccion = "Primera parada",
+                    Lat = -34.610000m,
+                    Lng = -58.410000m
+                });
+
+                context.Viajes.Add(viaje);
+                await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            }
+
+            // Act
+            using (var context = new RuteaYaDbContext(options))
+            {
+                var service = new ViajeService(context, RutasDePrueba.CrearMock());
+                var recorrido = await service.ObtenerRecorridoAsync(
+                    1, 1, TestContext.Current.CancellationToken);
+
+                // Assert
+                Assert.NotNull(recorrido);
+                Assert.Equal(
+                    new[]
+                    {
+                        "Av. Corrientes 1234, CABA",
+                        "Primera parada",
+                        "Segunda parada",
+                        "Av. Santa Fe 4321, CABA"
+                    },
+                    recorrido!.Puntos.Select(punto => punto.Direccion));
+
+                Assert.True(recorrido.Geometria.Count > recorrido.Puntos.Count);
+                Assert.True(recorrido.DistanciaKm > 0);
+                Assert.True(recorrido.DuracionMin > 0);
+                Assert.Equal("Mock", recorrido.Fuente);
+            }
+        }
+
+        [Fact]
+        public async Task ObtenerRecorridoAsync_DeberiaDevolverNull_CuandoElViajeEsDeOtroUsuario()
+        {
+            // Arrange
+            var options = CrearOpcionesMemoria();
+
+            using (var context = new RuteaYaDbContext(options))
+            {
+                context.Usuarios.Add(new Usuario { Id = 1 });
+                context.Viajes.Add(CrearViajeValido(1));
+                await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            }
+
+            // Act
+            using (var context = new RuteaYaDbContext(options))
+            {
+                var service = new ViajeService(context, RutasDePrueba.CrearMock());
+                var recorrido = await service.ObtenerRecorridoAsync(
+                    1, 2, TestContext.Current.CancellationToken);
+
+                // Assert
+                Assert.Null(recorrido);
+            }
+        }
+
+        [Fact]
+        public async Task ObtenerRecorridoAsync_DeberiaUsarLaCache_EnLaSegundaLlamada()
+        {
+            // Arrange
+            var options = CrearOpcionesMemoria();
+
+            using (var context = new RuteaYaDbContext(options))
+            {
+                context.Usuarios.Add(new Usuario { Id = 1 });
+                context.Viajes.Add(CrearViajeValido(1));
+                await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            }
+
+            var rutaService = new Mock<IRutaService>();
+            rutaService.SetupGet(servicio => servicio.NombreProveedor).Returns("Mock");
+            rutaService
+                .Setup(servicio => servicio.CalcularRutaAsync(
+                    It.IsAny<IReadOnlyList<CoordenadaDto>>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new RutaDto(10m, 25, new[]
+                {
+                    new CoordenadaDto(-34.603722m, -58.381592m),
+                    new CoordenadaDto(-34.595555m, -58.393333m)
+                }));
+
+            using var cache = new MemoryCache(new MemoryCacheOptions());
+
+            // Act
+            using (var context = new RuteaYaDbContext(options))
+            {
+                var service = new ViajeService(context, rutaService.Object, cache);
+
+                await service.ObtenerRecorridoAsync(1, 1, TestContext.Current.CancellationToken);
+                await service.ObtenerRecorridoAsync(1, 1, TestContext.Current.CancellationToken);
+            }
+
+            // Assert
+            rutaService.Verify(
+                servicio => servicio.CalcularRutaAsync(
+                    It.IsAny<IReadOnlyList<CoordenadaDto>>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task PrevisualizarRecorridoAsync_DeberiaCalcularSinPersistirNada()
+        {
+            // Arrange
+            using var context = new RuteaYaDbContext(CrearOpcionesMemoria());
+            var service = new ViajeService(context, RutasDePrueba.CrearMock());
+
+            var solicitud = CrearViajeDtoValido();
+            solicitud.Paradas.Add(new ParadaViajeDto { Direccion = "Av. Callao 600, CABA" });
+
+            // Act
+            var recorrido = await service.PrevisualizarRecorridoAsync(
+                solicitud, TestContext.Current.CancellationToken);
+
+            // Assert
+            Assert.Equal(0, recorrido.ViajeId);
+            Assert.Equal(3, recorrido.Puntos.Count);
+            Assert.Equal("Av. Corrientes 1234, CABA", recorrido.Puntos[0].Direccion);
+            Assert.Equal("Av. Callao 600, CABA", recorrido.Puntos[1].Direccion);
+            Assert.Equal("Av. Santa Fe 1000, CABA", recorrido.Puntos[2].Direccion);
+            Assert.True(recorrido.Geometria.Count > recorrido.Puntos.Count);
+            Assert.True(recorrido.DistanciaKm > 0);
+            Assert.Equal("Mock", recorrido.Fuente);
+            Assert.Empty(context.Viajes);
+        }
+
+        // DTO que usa la API para crear y editar viajes.
+        private CrearViajeDto CrearViajeDtoValido()        {
             return new CrearViajeDto
             {
                 OrigenDir = "Av. Corrientes 1234, CABA",
