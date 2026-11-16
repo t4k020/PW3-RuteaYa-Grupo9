@@ -9,6 +9,12 @@ namespace RuteaYa.Servicios.Servicios.Rutas;
 public interface IRutaService
 {
     /// <summary>
+    /// Nombre del proveedor activo, para mostrar la atribución de los datos
+    /// sin exponer la configuración ni la API key.
+    /// </summary>
+    string NombreProveedor { get; }
+
+    /// <summary>
     /// Convierte una dirección en coordenadas.
     /// Devuelve <c>null</c> cuando el proveedor no encuentra la dirección.
     /// </summary>

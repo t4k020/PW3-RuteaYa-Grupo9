@@ -52,18 +52,35 @@ public class TomTomRutaServiceTest
     }
 
     [Fact]
-    public async Task CalcularRutaAsync_DeberiaArmarElRecorridoYSoloPedirElResumen()
+    public async Task CalcularRutaAsync_DeberiaArmarElRecorridoYDevolverLaGeometria()
     {
         Uri? solicitada = null;
         var handler = new HandlerCaptura(peticion =>
         {
             solicitada = peticion.RequestUri;
             return Json("""
-                { "routes": [ { "summary": { "lengthInMeters": 15000, "travelTimeInSeconds": 1800 } } ] }
+                {
+                  "routes": [
+                    {
+                      "summary": { "lengthInMeters": 15000, "travelTimeInSeconds": 1800 },
+                      "legs": [
+                        {
+                          "points": [
+                            { "latitude": -34.60, "longitude": -58.39 },
+                            { "latitude": -34.58, "longitude": -58.42 },
+                            { "latitude": -34.56, "longitude": -58.45 }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
                 """);
         });
 
-        var ruta = await CrearServicio(handler).CalcularRutaAsync(
+        var servicio = CrearServicio(handler);
+
+        var ruta = await servicio.CalcularRutaAsync(
             new[]
             {
                 new CoordenadaDto(-34.60m, -58.39m),
@@ -73,13 +90,75 @@ public class TomTomRutaServiceTest
 
         Assert.Equal(15m, ruta.DistanciaKm);
         Assert.Equal(30, ruta.DuracionMin);
-        Assert.Null(ruta.Geometria);
+        Assert.NotNull(ruta.Geometria);
+        Assert.Equal(3, ruta.Geometria!.Count);
+        Assert.Equal(new CoordenadaDto(-34.60m, -58.39m), ruta.Geometria[0]);
+        Assert.Equal(new CoordenadaDto(-34.56m, -58.45m), ruta.Geometria[^1]);
+        Assert.Equal("TomTom", servicio.NombreProveedor);
 
         var url = solicitada!.AbsoluteUri;
         Assert.Contains("calculateRoute/-34.60,-58.39:-34.56,-58.45/json", url);
-        Assert.Contains("routeRepresentation=summaryOnly", url);
+        Assert.DoesNotContain("summaryOnly", url);
         Assert.Contains("traffic=false", url);
         Assert.Contains($"key={ApiKeyDePrueba}", url);
+    }
+
+    [Fact]
+    public async Task CalcularRutaAsync_DeberiaUnirLosTramosSinRepetirElPuntoDeUnion()
+    {
+        var handler = new HandlerCaptura(_ => Json("""
+            {
+              "routes": [
+                {
+                  "summary": { "lengthInMeters": 3000, "travelTimeInSeconds": 600 },
+                  "legs": [
+                    {
+                      "points": [
+                        { "latitude": -34.60, "longitude": -58.39 },
+                        { "latitude": -34.58, "longitude": -58.42 }
+                      ]
+                    },
+                    {
+                      "points": [
+                        { "latitude": -34.58, "longitude": -58.42 },
+                        { "latitude": -34.56, "longitude": -58.45 }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+            """));
+
+        var ruta = await CrearServicio(handler).CalcularRutaAsync(
+            new[]
+            {
+                new CoordenadaDto(-34.60m, -58.39m),
+                new CoordenadaDto(-34.58m, -58.42m),
+                new CoordenadaDto(-34.56m, -58.45m)
+            },
+            Ct);
+
+        Assert.NotNull(ruta.Geometria);
+        Assert.Equal(3, ruta.Geometria!.Count);
+    }
+
+    [Fact]
+    public async Task CalcularRutaAsync_DeberiaDevolverGeometriaNula_CuandoElProveedorNoLaInforma()
+    {
+        var handler = new HandlerCaptura(_ => Json("""
+            { "routes": [ { "summary": { "lengthInMeters": 1000, "travelTimeInSeconds": 120 } } ] }
+            """));
+
+        var ruta = await CrearServicio(handler).CalcularRutaAsync(
+            new[]
+            {
+                new CoordenadaDto(-34.60m, -58.39m),
+                new CoordenadaDto(-34.56m, -58.45m)
+            },
+            Ct);
+
+        Assert.Null(ruta.Geometria);
     }
 
     [Fact]

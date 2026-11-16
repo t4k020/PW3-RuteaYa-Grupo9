@@ -16,6 +16,8 @@ public sealed class RutaServiceMock : IRutaService
     private const double RadioTierraKm = 6371d;
     private const int MinutosMinimos = 1;
     private const int DecimalesCoordenada = 6;
+    private const int DecimalesGeometria = 6;
+    private const int PuntosPorTramo = 20;
 
     // Caja que contiene a la Ciudad de Buenos Aires. Se usa para inventar una
     // coordenada estable cuando la dirección no está en el catálogo.
@@ -58,6 +60,8 @@ public sealed class RutaServiceMock : IRutaService
         .ToDictionary(par => par.Key, par => par.Value, StringComparer.Ordinal);
 
     private readonly MockRutasOptions _opciones;
+
+    public string NombreProveedor => "Mock";
 
     public RutaServiceMock(IOptions<RutasOptions> opciones)
     {
@@ -128,10 +132,66 @@ public sealed class RutaServiceMock : IRutaService
         var ruta = new RutaDto(
             Math.Round((decimal)distanciaKm, 2, MidpointRounding.AwayFromZero),
             duracionMin,
-            Geometria: null);
+            CrearGeometria(puntos));
 
         return Task.FromResult(ruta);
     }
+
+    // Traza una curva suave por cada tramo para que el mapa tenga algo que
+    // dibujar sin depender del proveedor real. La altura de la curva se deriva
+    // del factor de sinuosidad: con 1,3 el dibujo acompaña la distancia
+    // informada y el resultado sigue siendo determinístico.
+    private List<CoordenadaDto> CrearGeometria(IReadOnlyList<CoordenadaDto> puntos)
+    {
+        var geometria = new List<CoordenadaDto> { RedondearPunto(puntos[0]) };
+
+        for (var tramo = 0; tramo < puntos.Count - 1; tramo++)
+        {
+            var origen = puntos[tramo];
+            var destino = puntos[tramo + 1];
+
+            var deltaLat = (double)(destino.Lat - origen.Lat);
+            var deltaLng = (double)(destino.Lng - origen.Lng);
+            var largo = Math.Sqrt(deltaLat * deltaLat + deltaLng * deltaLng);
+
+            // Vector perpendicular unitario: define hacia dónde se abre la curva.
+            var perpendicularLat = largo > 0 ? -deltaLng / largo : 0d;
+            var perpendicularLng = largo > 0 ? deltaLat / largo : 0d;
+
+            // Para una parábola, el largo del arco crece ~ (8/3)·h². Se despeja
+            // h para que el trazado se acerque al factor de sinuosidad.
+            var exceso = Math.Max(0d, _opciones.FactorSinuosidad - 1d);
+            var altura = Math.Sqrt(3d * exceso / 8d);
+            var signo = tramo % 2 == 0 ? 1d : -1d;
+
+            for (var paso = 1; paso <= PuntosPorTramo; paso++)
+            {
+                var avance = (double)paso / PuntosPorTramo;
+                var curva = 4d * avance * (1d - avance);
+
+                var latitud = (double)origen.Lat
+                    + deltaLat * avance
+                    + perpendicularLat * altura * largo * curva * signo;
+
+                var longitud = (double)origen.Lng
+                    + deltaLng * avance
+                    + perpendicularLng * altura * largo * curva * signo;
+
+                geometria.Add(new CoordenadaDto(
+                    Redondear(latitud, DecimalesGeometria),
+                    Redondear(longitud, DecimalesGeometria)));
+            }
+        }
+
+        return geometria;
+    }
+
+    private static CoordenadaDto RedondearPunto(CoordenadaDto punto) => new(
+        Redondear((double)punto.Lat, DecimalesGeometria),
+        Redondear((double)punto.Lng, DecimalesGeometria));
+
+    private static decimal Redondear(double valor, int decimales) =>
+        Math.Round((decimal)valor, decimales, MidpointRounding.AwayFromZero);
 
     // Cuando la dirección no está en el catálogo se inventa una coordenada
     // estable dentro de CABA, derivada del texto. Alcanza para que el desvío
