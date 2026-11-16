@@ -54,6 +54,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEnvioService, EnvioService>();
 builder.Services.AddScoped<IViajeService, ViajeService>();
 builder.Services.AddScoped<IHomeService, HomeService>();
+builder.Services.AddScoped<IOptimizadorService, OptimizadorService>();
 
 // Rutas y mapas: proveedor real o mock según configuración.
 builder.Services.AddRutas(builder.Configuration);

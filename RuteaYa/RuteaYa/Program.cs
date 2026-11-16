@@ -58,6 +58,11 @@ builder.Services.AddHttpClient("ApiViaje", client =>
     client.BaseAddress = new Uri("https://localhost:7224/");
 }).AddHttpMessageHandler<JwtAuthorizationHandler>();
 
+builder.Services.AddHttpClient("ApiOptimizador", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7224/");
+}).AddHttpMessageHandler<JwtAuthorizationHandler>();
+
 builder.Services.AddHttpClient("ApiHome", client =>
 {
     client.BaseAddress = new Uri(

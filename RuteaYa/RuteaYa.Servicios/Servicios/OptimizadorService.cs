@@ -44,9 +44,8 @@ namespace RuteaYa.Servicios
             _context = context;
         }
 
-        // TEMPORAL: el repositorio todavía no tiene geolocalización (las coordenadas se guardan en 0),
-        // por eso el desvío es una estimación estable por envío (entre 0,5 y 4 km).
-        // Cuando exista el cálculo real, solo hay que reemplazar este método.
+        // El repositorio todavía no tiene geolocalización (las coordenadas se guardan en 0).
+        // Cuando exista el cálculo real se reemplaza el método.
         public static decimal EstimarDesvioKm(int envioId)
         {
             return 0.5m * ((envioId % 8) + 1);
