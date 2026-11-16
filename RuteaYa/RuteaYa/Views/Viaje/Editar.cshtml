@@ -1,5 +1,186 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model RuteaYa.Servicios.Dtos.ViajeDetalleDto
+@using RuteaYa.Models
+
+
 @{
+    ViewData["Title"] = "Editar viaje";
+    var paradas = Model.Paradas?.OrderBy(p => p.Orden).ToList() ?? new List<RuteaYa.Servicios.Dtos.ParadaDto>();
+    var dias = Model.DiasSemana ?? new List<string>();
+}
+
+<div class="container mt-4">
+    @* Aviso general: se muestra al intentar guardar con datos inválidos. *@
+    <div id="aviso-validacion"
+         class="alert alert-danger rounded-4 shadow-sm mb-4 @(ViewData.ModelState.IsValid ? "d-none" : string.Empty)"
+         role="alert" aria-live="assertive">
+        <div class="d-flex align-items-start gap-2">
+            <span aria-hidden="true">⚠️</span>
+            <span>Datos incorrectos, revisá los datos.</span>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h2 class="fw-bold mb-1">Editar viaje</h2>
+            <p class="text-muted mb-0">Modificá los datos de tu recorrido habitual.</p>
+        </div>
+        <a asp-action="Detalle" asp-route-id="@Model.Id" class="btn btn-outline-secondary rounded-pill px-3">Volver</a>
+    </div>
+
+    <form asp-action="Editar" asp-route-id="@Model.Id" method="post" id="form-viaje" novalidate>
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        @* No se editan acá, pero el PUT los sobrescribe: si no viajan, se pisarían con 0 / false. *@
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="OrigenLat" />
+        <input type="hidden" asp-for="OrigenLng" />
+        <input type="hidden" asp-for="DestinoLat" />
+        <input type="hidden" asp-for="DestinoLng" />
+        <input type="hidden" asp-for="DistanciaKm" />
+        <input type="hidden" asp-for="DuracionMin" />
+        <input type="hidden" asp-for="Activo" />
+
+        <!-- Recorrido -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+            <div class="bg-light border-bottom px-4 py-3">
+                <h5 class="mb-1">Recorrido</h5>
+                <p class="text-muted small mb-0">Indicá desde dónde salís y a dónde vas.</p>
+            </div>
+            <div class="p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label asp-for="OrigenDir" class="form-label">Origen</label>
+                        <input asp-for="OrigenDir" class="form-control" maxlength="150" required placeholder="Ej.: CABA" />
+                        <div class="form-text">Punto de partida del viaje.</div>
+                        <span asp-validation-for="OrigenDir" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="DestinoDir" class="form-label">Destino</label>
+                        <input asp-for="DestinoDir" class="form-control" maxlength="150" required placeholder="Ej.: Lanús" />
+                        <div class="form-text">Punto de llegada del viaje.</div>
+                        <span asp-validation-for="DestinoDir" class="text-danger"></span>
+                    </div>
+                </div>
+
+                @if (paradas.Any())
+                {
+                    <hr class="my-4" />
+                    <label class="form-label">Paradas intermedias</label>
+                    <ol class="list-group list-group-numbered mb-1">
+                        @foreach (var parada in paradas)
+                        {
+                            <li class="list-group-item">@parada.Direccion</li>
+                        }
+                    </ol>
+                    <div class="form-text">Las paradas no se pueden modificar desde esta pantalla.</div>
+                }
+            </div>
+        </div>
+
+        <!-- Días y horarios -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+            <div class="bg-light border-bottom px-4 py-3">
+                <h5 class="mb-1">Días y horarios</h5>
+                <p class="text-muted small mb-0">Horarios en los que hacés este recorrido.</p>
+            </div>
+            <div class="p-4">
+                @if (dias.Any())
+                {
+                    <label class="form-label">Días de la semana</label>
+                    <div class="d-flex flex-wrap gap-2 mb-1">
+                        @foreach (var dia in dias)
+                        {
+                            <span class="badge rounded-pill text-bg-dark px-3 py-2 fw-normal">@dia</span>
+                        }
+                    </div>
+                    <div class="form-text">Los días no se pueden modificar desde esta pantalla.</div>
+                }
+
+                <div class="row g-3 @(dias.Any() ? "mt-2" : string.Empty)">
+                    <div class="col-md-6">
+                        <label asp-for="HoraSalida" class="form-label">Hora de salida</label>
+                        <input asp-for="HoraSalida" type="time" class="form-control" asp-format="{0:HH:mm}" required />
+                        <span asp-validation-for="HoraSalida" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="HoraLlegada" class="form-label">Hora de llegada</label>
+                        <input asp-for="HoraLlegada" type="time" class="form-control" asp-format="{0:HH:mm}" required />
+                        <div class="form-text">Debe ser posterior a la hora de salida.</div>
+                        <span asp-validation-for="HoraLlegada" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Capacidad y límites -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden">
+            <div class="bg-light border-bottom px-4 py-3">
+                <h5 class="mb-1">Capacidad y límites</h5>
+                <p class="text-muted small mb-0">Definí cuánto podés llevar y cuánto desvío aceptás.</p>
+            </div>
+            <div class="p-4">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label asp-for="MaxPaquetes" class="form-label">Paquetes máximos</label>
+                        <input asp-for="MaxPaquetes" class="form-control" type="number" min="1" step="1" required />
+                        <div class="form-text">Debe ser mayor que cero.</div>
+                        <span asp-validation-for="MaxPaquetes" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="PesoMaximoKg" class="form-label">Peso máximo (kg)</label>
+                        <div class="input-group">
+                            <input asp-for="PesoMaximoKg" class="form-control" type="number" min="0.01" step="0.01" required />
+                            <span class="input-group-text">kg</span>
+                        </div>
+                        <div class="form-text">Debe ser mayor que cero.</div>
+                        <span asp-validation-for="PesoMaximoKg" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="DesvioMaxKm" class="form-label">Desvío máximo (km)</label>
+                        <div class="input-group">
+                            <input asp-for="DesvioMaxKm" class="form-control" type="number" min="0" step="0.1" required />
+                            <span class="input-group-text">km</span>
+                        </div>
+                        <div class="form-text">Si no querés desvíos, ingresá 0 km.</div>
+                        <span asp-validation-for="DesvioMaxKm" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mb-5">
+            <a asp-action="Detalle" asp-route-id="@Model.Id" class="btn btn-outline-secondary rounded-pill px-4">Cancelar</a>
+            <button type="submit" class="btn btn-dark rounded-pill px-4">Guardar cambios</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const form = document.getElementById('form-viaje');
+            const aviso = document.getElementById('aviso-validacion');
+            const salida = document.getElementById('HoraSalida');
+            const llegada = document.getElementById('HoraLlegada');
+
+            // La llegada tiene que ser posterior a la salida (se valida con la API nativa del navegador).
+            function validarHoras() {
+                const invalidas = salida.value && llegada.value && llegada.value <= salida.value;
+                llegada.setCustomValidity(invalidas ? 'La hora de llegada debe ser posterior a la de salida.' : '');
+            }
+            salida.addEventListener('input', validarHoras);
+            llegada.addEventListener('input', validarHoras);
+
+            form.addEventListener('submit', function (e) {
+                validarHoras();
+                form.classList.add('was-validated');
+                if (!form.checkValidity()) {
+                    e.preventDefault();
+                    aviso.classList.remove('d-none');
+                    form.querySelector(':invalid')?.focus();
+                }
+            });
+        })();
+    </script>
 }

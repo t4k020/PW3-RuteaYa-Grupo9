@@ -97,6 +97,15 @@
                                class="btn btn-outline-secondary btn-sm rounded-pill px-3">
                                 Ver detalle
                             </a>
+                            @if (envio.PuedeEditar)
+                            {
+                                <a asp-action="Editar" asp-route-id="@envio.Id"
+                                   class="btn btn-outline-warning btn-sm rounded-pill px-3">
+                                    Editar
+                                </a>
+                            }
+ 
+
                             @if (envio.PuedeCancelar)
                             {
                                 <form asp-action="Cancelar" asp-route-id="@envio.Id" method="post"

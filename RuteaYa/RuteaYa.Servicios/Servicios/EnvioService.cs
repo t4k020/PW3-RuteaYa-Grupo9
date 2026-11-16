@@ -25,12 +25,12 @@ namespace RuteaYa.Servicios
             CancellationToken cancellationToken);
         Task<bool> EliminarEnvioAsync(int id);
         Task<bool> EliminarEnvioAsync(int id, int usuarioId);
+        Task<bool> ActualizarEnvioAsync(int id, Envio envioActualizado, int usuarioId);
         Task<bool> CancelarEnvioAsync(int id, int usuarioId);
 
         Task<bool> VincularEnvioAViajeAsync(int envioId, int viajeId, DateTime fechaViaje, int usuarioId);
         Task<List<Envio>> ObtenerOportunidadesDisponiblesAsync(int usuarioId);
         Task<EnvioDto?> ObtenerDetalleOportunidadAsync(int id, int usuarioActualId);
-
     }
     public class EnvioService : IEnvioService {
         private readonly RuteaYaDbContext _context;
@@ -223,6 +223,66 @@ namespace RuteaYa.Servicios
             return envios
                 .Select(envio => CrearDto(envio, asignacion: null))
                 .ToList();
+        }
+
+        public async Task<bool> ActualizarEnvioAsync(int id, Envio datos, int usuarioId)
+        {
+            var envio = await _context.Envios
+                .FirstOrDefaultAsync(e => e.Id == id && e.UsuarioId == usuarioId);
+
+            // Si no existe o es de otro usuario, se comporta como no encontrado.
+            if (envio == null)
+            {
+                return false;
+            }
+
+            // Solo se edita mientras nadie lo tomó.
+            if ((EstadoEnvio)envio.Estado != EstadoEnvio.BuscandoConductor
+                || await _context.Asignaciones.AnyAsync(a => a.EnvioId == id))
+            {
+                throw new InvalidOperationException(
+                    "El envío solo puede editarse mientras busca conductor.");
+            }
+
+            if (string.Equals(datos.OrigenDir.Trim(), datos.DestinoDir.Trim(),
+                    StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("El origen y el destino deben ser diferentes.");
+
+            if (datos.FechaLimite.Date < DateTime.Today)
+                throw new InvalidOperationException("La fecha límite no puede ser anterior a la fecha actual.");
+
+            if (datos.PesoKg <= 0 || datos.Monto <= 0)
+                throw new InvalidOperationException("El peso y el monto ofrecido deben ser mayores que cero.");
+
+            if (datos.Tamano is < 1 or > 3)
+                throw new InvalidOperationException("El tamaño del envío no es válido.");
+
+            if (string.IsNullOrWhiteSpace(datos.Descripcion))
+                throw new InvalidOperationException("La descripción es obligatoria.");
+
+            if (datos.Descripcion.Trim().Length > 70)
+                throw new InvalidOperationException("La descripción no puede superar los 70 caracteres.");
+
+            envio.OrigenDir = datos.OrigenDir.Trim();
+            envio.DestinoDir = datos.DestinoDir.Trim();
+            envio.FechaLimite = datos.FechaLimite.Date;
+            envio.PesoKg = datos.PesoKg;
+            envio.Tamano = datos.Tamano;
+            envio.Descripcion = datos.Descripcion.Trim();
+            envio.Monto = datos.Monto;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // RowVersion: otro conductor lo tomó mientras se editaba.
+                throw new InvalidOperationException(
+                    "El envío cambió mientras lo editabas. Volvé a intentarlo.");
+            }
+
+            return true;
         }
 
         public async Task<bool> EliminarEnvioAsync(int id)
@@ -460,6 +520,7 @@ namespace RuteaYa.Servicios
                 Estado = envio.Estado,
                 CreadoEn = envio.CreadoEn,
                 Viaje = CrearViajeDto(asignacion, estadoEnvio),
+                PuedeEditar = estadoEnvio is EstadoEnvio.BuscandoConductor,
                 PuedeCancelar = estadoEnvio is EstadoEnvio.BuscandoConductor or EstadoEnvio.ConductorAsignado,
                 PuedeEliminar = estadoEnvio is EstadoEnvio.Cancelado,
                 EstadoNombre = estadoEnvio.ObtenerNombre()

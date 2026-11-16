@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Moq;
 using RuteaYa.Entidades;
 using RuteaYa.Servicios;
@@ -252,6 +252,157 @@ namespace RuteaYa.Tests
             }, "mock"));
 
             _controller.ControllerContext.HttpContext.User = user;
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioApi_DeberiaRetornarUnauthorized_CuandoUsuarioNoEstaAutenticado()
+        {
+            var resultado = await _controller.ActualizarEnvioApi(1, CrearSolicitudValida());
+
+            Assert.IsType<UnauthorizedResult>(resultado);
+            _envioServiceMock.Verify(
+                s => s.ActualizarEnvioAsync(It.IsAny<int>(), It.IsAny<Envio>(), It.IsAny<int>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioApi_DeberiaRetornarValidationProblem_CuandoModelStateEsInvalido()
+        {
+            ConfigurarUsuarioAutenticado();
+            _controller.ModelState.AddModelError("OrigenDir", "El origen es obligatorio.");
+
+            var resultado = await _controller.ActualizarEnvioApi(1, CrearSolicitudValida());
+
+            var objectResult = Assert.IsType<ObjectResult>(resultado);
+            Assert.IsType<ValidationProblemDetails>(objectResult.Value);
+            _envioServiceMock.Verify(
+                s => s.ActualizarEnvioAsync(It.IsAny<int>(), It.IsAny<Envio>(), It.IsAny<int>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioApi_DeberiaRetornarNoContent_CuandoLaActualizacionEsCorrecta()
+        {
+            ConfigurarUsuarioAutenticado();
+            _envioServiceMock
+                .Setup(s => s.ActualizarEnvioAsync(5, It.IsAny<Envio>(), 1))
+                .ReturnsAsync(true);
+
+            var resultado = await _controller.ActualizarEnvioApi(5, CrearSolicitudValida());
+
+            Assert.IsType<NoContentResult>(resultado);
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioApi_DeberiaEnviarAlServicioSoloLosDatosEditables()
+        {
+            ConfigurarUsuarioAutenticado();
+            Envio? enviado = null;
+            _envioServiceMock
+                .Setup(s => s.ActualizarEnvioAsync(5, It.IsAny<Envio>(), 1))
+                .Callback<int, Envio, int>((_, envio, _) => enviado = envio)
+                .ReturnsAsync(true);
+            var solicitud = CrearSolicitudValida();
+
+            await _controller.ActualizarEnvioApi(5, solicitud);
+
+            Assert.NotNull(enviado);
+            Assert.Equal(solicitud.OrigenDir, enviado!.OrigenDir);
+            Assert.Equal(solicitud.DestinoDir, enviado.DestinoDir);
+            Assert.Equal(solicitud.FechaLimite, enviado.FechaLimite);
+            Assert.Equal(solicitud.PesoKg, enviado.PesoKg);
+            Assert.Equal(solicitud.Tamano, enviado.Tamano);
+            Assert.Equal(solicitud.Descripcion, enviado.Descripcion);
+            Assert.Equal(solicitud.Monto, enviado.Monto);
+            // UsuarioId y Estado nunca los define el cliente.
+            Assert.Equal(0, enviado.UsuarioId);
+            Assert.Equal(0, enviado.Estado);
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioApi_DeberiaUsarElUsuarioDelToken()
+        {
+            ConfigurarUsuarioAutenticado();
+            _envioServiceMock
+                .Setup(s => s.ActualizarEnvioAsync(It.IsAny<int>(), It.IsAny<Envio>(), It.IsAny<int>()))
+                .ReturnsAsync(true);
+
+            await _controller.ActualizarEnvioApi(7, CrearSolicitudValida());
+
+            _envioServiceMock.Verify(
+                s => s.ActualizarEnvioAsync(7, It.IsAny<Envio>(), 1),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioApi_DeberiaRetornarNotFound_CuandoElEnvioNoExisteOEsDeOtroUsuario()
+        {
+            ConfigurarUsuarioAutenticado();
+            _envioServiceMock
+                .Setup(s => s.ActualizarEnvioAsync(999, It.IsAny<Envio>(), 1))
+                .ReturnsAsync(false);
+
+            var resultado = await _controller.ActualizarEnvioApi(999, CrearSolicitudValida());
+
+            Assert.IsType<NotFoundResult>(resultado);
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioApi_DeberiaRetornarBadRequest_CuandoElServicioRechazaLaEdicion()
+        {
+            ConfigurarUsuarioAutenticado();
+            _envioServiceMock
+                .Setup(s => s.ActualizarEnvioAsync(1, It.IsAny<Envio>(), 1))
+                .ThrowsAsync(new InvalidOperationException("El envío solo puede editarse mientras busca conductor."));
+
+            var resultado = await _controller.ActualizarEnvioApi(1, CrearSolicitudValida());
+
+            var badRequest = Assert.IsType<BadRequestObjectResult>(resultado);
+            Assert.Equal(400, badRequest.StatusCode);
+            var detalle = Assert.IsType<ProblemDetails>(badRequest.Value);
+            Assert.Equal("No se puede editar el envío.", detalle.Title);
+            Assert.Equal("El envío solo puede editarse mientras busca conductor.", detalle.Detail);
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioApi_DeberiaRetornar500_CuandoOcurreUnErrorInesperado()
+        {
+            ConfigurarUsuarioAutenticado();
+            _envioServiceMock
+                .Setup(s => s.ActualizarEnvioAsync(1, It.IsAny<Envio>(), 1))
+                .ThrowsAsync(new Exception("Fallo de base de datos"));
+
+            var resultado = await _controller.ActualizarEnvioApi(1, CrearSolicitudValida());
+
+            var objectResult = Assert.IsType<ObjectResult>(resultado);
+            Assert.Equal(500, objectResult.StatusCode);
+        }
+
+        [Theory]
+        [InlineData(EstadoEnvio.BuscandoConductor, true)]
+        [InlineData(EstadoEnvio.ConductorAsignado, false)]
+        [InlineData(EstadoEnvio.Cancelado, false)]
+        public async Task CrearEnvio_DeberiaMapearPuedeEditarSegunElEstado(EstadoEnvio estado, bool esperado)
+        {
+            ConfigurarUsuarioAutenticado();
+            _envioServiceMock
+                .Setup(s => s.CrearEnvioAsync(
+                    It.IsAny<CrearEnvioDto>(),
+                    1,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new Envio
+                {
+                    Id = 1,
+                    OrigenDir = "Mitre 1000",
+                    DestinoDir = "Belgrano 500",
+                    Estado = (byte)estado
+                });
+
+            var resultado = await _controller.CrearEnvio(CrearSolicitudValida());
+
+            var created = Assert.IsType<CreatedAtActionResult>(resultado);
+            var dto = Assert.IsType<EnvioDto>(created.Value);
+            Assert.Equal(esperado, dto.PuedeEditar);
         }
     }
 }

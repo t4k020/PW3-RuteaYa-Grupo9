@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using RuteaYa.Entidades;
 using RuteaYa.Repositorios;
 using RuteaYa.Servicios;
@@ -9,12 +9,11 @@ using System.Text;
 using Xunit;
 
 
-
-
 namespace RuteaYa.Tests
 {
     public class EnvioServiceTest
     {
+        private const int UsuarioEditorId = 10;
 
         [Fact]
         public async Task CuandoCreoUnEnvioSeHaceCorrectamente()
@@ -542,6 +541,301 @@ namespace RuteaYa.Tests
 
             await context.SaveChangesAsync(TestContext.Current.CancellationToken);
             return context;
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioAsync_DeberiaActualizarDatos_CuandoElEnvioBuscaConductor()
+        {
+            using var context = await CrearContextoConEnvioEditableAsync(EstadoEnvio.BuscandoConductor);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
+            var datos = CrearDatosEdicionValidos();
+            datos.OrigenDir = "  Nuevo origen  ";
+            datos.Descripcion = "  Nueva descripción  ";
+            datos.FechaLimite = DateTime.Today.AddDays(5).AddHours(14);
+
+            var resultado = await service.ActualizarEnvioAsync(1, datos, UsuarioEditorId);
+
+            Assert.True(resultado);
+            var envio = await context.Envios.FindAsync(
+                new object[] { 1 }, TestContext.Current.CancellationToken);
+            Assert.Equal("Nuevo origen", envio!.OrigenDir);
+            Assert.Equal("Destino nuevo", envio.DestinoDir);
+            Assert.Equal(DateTime.Today.AddDays(5), envio.FechaLimite);
+            Assert.Equal(3.5m, envio.PesoKg);
+            Assert.Equal(2, envio.Tamano);
+            Assert.Equal("Nueva descripción", envio.Descripcion);
+            Assert.Equal(5000m, envio.Monto);
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioAsync_NoDeberiaModificarEstadoNiUsuario()
+        {
+            using var context = await CrearContextoConEnvioEditableAsync(EstadoEnvio.BuscandoConductor);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
+            var datos = CrearDatosEdicionValidos();
+            // Aunque el cliente intente cambiarlos, el servicio los ignora.
+            datos.UsuarioId = 99;
+            datos.Estado = (byte)EstadoEnvio.Entregado;
+
+            await service.ActualizarEnvioAsync(1, datos, UsuarioEditorId);
+
+            var envio = await context.Envios.FindAsync(
+                new object[] { 1 }, TestContext.Current.CancellationToken);
+            Assert.Equal(UsuarioEditorId, envio!.UsuarioId);
+            Assert.Equal((byte)EstadoEnvio.BuscandoConductor, envio.Estado);
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioAsync_DeberiaRetornarFalse_CuandoElEnvioNoExiste()
+        {
+            using var context = await CrearContextoConEnvioEditableAsync(EstadoEnvio.BuscandoConductor);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
+
+            var resultado = await service.ActualizarEnvioAsync(999, CrearDatosEdicionValidos(), UsuarioEditorId);
+
+            Assert.False(resultado);
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioAsync_DeberiaRetornarFalse_CuandoElEnvioEsDeOtroUsuario()
+        {
+            using var context = await CrearContextoConEnvioEditableAsync(EstadoEnvio.BuscandoConductor);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
+
+            var resultado = await service.ActualizarEnvioAsync(1, CrearDatosEdicionValidos(), usuarioId: 55);
+
+            Assert.False(resultado);
+            var envio = await context.Envios.FindAsync(
+                new object[] { 1 }, TestContext.Current.CancellationToken);
+            Assert.Equal("Origen original", envio!.OrigenDir);
+        }
+
+        [Theory]
+        [InlineData(EstadoEnvio.ConductorAsignado)]
+        [InlineData(EstadoEnvio.Retirado)]
+        [InlineData(EstadoEnvio.EnCamino)]
+        [InlineData(EstadoEnvio.Entregado)]
+        [InlineData(EstadoEnvio.Cancelado)]
+        public async Task ActualizarEnvioAsync_DeberiaRechazarEstadosNoEditables(EstadoEnvio estado)
+        {
+            using var context = await CrearContextoConEnvioEditableAsync(estado);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                service.ActualizarEnvioAsync(1, CrearDatosEdicionValidos(), UsuarioEditorId));
+
+            var envio = await context.Envios.FindAsync(
+                new object[] { 1 }, TestContext.Current.CancellationToken);
+            Assert.Equal("Origen original", envio!.OrigenDir);
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioAsync_DeberiaRechazar_CuandoYaTieneUnaAsignacion()
+        {
+            using var context = await CrearContextoConEnvioEditableAsync(EstadoEnvio.BuscandoConductor);
+            context.Asignaciones.Add(new Asignacion
+            {
+                EnvioId = 1,
+                ViajeId = 1,
+                FechaViaje = DateTime.Today.AddDays(1)
+            });
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                service.ActualizarEnvioAsync(1, CrearDatosEdicionValidos(), UsuarioEditorId));
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioAsync_DeberiaRechazar_CuandoOrigenYDestinoSonIguales()
+        {
+            var datos = CrearDatosEdicionValidos();
+            datos.OrigenDir = "Mitre 1000";
+            datos.DestinoDir = "  mitre 1000 ";
+
+            await AssertEdicionRechazadaAsync(datos, "El origen y el destino deben ser diferentes.");
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioAsync_DeberiaRechazar_CuandoLaFechaLimiteEsPasada()
+        {
+            var datos = CrearDatosEdicionValidos();
+            datos.FechaLimite = DateTime.Today.AddDays(-1);
+
+            await AssertEdicionRechazadaAsync(datos, "La fecha límite no puede ser anterior a la fecha actual.");
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioAsync_DeberiaAceptar_CuandoLaFechaLimiteEsHoy()
+        {
+            using var context = await CrearContextoConEnvioEditableAsync(EstadoEnvio.BuscandoConductor);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
+            var datos = CrearDatosEdicionValidos();
+            datos.FechaLimite = DateTime.Today;
+
+            var resultado = await service.ActualizarEnvioAsync(1, datos, UsuarioEditorId);
+
+            Assert.True(resultado);
+        }
+
+        [Theory]
+        [InlineData(0, 100)]
+        [InlineData(-1, 100)]
+        [InlineData(2, 0)]
+        [InlineData(2, -50)]
+        public async Task ActualizarEnvioAsync_DeberiaRechazar_CuandoPesoOMontoNoSonPositivos(
+            double peso, double monto)
+        {
+            var datos = CrearDatosEdicionValidos();
+            datos.PesoKg = (decimal)peso;
+            datos.Monto = (decimal)monto;
+
+            await AssertEdicionRechazadaAsync(datos, "El peso y el monto ofrecido deben ser mayores que cero.");
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(4)]
+        public async Task ActualizarEnvioAsync_DeberiaRechazar_CuandoElTamanoNoEsValido(byte tamano)
+        {
+            var datos = CrearDatosEdicionValidos();
+            datos.Tamano = tamano;
+
+            await AssertEdicionRechazadaAsync(datos, "El tamaño del envío no es válido.");
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        public async Task ActualizarEnvioAsync_DeberiaRechazar_CuandoLaDescripcionEstaVacia(string descripcion)
+        {
+            var datos = CrearDatosEdicionValidos();
+            datos.Descripcion = descripcion;
+
+            await AssertEdicionRechazadaAsync(datos, "La descripción es obligatoria.");
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioAsync_DeberiaRechazar_CuandoLaDescripcionSuperaLos70Caracteres()
+        {
+            var datos = CrearDatosEdicionValidos();
+            datos.Descripcion = new string('a', 71);
+
+            await AssertEdicionRechazadaAsync(datos, "La descripción no puede superar los 70 caracteres.");
+        }
+
+        [Fact]
+        public async Task ActualizarEnvioAsync_DeberiaAceptar_CuandoLaDescripcionTiene70Caracteres()
+        {
+            using var context = await CrearContextoConEnvioEditableAsync(EstadoEnvio.BuscandoConductor);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
+            var datos = CrearDatosEdicionValidos();
+            datos.Descripcion = new string('a', 70);
+
+            var resultado = await service.ActualizarEnvioAsync(1, datos, UsuarioEditorId);
+
+            Assert.True(resultado);
+        }
+
+        [Theory]
+        [InlineData(EstadoEnvio.BuscandoConductor, true)]
+        [InlineData(EstadoEnvio.ConductorAsignado, false)]
+        [InlineData(EstadoEnvio.Retirado, false)]
+        [InlineData(EstadoEnvio.EnCamino, false)]
+        [InlineData(EstadoEnvio.Entregado, false)]
+        [InlineData(EstadoEnvio.Cancelado, false)]
+        public async Task ObtenerDetalleDtoAsync_DeberiaCalcularPuedeEditarSegunElEstado(
+            EstadoEnvio estado, bool esperado)
+        {
+            using var context = await CrearContextoConEnvioEditableAsync(estado);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
+
+            var dto = await service.ObtenerDetalleDtoAsync(
+                1, UsuarioEditorId, TestContext.Current.CancellationToken);
+
+            Assert.NotNull(dto);
+            Assert.Equal(esperado, dto!.PuedeEditar);
+        }
+
+        [Fact]
+        public async Task ObtenerListadoPorUsuarioAsync_DeberiaMarcarPuedeEditarSoloEnLosQueBuscanConductor()
+        {
+            using var context = await CrearContextoConEnvioEditableAsync(EstadoEnvio.BuscandoConductor);
+            context.Envios.Add(new Envio
+            {
+                Id = 2,
+                UsuarioId = UsuarioEditorId,
+                OrigenDir = "Otro origen",
+                DestinoDir = "Otro destino",
+                Estado = (byte)EstadoEnvio.Entregado,
+                CreadoEn = DateTime.Now.AddMinutes(-5)
+            });
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
+
+            var listado = await service.ObtenerListadoPorUsuarioAsync(
+                UsuarioEditorId, null, TestContext.Current.CancellationToken);
+
+            Assert.Equal(2, listado.Count);
+            Assert.True(listado.Single(e => e.Id == 1).PuedeEditar);
+            Assert.False(listado.Single(e => e.Id == 2).PuedeEditar);
+        }
+
+        // ---------- Métodos auxiliares ----------
+
+        private static async Task AssertEdicionRechazadaAsync(Envio datos, string mensajeEsperado)
+        {
+            using var context = await CrearContextoConEnvioEditableAsync(EstadoEnvio.BuscandoConductor);
+            var service = new EnvioService(context, RutasDePrueba.CrearMock());
+
+            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                service.ActualizarEnvioAsync(1, datos, UsuarioEditorId));
+
+            Assert.Equal(mensajeEsperado, ex.Message);
+            // No se debe haber modificado nada en la base.
+            var envio = await context.Envios.FindAsync(
+                new object[] { 1 }, TestContext.Current.CancellationToken);
+            Assert.Equal("Origen original", envio!.OrigenDir);
+            Assert.Equal(1000m, envio.Monto);
+        }
+
+        private static async Task<RuteaYaDbContext> CrearContextoConEnvioEditableAsync(EstadoEnvio estado)
+        {
+            var options = new DbContextOptionsBuilder<RuteaYaDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .Options;
+
+            var context = new RuteaYaDbContext(options);
+            context.Envios.Add(new Envio
+            {
+                Id = 1,
+                UsuarioId = UsuarioEditorId,
+                OrigenDir = "Origen original",
+                DestinoDir = "Destino original",
+                FechaLimite = DateTime.Today.AddDays(2),
+                PesoKg = 1m,
+                Tamano = 1,
+                Descripcion = "Descripción original",
+                Monto = 1000m,
+                Estado = (byte)estado,
+                CreadoEn = DateTime.Now
+            });
+            await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+            return context;
+        }
+
+        private static Envio CrearDatosEdicionValidos()
+        {
+            return new Envio
+            {
+                OrigenDir = "Origen nuevo",
+                DestinoDir = "Destino nuevo",
+                FechaLimite = DateTime.Today.AddDays(5),
+                PesoKg = 3.5m,
+                Tamano = 2,
+                Descripcion = "Descripción nueva",
+                Monto = 5000m
+            };
         }
     }
 }

@@ -66,6 +66,7 @@ public sealed class EnvioDto
     public byte Estado { get; set; }
     public DateTime CreadoEn { get; set; }
     public ViajeAsociadoDto? Viaje { get; set; }
+    public bool PuedeEditar { get; set; }
     public bool PuedeCancelar { get; set; }
     public bool PuedeEliminar { get; set; }
     public string EstadoNombre { get; set; } = string.Empty;
