@@ -218,6 +218,9 @@ namespace RuteaYa.Repositorios.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Email")
+                        .IsUnique();
+
                     b.ToTable("Usuarios");
                 });
 

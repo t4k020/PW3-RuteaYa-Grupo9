@@ -71,13 +71,9 @@
                 <div>
                     @if (Model.PuedeAceptar)
                     {
-                        <form asp-action="Vincular" method="post">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="envioId" value="@envio.Id" />
-                            <input type="hidden" name="viajeId" value="@Model.ViajeId" />
-                            <input type="hidden" name="fechaViaje" value="@fecha" />
-                            <button type="submit" class="btn btn-dark rounded-3 w-100 py-3 fw-bold fs-5 shadow-sm">Aceptar envío</button>
-                        </form>
+                        <a asp-action="ConfirmarSeleccion" asp-route-viajeId="@Model.ViajeId"
+                           asp-route-fecha="@fecha" asp-route-ids="@envio.Id"
+                           class="btn btn-dark rounded-3 w-100 py-3 fw-bold fs-5 shadow-sm">Aceptar envío</a>
                     }
                     else
                     {

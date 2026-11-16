@@ -78,6 +78,12 @@ namespace RuteaYa.Repositorios
             //    Si se necesita auditar uno, hay que usar IgnoreQueryFilters() de forma explícita.
             modelBuilder.Entity<Viaje>()
                 .HasQueryFilter(v => v.EliminadoEn == null);
+
+            // 8. El email identifica al usuario: único a nivel base de datos, no solo
+            //    por la validación previa del servicio (que no cubre registros concurrentes).
+            modelBuilder.Entity<Usuario>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
         }
 
     }

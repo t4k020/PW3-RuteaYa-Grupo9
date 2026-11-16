@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
 using RuteaYa.Servicios.Dtos;
 using RuteaYa.Models;
+using RuteaYa.Servicios;
 using System.Text.Json;
 
 namespace RuteaYa.Controllers
@@ -338,6 +339,132 @@ namespace RuteaYa.Controllers
             }
 
             return View(modelo);
+        }
+
+        // Pantalla 11 para los envíos elegidos en Oportunidades: resumen antes de reservar.
+        [HttpGet]
+        public async Task<IActionResult> ConfirmarSeleccion(
+            int viajeId, DateTime fecha, List<int> ids, string orden = "ganancia")
+        {
+            var volver = new
+            {
+                viajeId,
+                fecha = fecha.Date.ToString("yyyy-MM-dd"),
+                orden
+            };
+
+            if (ids == null || ids.Count == 0)
+            {
+                TempData["Error"] = "Elegí al menos un envío para confirmar.";
+                return RedirectToAction(nameof(Oportunidades), volver);
+            }
+
+            // Se vuelve a consultar a la API: no se confía en lo que vuelve del navegador.
+            var resultado = await ObtenerOportunidadesParaConfirmarAsync(viajeId, fecha.Date, orden);
+            if (resultado == null)
+            {
+                return RedirectToAction(nameof(Oportunidades), volver);
+            }
+
+            var elegidos = ids.Distinct().ToList();
+            var seleccionadas = resultado.Oportunidades.Where(o => elegidos.Contains(o.Id)).ToList();
+
+            if (seleccionadas.Count != elegidos.Count)
+            {
+                TempData["Error"] = "Otro conductor tomó un envío o ya no está disponible. Elegí de nuevo.";
+                return RedirectToAction(nameof(Oportunidades), volver);
+            }
+
+            var pesoTotal = seleccionadas.Sum(o => o.PesoKg);
+            var desvioTotal = seleccionadas.Sum(o => o.DesvioKm);
+
+            if (seleccionadas.Count > resultado.CupoDisponible
+                || pesoTotal > resultado.PesoDisponibleKg
+                || desvioTotal > resultado.DesvioDisponibleKm)
+            {
+                TempData["Error"] = "La selección supera el cupo, el peso o el desvío disponibles del viaje.";
+                return RedirectToAction(nameof(Oportunidades), volver);
+            }
+
+            var combinacion = new CombinacionDto
+            {
+                GananciaTotal = seleccionadas.Sum(o => o.Monto),
+                PesoTotalKg = pesoTotal,
+                DesvioTotalKm = desvioTotal,
+                EsValida = true
+            };
+
+            foreach (var o in seleccionadas)
+            {
+                combinacion.Paquetes.Add(new PaqueteOptimizableDto
+                {
+                    Id = o.Id,
+                    OrigenDir = o.OrigenDir,
+                    DestinoDir = o.DestinoDir,
+                    Descripcion = o.Descripcion,
+                    PesoKg = o.PesoKg,
+                    Monto = o.Monto,
+                    DesvioKm = o.DesvioKm,
+                    TiempoExtraMin = OptimizadorService.EstimarTiempoExtraMin(o.DesvioKm)
+                });
+            }
+
+            // Reutiliza la pantalla de confirmación del optimizador; "Reservar" es el mismo POST.
+            return View("~/Views/Optimizador/Confirmar.cshtml", new ConfirmarCombinacionViewModel
+            {
+                ViajeId = viajeId,
+                OrigenDir = resultado.OrigenDir,
+                DestinoDir = resultado.DestinoDir,
+                Fecha = resultado.FechaViaje,
+                DesdeOportunidades = true,
+                Orden = orden,
+                Combinacion = combinacion
+            });
+        }
+
+        // Devuelve null si la API no pudo buscar, y deja el motivo en TempData["Error"].
+        private async Task<OportunidadesResultadoDto?> ObtenerOportunidadesParaConfirmarAsync(
+            int viajeId, DateTime fecha, string orden)
+        {
+            var client = _httpClientFactory.CreateClient("ApiEnvio");
+            var ruta = $"{ApiRoute}/oportunidades?viajeId={viajeId}&fecha={fecha:yyyy-MM-dd}&orden={Uri.EscapeDataString(orden)}";
+
+            try
+            {
+                HttpResponseMessage respuesta = await client.GetAsync(ruta);
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    return await respuesta.Content.ReadFromJsonAsync<OportunidadesResultadoDto>();
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    ProblemDetails? detalle = null;
+                    try
+                    {
+                        detalle = await respuesta.Content.ReadFromJsonAsync<ProblemDetails>();
+                    }
+                    catch (JsonException) { }
+
+                    TempData["Error"] = string.IsNullOrWhiteSpace(detalle?.Detail)
+                        ? "No se pudo confirmar la selección."
+                        : detalle.Detail;
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    TempData["Error"] = "No se encontró el viaje seleccionado.";
+                }
+                else
+                {
+                    TempData["Error"] = "No se pudo confirmar la selección.";
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "No se pudo conectar con el servidor de la API.";
+            }
+
+            return null;
         }
 
         [HttpGet]

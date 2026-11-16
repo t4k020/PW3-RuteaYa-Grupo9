@@ -67,6 +67,39 @@ public class UsuarioServiceTest
     }
 
     [Fact]
+    public async Task CrearUsuario_DeberiaRetornarFalse_CuandoLaBaseRechazaUnEmailDuplicadoConcurrente()
+    {
+        // Otro registro con el mismo email gana la carrera entre la consulta y el INSERT.
+        using var context = new ContextoQueFallaAlGuardar(CrearOpciones(), emailConcurrente: "ana@test.com");
+        var service = new UsuarioService(new UsuarioRepository(context));
+
+        var resultado = await service.CrearUsuario(new RegisterRequest
+        {
+            Nombre = "Ana",
+            Apellido = "Gómez",
+            Email = "ana@test.com",
+            Password = "contrasena123"
+        });
+
+        Assert.False(resultado);
+    }
+
+    [Fact]
+    public async Task CrearUsuario_DeberiaPropagarLaExcepcion_CuandoFallaElGuardadoPorOtroMotivo()
+    {
+        using var context = new ContextoQueFallaAlGuardar(CrearOpciones(), emailConcurrente: null);
+        var service = new UsuarioService(new UsuarioRepository(context));
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => service.CrearUsuario(new RegisterRequest
+        {
+            Nombre = "Ana",
+            Apellido = "Gómez",
+            Email = "ana@test.com",
+            Password = "contrasena123"
+        }));
+    }
+
+    [Fact]
     public async Task ListarUsuariosAsync_DeberiaMapearLosUsuariosADtos()
     {
         using var context = CrearContexto();
@@ -94,12 +127,50 @@ public class UsuarioServiceTest
         Assert.Equal(creadoEn, usuario.CreadoEn);
     }
 
-    private static RuteaYaDbContext CrearContexto()
+    private static DbContextOptions<RuteaYaDbContext> CrearOpciones()
     {
-        var options = new DbContextOptionsBuilder<RuteaYaDbContext>()
+        return new DbContextOptionsBuilder<RuteaYaDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
+    }
 
-        return new RuteaYaDbContext(options);
+    private static RuteaYaDbContext CrearContexto()
+    {
+        return new RuteaYaDbContext(CrearOpciones());
+    }
+
+    // Simula el índice único de SQL Server, que el proveedor InMemory no aplica:
+    // si hay un email "concurrente" lo inserta (como si otro request lo hubiera
+    // guardado primero) y luego falla el SaveChanges con DbUpdateException.
+    private sealed class ContextoQueFallaAlGuardar : RuteaYaDbContext
+    {
+        private readonly string? _emailConcurrente;
+
+        public ContextoQueFallaAlGuardar(
+            DbContextOptions<RuteaYaDbContext> options,
+            string? emailConcurrente) : base(options)
+        {
+            _emailConcurrente = emailConcurrente;
+        }
+
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            ChangeTracker.Clear();
+
+            if (_emailConcurrente != null)
+            {
+                Usuarios.Add(new Usuario
+                {
+                    Nombre = "Otro",
+                    Apellido = "Request",
+                    Email = _emailConcurrente,
+                    PasswordHash = "hash"
+                });
+
+                await base.SaveChangesAsync(cancellationToken);
+            }
+
+            throw new DbUpdateException("Violación del índice único IX_Usuarios_Email.");
+        }
     }
 }

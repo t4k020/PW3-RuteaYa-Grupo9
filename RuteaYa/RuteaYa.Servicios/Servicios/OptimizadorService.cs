@@ -44,11 +44,60 @@ namespace RuteaYa.Servicios
             _context = context;
         }
 
-        // El repositorio todavía no tiene geolocalización (las coordenadas se guardan en 0).
-        // Cuando exista el cálculo real se reemplaza el método.
+        // Si las rutas reales salen más sinuosas que esto, el factor se acota.
+        private const decimal FactorSinuosidadPorDefecto = 1.3m;
+        private const decimal FactorSinuosidadMaximo = 3m;
+
+        // Estimación de respaldo para datos viejos que guardaron las coordenadas en 0.
         public static decimal EstimarDesvioKm(int envioId)
         {
             return 0.5m * ((envioId % 8) + 1);
+        }
+
+        // Desvío real: kilómetros extra que suma el viaje al pasar por el origen y el
+        // destino del envío (origen del viaje -> origen del envío -> destino del envío ->
+        // destino del viaje), contra ir directo. Se calcula con las coordenadas guardadas
+        // y se ajusta con la sinuosidad real del viaje (su distancia por calle contra la
+        // distancia en línea recta). Si falta alguna coordenada, usa la estimación.
+        public static decimal CalcularDesvioKm(Viaje viaje, Envio envio)
+        {
+            if (!CalculoGeografico.TieneCoordenadas(viaje.OrigenLat, viaje.OrigenLng)
+                || !CalculoGeografico.TieneCoordenadas(viaje.DestinoLat, viaje.DestinoLng)
+                || !CalculoGeografico.TieneCoordenadas(envio.OrigenLat, envio.OrigenLng)
+                || !CalculoGeografico.TieneCoordenadas(envio.DestinoLat, envio.DestinoLng))
+            {
+                return EstimarDesvioKm(envio.Id);
+            }
+
+            var directa = CalculoGeografico.DistanciaKm(
+                viaje.OrigenLat, viaje.OrigenLng, viaje.DestinoLat, viaje.DestinoLng);
+
+            var conEnvio =
+                CalculoGeografico.DistanciaKm(
+                    viaje.OrigenLat, viaje.OrigenLng, envio.OrigenLat, envio.OrigenLng)
+                + CalculoGeografico.DistanciaKm(
+                    envio.OrigenLat, envio.OrigenLng, envio.DestinoLat, envio.DestinoLng)
+                + CalculoGeografico.DistanciaKm(
+                    envio.DestinoLat, envio.DestinoLng, viaje.DestinoLat, viaje.DestinoLng);
+
+            var extraEnLinea = Math.Max(0m, conEnvio - directa);
+
+            return Math.Round(
+                extraEnLinea * CalcularSinuosidad(viaje, directa),
+                2,
+                MidpointRounding.AwayFromZero);
+        }
+
+        private static decimal CalcularSinuosidad(Viaje viaje, decimal distanciaDirecta)
+        {
+            if (distanciaDirecta <= 0m || viaje.DistanciaKm <= 0m)
+            {
+                return FactorSinuosidadPorDefecto;
+            }
+
+            var factor = viaje.DistanciaKm / distanciaDirecta;
+
+            return Math.Min(FactorSinuosidadMaximo, Math.Max(1m, factor));
         }
 
         public static int EstimarTiempoExtraMin(decimal desvioKm)
@@ -86,12 +135,12 @@ namespace RuteaYa.Servicios
             // Solo entran los que, por sí solos, caben en el peso y el desvío disponibles.
             var pool = oportunidades
                 .Where(e => e.PesoKg <= disponibilidad.PesoKg
-                         && EstimarDesvioKm(e.Id) <= disponibilidad.DesvioKm)
+                         && CalcularDesvioKm(disponibilidad.Viaje, e) <= disponibilidad.DesvioKm)
                 .Take(MaximoCandidatos)
                 .ToList();
 
             var (validas, descartadas) = Buscar(
-                pool, disponibilidad.Cupo, disponibilidad.PesoKg, disponibilidad.DesvioKm);
+                pool, disponibilidad.Viaje, disponibilidad.Cupo, disponibilidad.PesoKg, disponibilidad.DesvioKm);
 
             return new OptimizacionDto
             {
@@ -178,7 +227,7 @@ namespace RuteaYa.Servicios
                     $"La combinación supera el peso disponible del viaje ({Formatear(disponibilidad.PesoKg)} kg).");
             }
 
-            if (envios.Sum(e => EstimarDesvioKm(e.Id)) > disponibilidad.DesvioKm)
+            if (envios.Sum(e => CalcularDesvioKm(disponibilidad.Viaje, e)) > disponibilidad.DesvioKm)
             {
                 throw new InvalidOperationException(
                     $"La combinación supera el desvío disponible del viaje ({Formatear(disponibilidad.DesvioKm)} km).");
@@ -187,7 +236,7 @@ namespace RuteaYa.Servicios
             var ahora = DateTime.Now;
             foreach (var envio in envios)
             {
-                var desvio = EstimarDesvioKm(envio.Id);
+                var desvio = CalcularDesvioKm(disponibilidad.Viaje, envio);
 
                 _context.Asignaciones.Add(new Asignacion
                 {
@@ -312,11 +361,12 @@ namespace RuteaYa.Servicios
         // Recorre todos los subconjuntos de hasta "cupo" envíos y se queda con los mejores.
         private static (List<Subconjunto> Validas, List<Subconjunto> Descartadas) Buscar(
             IReadOnlyList<Envio> pool,
+            Viaje viaje,
             int cupo,
             decimal pesoMaximo,
             decimal desvioMaximo)
         {
-            var desvios = pool.Select(e => EstimarDesvioKm(e.Id)).ToArray();
+            var desvios = pool.Select(e => CalcularDesvioKm(viaje, e)).ToArray();
             var validas = new List<Subconjunto>();
             var descartadas = new List<Subconjunto>();
             var limiteValidas = 1 + CantidadAlternativas;
@@ -391,7 +441,7 @@ namespace RuteaYa.Servicios
                 }
 
                 var envio = pool[i];
-                var desvio = EstimarDesvioKm(envio.Id);
+                var desvio = CalcularDesvioKm(disponibilidad.Viaje, envio);
                 paquetes.Add(new PaqueteOptimizableDto
                 {
                     Id = envio.Id,

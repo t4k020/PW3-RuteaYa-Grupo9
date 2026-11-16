@@ -34,7 +34,20 @@ namespace RuteaYa.Servicios.Servicios
                 CreadoEn = DateTime.UtcNow
             };
 
-            await _usuarioRepository.CrearUsuario(usuario);
+            try
+            {
+                await _usuarioRepository.CrearUsuario(usuario);
+            }
+            catch (DbUpdateException)
+            {
+                // Dos registros simultáneos con el mismo email pasan la consulta
+                // anterior; el índice único de la base rechaza el segundo INSERT.
+                // Si el email ya existe es un duplicado (409), si no se propaga.
+                if (await _usuarioRepository.ExisteEmailRegistrado(request.Email))
+                    return false;
+
+                throw;
+            }
 
             return true;
         }

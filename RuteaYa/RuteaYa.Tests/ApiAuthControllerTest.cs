@@ -76,7 +76,9 @@ public class ApiAuthControllerTest
 
         var unauthorized = Assert.IsType<UnauthorizedObjectResult>(resultado);
         Assert.Equal(401, unauthorized.StatusCode);
-        Assert.Equal(MensajeCredencialesInvalidas, LeerMensaje(unauthorized.Value));
+        var problema = Assert.IsType<ProblemDetails>(unauthorized.Value);
+        Assert.Equal(401, problema.Status);
+        Assert.Equal(MensajeCredencialesInvalidas, problema.Detail);
     }
 
     [Fact]
@@ -109,9 +111,10 @@ public class ApiAuthControllerTest
 
         var resultado = await controller.Register(request);
 
-        var ok = Assert.IsType<OkObjectResult>(resultado);
-        Assert.Equal(200, ok.StatusCode);
-        Assert.Contains("registrado", JsonSerializer.Serialize(ok.Value));
+        var creado = Assert.IsType<CreatedAtActionResult>(resultado);
+        Assert.Equal(201, creado.StatusCode);
+        Assert.Equal(nameof(ApiAuthController.Login), creado.ActionName);
+        Assert.Contains("registrado", JsonSerializer.Serialize(creado.Value));
 
         var usuario = Assert.Single(await context.Usuarios.ToListAsync(
             TestContext.Current.CancellationToken));
@@ -141,7 +144,9 @@ public class ApiAuthControllerTest
 
         var conflict = Assert.IsType<ConflictObjectResult>(resultado);
         Assert.Equal(409, conflict.StatusCode);
-        Assert.Equal("El email ya está registrado.", LeerMensaje(conflict.Value));
+        var problema = Assert.IsType<ProblemDetails>(conflict.Value);
+        Assert.Equal(409, problema.Status);
+        Assert.Equal("El email ya está registrado.", problema.Detail);
         Assert.Equal(1, await context.Usuarios.CountAsync(
             TestContext.Current.CancellationToken));
     }
@@ -163,8 +168,9 @@ public class ApiAuthControllerTest
     }
 
     [Fact]
-    public async Task Register_DeberiaRetornarError500_CuandoOcurreUnErrorInesperado()
+    public async Task Register_DeberiaPropagarLaExcepcion_CuandoOcurreUnErrorInesperado()
     {
+        // El controller ya no captura Exception: el error sube hasta el framework.
         var context = CrearContexto();
         var controller = CrearController(context);
         context.Dispose();
@@ -176,11 +182,7 @@ public class ApiAuthControllerTest
             Password = "contrasena123"
         };
 
-        var resultado = await controller.Register(request);
-
-        var error = Assert.IsType<ObjectResult>(resultado);
-        Assert.Equal(500, error.StatusCode);
-        Assert.Equal("Error al registrar el usuario.", LeerMensaje(error.Value));
+        await Assert.ThrowsAnyAsync<Exception>(() => controller.Register(request));
     }
 
     private static ApiAuthController CrearController(RuteaYaDbContext context)
@@ -191,7 +193,7 @@ public class ApiAuthControllerTest
         return new ApiAuthController(
             usuarioService,
             authService,
-            CrearConfiguracion());
+            new JwtTokenService(CrearConfiguracion()));
     }
 
     private static IConfiguration CrearConfiguracion()
@@ -228,15 +230,6 @@ public class ApiAuthControllerTest
             token,
             parametros,
             out _);
-    }
-
-    private static string? LeerMensaje(object? valor)
-    {
-        using var json = JsonDocument.Parse(JsonSerializer.Serialize(valor));
-
-        return json.RootElement.TryGetProperty("mensaje", out var mensaje)
-            ? mensaje.GetString()
-            : null;
     }
 
     private static RuteaYaDbContext CrearContexto()

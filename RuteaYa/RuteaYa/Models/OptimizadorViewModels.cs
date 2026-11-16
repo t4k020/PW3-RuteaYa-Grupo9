@@ -21,5 +21,10 @@ namespace RuteaYa.Models
         public string DestinoDir { get; set; } = string.Empty;
         public DateTime Fecha { get; set; }
         public CombinacionDto Combinacion { get; set; } = new();
+
+        // True cuando la selección viene de Oportunidades: "Volver" regresa a esa pantalla
+        // (con el mismo orden) en lugar de ir al optimizador.
+        public bool DesdeOportunidades { get; set; }
+        public string? Orden { get; set; }
     }
 }

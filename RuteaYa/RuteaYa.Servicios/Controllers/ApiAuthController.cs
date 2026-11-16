@@ -1,13 +1,8 @@
-﻿
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 using RuteaYa.Entidades;
 using RuteaYa.Servicios.Dtos;
 using RuteaYa.Servicios.Servicios;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 
 namespace RuteaYa.Servicios.Controllers
 {
@@ -18,24 +13,29 @@ namespace RuteaYa.Servicios.Controllers
 
     [ApiController]
     [Route("Api/Auth")]
+    [Produces("application/json")]
     public class ApiAuthController : ControllerBase
     {
         private readonly UsuarioService _usuarioService;
         private readonly IAuthService _authService;
-        private readonly IConfiguration _configuration;
+        private readonly ITokenService _tokenService;
 
         public ApiAuthController(
             UsuarioService usuarioService,
             IAuthService authService,
-            IConfiguration configuration)
+            ITokenService tokenService)
         {
             _usuarioService = usuarioService;
             _authService = authService;
-            _configuration = configuration;
+            _tokenService = tokenService;
         }
 
+        /// <summary>Inicia sesión y devuelve un token JWT.</summary>
         [AllowAnonymous]
         [HttpPost("Login")]
+        [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             if (!ModelState.IsValid)
@@ -46,89 +46,58 @@ namespace RuteaYa.Servicios.Controllers
                 request.PasswordHash
             );
 
+            // Mismo mensaje para email inexistente y contraseña incorrecta:
+            // no se revela cuál de los dos datos falló.
             if (usuario == null)
-                return Unauthorized(new
+                return Unauthorized(new ProblemDetails
                 {
-                    mensaje = "Email o contraseña incorrectos."
+                    Status = StatusCodes.Status401Unauthorized,
+                    Title = "Credenciales inválidas.",
+                    Detail = "Email o contraseña incorrectos."
                 });
-
-            var jwtKey = _configuration["Jwt:Key"];
-            var jwtIssuer = _configuration["Jwt:Issuer"];
-            var jwtAudience = _configuration["Jwt:Audience"];
-
-            var claims = new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
-                new Claim(ClaimTypes.Name, usuario.Nombre),
-                new Claim(ClaimTypes.Email, usuario.Email)
-            };
-
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtKey!)
-            );
-
-            var credentials = new SigningCredentials(
-                key,
-                SecurityAlgorithms.HmacSha256
-            );
-
-            var expirationMinutes = int.Parse(
-                _configuration["Jwt:ExpirationMinutes"] ?? "60"
-            );
-
-            var token = new JwtSecurityToken(
-                issuer: jwtIssuer,
-                audience: jwtAudience,
-                claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(expirationMinutes),
-                signingCredentials: credentials
-            );
-
-            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
 
             return Ok(new LoginResponse
             {
                 Id = usuario.Id,
                 Nombre = usuario.Nombre,
                 Email = usuario.Email,
-                Token = tokenString,
+                Token = _tokenService.GenerarToken(usuario),
                 Mensaje = "Inicio de sesión exitoso."
             });
         }
 
+        /// <summary>Registra un usuario nuevo.</summary>
         [AllowAnonymous]
         [HttpPost("Register")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            try
+            // Sin try/catch genérico: un fallo inesperado no se tapa con un mensaje fijo,
+            // sube hasta el framework, que responde 500.
+            bool registrado = await _usuarioService.CrearUsuario(request);
+
+            if (!registrado)
             {
-                bool registrado =
-                    await _usuarioService.CrearUsuario(request);
-
-                if (!registrado)
+                return Conflict(new ProblemDetails
                 {
-                    return Conflict(new
-                    {
-                        mensaje = "El email ya está registrado."
-                    });
-                }
-
-                return Ok(new
-                {
-                    registrado = true,
-                    mensaje = "Registro exitoso."
+                    Status = StatusCodes.Status409Conflict,
+                    Title = "Email duplicado.",
+                    Detail = "El email ya está registrado."
                 });
             }
-            catch (Exception)
+
+            // La API no expone todavía un GET de usuario por id, por eso el
+            // Location apunta al login, que es el siguiente paso natural.
+            return CreatedAtAction(nameof(Login), new
             {
-                return StatusCode(500, new
-                {
-                    mensaje = "Error al registrar el usuario."
-                });
-            }
+                registrado = true,
+                mensaje = "Registro exitoso."
+            });
         }
     }
 }

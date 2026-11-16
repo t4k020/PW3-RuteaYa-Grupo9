@@ -33,12 +33,12 @@ public sealed class PotencialService : IPotencialService
         for (var fecha = desde; fecha < fin; fecha = fecha.AddDays(1))
         foreach (var viaje in viajes.Where(v => v.ViajeDias.Any(d => d.DiaSemana == Dia(fecha))))
         {
-            var candidatos = envios.Where(e => !usados.Contains(e.Id) && e.FechaLimite.Date >= fecha.Date && e.PesoKg <= viaje.PesoMaxKg && OptimizadorService.EstimarDesvioKm(e.Id) <= viaje.DesvioMaxKm).ToList();
-            var seleccion = Elegir(candidatos, viaje.MaxPaquetes, viaje.PesoMaxKg, viaje.DesvioMaxKm, criterio);
+            var candidatos = envios.Where(e => !usados.Contains(e.Id) && e.FechaLimite.Date >= fecha.Date && e.PesoKg <= viaje.PesoMaxKg && OptimizadorService.CalcularDesvioKm(viaje, e) <= viaje.DesvioMaxKm).ToList();
+            var seleccion = Elegir(candidatos, viaje.MaxPaquetes, viaje.PesoMaxKg, viaje.DesvioMaxKm, criterio, e => OptimizadorService.CalcularDesvioKm(viaje, e));
             if (seleccion.Count == 0) continue;
             foreach (var envio in seleccion) usados.Add(envio.Id);
             var ganancia = seleccion.Sum(e => e.Monto);
-            var desvio = seleccion.Sum(e => OptimizadorService.EstimarDesvioKm(e.Id));
+            var desvio = seleccion.Sum(e => OptimizadorService.CalcularDesvioKm(viaje, e));
             resultado.Viajes.Add(new PotencialViajeDto { ViajeId = viaje.Id, Fecha = fecha, OrigenDir = viaje.OrigenDir, DestinoDir = viaje.DestinoDir, Paquetes = seleccion.Count, Ganancia = ganancia, DesvioKm = desvio });
             resultado.GananciaPotencial += ganancia;
             resultado.PaquetesPosibles += seleccion.Count;
@@ -54,27 +54,27 @@ public sealed class PotencialService : IPotencialService
 
     private static byte Dia(DateTime fecha) => fecha.DayOfWeek == DayOfWeek.Sunday ? (byte)7 : (byte)fecha.DayOfWeek;
 
-    private static List<Envio> Elegir(List<Envio> candidatos, int cupo, decimal pesoMaximo, decimal desvioMaximo, string criterio)
+    private static List<Envio> Elegir(List<Envio> candidatos, int cupo, decimal pesoMaximo, decimal desvioMaximo, string criterio, Func<Envio, decimal> desvioDe)
     {
         List<Envio> mejor = new();
         void Buscar(int desde, List<Envio> actual, decimal peso, decimal desvio)
         {
-            if (actual.Count > 0 && Mejor(actual, mejor, criterio)) mejor = actual.ToList();
+            if (actual.Count > 0 && Mejor(actual, mejor, criterio, desvioDe)) mejor = actual.ToList();
             if (actual.Count == cupo) return;
             for (var i = desde; i < candidatos.Count; i++)
             {
-                var envio = candidatos[i]; var nuevoPeso = peso + envio.PesoKg; var nuevoDesvio = desvio + OptimizadorService.EstimarDesvioKm(envio.Id);
+                var envio = candidatos[i]; var nuevoPeso = peso + envio.PesoKg; var nuevoDesvio = desvio + desvioDe(envio);
                 if (nuevoPeso <= pesoMaximo && nuevoDesvio <= desvioMaximo) { actual.Add(envio); Buscar(i + 1, actual, nuevoPeso, nuevoDesvio); actual.RemoveAt(actual.Count - 1); }
             }
         }
         Buscar(0, new(), 0, 0); return mejor;
     }
 
-    private static bool Mejor(List<Envio> candidata, List<Envio> actual, string criterio)
+    private static bool Mejor(List<Envio> candidata, List<Envio> actual, string criterio, Func<Envio, decimal> desvioDe)
     {
         if (actual.Count == 0) return true;
         var gc = candidata.Sum(e => e.Monto); var ga = actual.Sum(e => e.Monto);
-        var dc = candidata.Sum(e => OptimizadorService.EstimarDesvioKm(e.Id)); var da = actual.Sum(e => OptimizadorService.EstimarDesvioKm(e.Id));
+        var dc = candidata.Sum(desvioDe); var da = actual.Sum(desvioDe);
         return criterio switch
         {
             "desvio" => dc < da || (dc == da && gc > ga),

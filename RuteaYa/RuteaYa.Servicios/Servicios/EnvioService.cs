@@ -448,13 +448,15 @@ namespace RuteaYa.Servicios
             }
 
             // Crea la asignación
+            var desvioReal = OptimizadorService.CalcularDesvioKm(viaje, envio);
+
             var asignacion = new Asignacion
             {
                 EnvioId = envio.Id,
                 ViajeId = viaje.Id,
                 FechaViaje = fechaViaje.Date,
-                DesvioKm = 0.0m, // cambiar cuando haya geolocalizacion
-                TiempoExtraMin = 0,
+                DesvioKm = desvioReal,
+                TiempoExtraMin = OptimizadorService.EstimarTiempoExtraMin(desvioReal),
                 Ganancia = envio.Monto,
                 AsignadoEn = DateTime.Now
             };
@@ -508,10 +510,10 @@ namespace RuteaYa.Servicios
 
             var candidatas = await _context.Envios.AsNoTracking().Where(e => e.UsuarioId != usuarioId && e.Estado == (byte)EstadoEnvio.BuscandoConductor && e.FechaLimite.Date >= fecha && !_context.Asignaciones.Any(a => a.EnvioId == e.Id)).ToListAsync(cancellationToken);
             var oportunidades = candidatas
-                .Where(e => cupo > 0 && e.PesoKg <= peso && OptimizadorService.EstimarDesvioKm(e.Id) <= desvio)
+                .Where(e => cupo > 0 && e.PesoKg <= peso && OptimizadorService.CalcularDesvioKm(viaje, e) <= desvio)
                 .Select(e =>
                 {
-                    var desvioEstimado = OptimizadorService.EstimarDesvioKm(e.Id);
+                    var desvioEstimado = OptimizadorService.CalcularDesvioKm(viaje, e);
                     return new OportunidadDto
                     {
                         Id = e.Id,
@@ -560,7 +562,7 @@ namespace RuteaYa.Servicios
             var viaje = await _context.Viajes.AsNoTracking()
                 .FirstAsync(v => v.Id == viajeId, cancellationToken);
 
-            var desvio = OptimizadorService.EstimarDesvioKm(envioId);
+            var desvio = OptimizadorService.CalcularDesvioKm(viaje, entidad);
             var yaAsignado = await _context.Asignaciones.AnyAsync(a => a.EnvioId == envioId, cancellationToken);
 
             return new DetalleOportunidadViajeDto
