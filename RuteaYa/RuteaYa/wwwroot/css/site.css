@@ -84,6 +84,60 @@ html[data-bs-theme="dark"] body {
     background-color: var(--potencial-bg);
 }
 
+/* Resumen del potencial mensual integrado al inicio. */
+.monthly-potential-eyebrow {
+    color: #14714c;
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.monthly-potential-amount {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+}
+
+.monthly-potential-amount > span,
+.monthly-potential-amount small {
+    color: var(--bs-secondary-color);
+}
+
+.monthly-potential-amount strong {
+    color: #14714c;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.1;
+}
+
+.monthly-weeks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+    gap: .75rem;
+}
+
+.monthly-weeks > div {
+    background: color-mix(in srgb, var(--bs-body-bg) 72%, transparent);
+    border: 1px solid var(--bs-border-color);
+    border-radius: .85rem;
+    padding: .8rem;
+}
+
+.monthly-weeks span,
+.monthly-weeks strong {
+    display: block;
+}
+
+.monthly-weeks span {
+    color: var(--bs-secondary-color);
+    font-size: .78rem;
+}
+
+.monthly-weeks strong {
+    color: #14714c;
+    margin-top: .25rem;
+}
+
 /* ===== Overrides solo para oscuro (el claro queda idéntico) ===== */
 
 /* Colores de texto fijos que en oscuro necesitan más contraste */

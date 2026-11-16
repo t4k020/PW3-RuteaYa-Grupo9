@@ -9,6 +9,8 @@ public class HomeDashboardDto
     public int CantidadOportunidades { get; set; }
     public decimal PotencialGanancias { get; set; }
     public decimal GananciaEfectivaMes { get; set; }
+    // Se completa en el inicio para mostrar el cálculo mensual con su desglose.
+    public PotencialMensualDto? PotencialMensual { get; set; }
     public List<HomeViajeDto> Viajes { get; set; } = new();
     public List<HomeEnvioDto> Envios { get; set; } = new();
     public List<HomeOportunidadDto> Oportunidades { get; set; } = new();

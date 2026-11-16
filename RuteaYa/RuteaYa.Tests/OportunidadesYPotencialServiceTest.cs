@@ -22,7 +22,7 @@ public class OportunidadesYPotencialServiceTest
             CrearEnvio(8, 20, fecha.AddDays(-1), 1m, 7000m)); // vencido
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        var resultado = await new EnvioService(context).ObtenerOportunidadesParaViajeAsync(1, fecha, 10, "ganancia", TestContext.Current.CancellationToken);
+        var resultado = await new EnvioService(context, RutasDePrueba.CrearMock()).ObtenerOportunidadesParaViajeAsync(1, fecha, 10, "ganancia", TestContext.Current.CancellationToken);
 
         var oportunidad = Assert.Single(resultado!.Oportunidades);
         Assert.Equal(1, oportunidad.Id);
