@@ -28,13 +28,13 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label asp-for="OrigenDir" class="form-label">Origen</label>
-                    <input asp-for="OrigenDir" class="form-control" />
+                        <input asp-for="OrigenDir" class="form-control" placeholder="Ej.: Av. Triunvirato 4200, CABA" />
                     <div class="form-text">Escribí la dirección de origen del paquete.</div>
                     <span asp-validation-for="OrigenDir" class="text-danger"></span>
                 </div>
                 <div class="col-md-6">
                         <label asp-for="DestinoDir" class="form-label">Destino</label>
-                    <input asp-for="DestinoDir" class="form-control" />
+                        <input asp-for="DestinoDir" class="form-control" placeholder="Ej.: Alsina 200, Quilmes, Provincia de Buenos Aires" />
                     <div class="form-text">Escribí la dirección de destino del paquete.</div>
                     <span asp-validation-for="DestinoDir" class="text-danger"></span>
                 </div>
