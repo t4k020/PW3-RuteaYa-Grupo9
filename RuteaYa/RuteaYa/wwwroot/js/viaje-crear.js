@@ -129,21 +129,91 @@
         });
     }
 
-    const mostrarAvisoRuta = (boton) => {
+    const mostrarAvisoRuta = (mensaje, tipo) => {
         if (!rutaAviso) {
             return;
         }
 
-        const mensaje = boton.getAttribute('data-ruta-mensaje');
-        rutaAviso.textContent = mensaje || 'El servicio de rutas no está disponible en este entorno.';
-        rutaAviso.classList.remove('d-none');
-        rutaAviso.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        rutaAviso.textContent = mensaje;
+        rutaAviso.classList.remove(
+            'd-none',
+            'alert-info',
+            'alert-warning',
+            'alert-danger');
+        rutaAviso.classList.add(tipo || 'alert-info');
+    };
+
+    const leerMensajeDeError = async (respuesta) => {
+        try {
+            const problema = await respuesta.json();
+            return problema.detail || problema.title || 'No se pudo calcular el recorrido.';
+        } catch (error) {
+            return 'No se pudo calcular el recorrido.';
+        }
+    };
+
+    const contenedorMapa = document.getElementById('mapa-viaje');
+    const urlPrevisualizar = contenedorMapa
+        ? contenedorMapa.getAttribute('data-preview-url')
+        : null;
+
+    const calcularRuta = async (boton) => {
+        if (!urlPrevisualizar) {
+            return;
+        }
+
+        // Se validan los campos del formulario antes de gastar una llamada
+        // al proveedor de rutas.
+        const validador = window.jQuery && window.jQuery(form).data('validator');
+        const formularioValido = validador
+            ? window.jQuery(form).valid()
+            : form.reportValidity();
+
+        if (!formularioValido) {
+            mostrarAvisoValidacion();
+            return;
+        }
+
+        const textoOriginal = boton.textContent;
+        boton.disabled = true;
+        boton.textContent = 'Calculando...';
+        mostrarAvisoRuta('Calculando el recorrido...');
+
+        try {
+            const respuesta = await fetch(urlPrevisualizar, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+
+            if (!respuesta.ok) {
+                mostrarAvisoRuta(await leerMensajeDeError(respuesta), 'alert-danger');
+                return;
+            }
+
+            const recorrido = await respuesta.json();
+
+            if (window.RuteaYaMapa) {
+                window.RuteaYaMapa.dibujar(recorrido);
+            }
+
+            const distancia = Number(recorrido.distanciaKm || 0).toFixed(1);
+            const fuente = recorrido.fuente ? ` · Ruta: ${recorrido.fuente}` : '';
+
+            mostrarAvisoRuta(
+                `Recorrido calculado: ${distancia} km · ${recorrido.duracionMin} min${fuente}.`);
+        } catch (error) {
+            mostrarAvisoRuta('No se pudo conectar con el servidor.', 'alert-danger');
+        } finally {
+            boton.disabled = false;
+            boton.textContent = textoOriginal;
+        }
     };
 
     ['btn-mostrar-ruta', 'btn-actualizar-ruta'].forEach((id) => {
         const boton = document.getElementById(id);
         if (boton) {
-            boton.addEventListener('click', () => mostrarAvisoRuta(boton));
+            boton.addEventListener('click', () => calcularRuta(boton));
         }
     });
 

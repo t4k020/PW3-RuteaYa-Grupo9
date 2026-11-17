@@ -34,7 +34,20 @@ namespace RuteaYa.Servicios.Servicios
                 CreadoEn = DateTime.UtcNow
             };
 
-            await _usuarioRepository.CrearUsuario(usuario);
+            try
+            {
+                await _usuarioRepository.CrearUsuario(usuario);
+            }
+            catch (DbUpdateException)
+            {
+                // Dos registros simultáneos con el mismo email pasan la consulta
+                // anterior; el índice único de la base rechaza el segundo INSERT.
+                // Si el email ya existe es un duplicado (409), si no se propaga.
+                if (await _usuarioRepository.ExisteEmailRegistrado(request.Email))
+                    return false;
+
+                throw;
+            }
 
             return true;
         }
@@ -52,5 +65,47 @@ namespace RuteaYa.Servicios.Servicios
                 CreadoEn = usuario.CreadoEn
             }).ToList();
         }
+
+        public async Task<UsuarioDto?> ObtenerPropioAsync(int usuarioId)
+        {
+            var usuario = await _usuarioRepository.ObtenerUsuarioPorIdAsync(usuarioId);
+            return usuario is null ? null : Mapear(usuario);
+        }
+
+        public async Task<bool> ActualizarPropioAsync(int usuarioId, ActualizarUsuarioRequest request)
+        {
+            var usuario = await _usuarioRepository.ObtenerUsuarioPorIdAsync(usuarioId);
+            if (usuario is null) return false;
+
+            var email = request.Email.Trim();
+            var existente = await _usuarioRepository.ObtenerUsuarioPorEmail(email);
+            if (existente is not null && existente.Id != usuarioId)
+                throw new InvalidOperationException("El email ya está registrado.");
+
+            usuario.Nombre = request.Nombre.Trim();
+            usuario.Apellido = request.Apellido.Trim();
+            usuario.Email = email;
+            await _usuarioRepository.GuardarCambiosAsync();
+            return true;
+        }
+
+        public async Task<bool> EliminarPropioAsync(int usuarioId)
+        {
+            var usuario = await _usuarioRepository.ObtenerUsuarioPorIdAsync(usuarioId);
+            if (usuario is null) return false;
+            if (await _usuarioRepository.TieneOperacionesAsync(usuarioId))
+                throw new InvalidOperationException("No se puede eliminar una cuenta que tiene viajes o envíos registrados.");
+            await _usuarioRepository.EliminarUsuarioAsync(usuario);
+            return true;
+        }
+
+        private static UsuarioDto Mapear(Usuario usuario) => new()
+        {
+            Id = usuario.Id,
+            Nombre = usuario.Nombre,
+            Apellido = usuario.Apellido,
+            Email = usuario.Email,
+            CreadoEn = usuario.CreadoEn
+        };
     }
 }

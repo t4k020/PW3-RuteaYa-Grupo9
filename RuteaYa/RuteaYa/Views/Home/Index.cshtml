@@ -53,14 +53,60 @@
             </div>
         </div>
         <div class="col-sm-6 col-xl-3">
-            <div class="card card-potencial h-100 border-0 shadow-sm rounded-4">
+            <div class="card h-100 border-0 shadow-sm rounded-4">
                 <div class="card-body p-4">
-                    <h2 class="h6 text-muted fw-normal mb-3">Potencial del mes</h2>
-                    <p class="display-6 fw-bold text-success mb-0">@Model.PotencialGanancias.ToString("C")</p>
+                    <h2 class="h6 text-muted fw-normal mb-3">Ganancia efectiva</h2>
+                    <p class="display-6 fw-bold mb-0">@Model.GananciaEfectivaMes.ToString("C")</p>
                 </div>
             </div>
         </div>
     </div>
+
+    @{
+        var potencial = Model.PotencialMensual;
+        var mesActual = potencial is null ? DateTime.Today : new DateTime(potencial.Anio, potencial.Mes, 1);
+    }
+    <section class="monthly-potential card card-potencial border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4 p-lg-5">
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+                <div>
+                    <p class="monthly-potential-eyebrow mb-1">Proyección del mes</p>
+                    <h2 class="h4 fw-bold mb-1">Potencial de ganancias</h2>
+                    <p class="text-muted mb-0">@mesActual.ToString("MMMM yyyy", new System.Globalization.CultureInfo("es-AR")) · según tus viajes y oportunidades disponibles.</p>
+                </div>
+                <a asp-controller="Potencial" asp-action="Mensual" class="btn btn-outline-secondary rounded-pill px-3">Ver detalle</a>
+            </div>
+
+            <div class="row g-4 align-items-center">
+                <div class="col-md-4">
+                    <div class="monthly-potential-amount">
+                        <span>Podrías generar</span>
+                        <strong>@(potencial?.GananciaPotencial.ToString("C") ?? Model.PotencialGanancias.ToString("C"))</strong>
+                        <small>Ganancia ya asegurada: @(potencial?.GananciaEfectiva.ToString("C") ?? Model.GananciaEfectivaMes.ToString("C"))</small>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    @if (potencial is not null && potencial.Semanas.Any())
+                    {
+                        <div class="monthly-weeks">
+                            @foreach (var semana in potencial.Semanas.Where(s => s.Ganancia > 0))
+                            {
+                                <div><span>Semana @semana.Numero</span><strong>@semana.Ganancia.ToString("C")</strong></div>
+                            }
+                            @if (!potencial.Semanas.Any(s => s.Ganancia > 0))
+                            {
+                                <p class="text-muted mb-0">Todavía no hay oportunidades compatibles para este mes.</p>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No se pudo obtener el desglose mensual en este momento.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </section>
 
     @* Listados resumidos para consultar rápidamente viajes y envíos. *@
     <div class="row g-4">
@@ -143,7 +189,7 @@
                     }
 
                     <div>
-                        <a class="btn btn-outline-secondary rounded-pill px-3" href="#">Ver oportunidades</a>
+                        <a class="btn btn-outline-secondary rounded-pill px-3" asp-controller="Envio" asp-action="Oportunidades">Ver oportunidades</a>
                     </div>
                 </div>
             </section>

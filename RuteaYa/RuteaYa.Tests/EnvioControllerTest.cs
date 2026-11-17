@@ -12,6 +12,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using Xunit;
+using System.Text;
 
 namespace RuteaYa.Tests
 {
@@ -20,7 +21,7 @@ namespace RuteaYa.Tests
         private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
         private readonly EnvioController _controller;
         private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
-        
+
 
 
         public EnviosControllerTests()
@@ -92,10 +93,10 @@ namespace RuteaYa.Tests
         public async Task CuandoSeCreaUnEnvioCorrectamenteRedirigeAlIndex()
         {
             // Arrange
-            var nuevoEnvio = new CrearEnvioDto 
-            { 
-                OrigenDir = "Mitre 1000", 
-                DestinoDir = "Belgrano 500" 
+            var nuevoEnvio = new CrearEnvioDto
+            {
+                OrigenDir = "Mitre 1000",
+                DestinoDir = "Belgrano 500"
             };
 
             // Simulamos que la API responde exitosamente con un código 201 Created
@@ -124,10 +125,10 @@ namespace RuteaYa.Tests
         public async Task CuandoLaApiDevuelveUnauthorizedAgregaErrorAlModelState()
         {
             // Arrange
-            var nuevoEnvio = new CrearEnvioDto 
-            { 
-                OrigenDir = "Mitre 1000", 
-                DestinoDir = "Belgrano 500" 
+            var nuevoEnvio = new CrearEnvioDto
+            {
+                OrigenDir = "Mitre 1000",
+                DestinoDir = "Belgrano 500"
             };
 
             ConfigurarRespuestaHttp(new HttpResponseMessage { StatusCode = HttpStatusCode.Unauthorized });
@@ -145,10 +146,10 @@ namespace RuteaYa.Tests
         public async Task CuandoLaApiDevuelveBadRequestAgregaErrorAlModelState()
         {
             // Arrange
-            var nuevoEnvio = new CrearEnvioDto 
-            { 
-                OrigenDir = "Mitre 1000", 
-                DestinoDir = "Belgrano 500" 
+            var nuevoEnvio = new CrearEnvioDto
+            {
+                OrigenDir = "Mitre 1000",
+                DestinoDir = "Belgrano 500"
             };
 
             ConfigurarRespuestaHttp(new HttpResponseMessage { StatusCode = HttpStatusCode.BadRequest });
@@ -163,13 +164,45 @@ namespace RuteaYa.Tests
         }
 
         [Fact]
+        public async Task CuandoLaApiDevuelve502MuestraElMotivoDelProveedorDeRutas()
+        {
+            // Arrange: la API responde 502 cuando el proveedor de rutas falla.
+            var nuevoEnvio = new CrearEnvioDto
+            {
+                OrigenDir = "Mitre 1000",
+                DestinoDir = "Belgrano 500"
+            };
+
+            var problema = new
+            {
+                title = "Servicio de rutas no disponible.",
+                detail = "El proveedor de rutas no respondió a tiempo.",
+                status = 502
+            };
+
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.BadGateway)
+            {
+                Content = JsonContent.Create(problema)
+            });
+
+            // Act
+            var resultado = await _controller.Crear(nuevoEnvio);
+
+            // Assert
+            Assert.IsType<ViewResult>(resultado);
+            Assert.Contains(
+                _controller.ModelState[string.Empty]!.Errors,
+                e => e.ErrorMessage.Contains("no respondió a tiempo"));
+        }
+
+        [Fact]
         public async Task CuandoLaApiDevuelveErrorInesperadoAgregaErrorAlModelState()
         {
             // Arrange
-            var nuevoEnvio = new CrearEnvioDto 
-            { 
-                OrigenDir = "Mitre 1000", 
-                DestinoDir = "Belgrano 500" 
+            var nuevoEnvio = new CrearEnvioDto
+            {
+                OrigenDir = "Mitre 1000",
+                DestinoDir = "Belgrano 500"
             };
 
             ConfigurarRespuestaHttp(new HttpResponseMessage { StatusCode = HttpStatusCode.InternalServerError });
@@ -187,10 +220,10 @@ namespace RuteaYa.Tests
         public async Task CuandoOcurreUnErrorEnElServerApiSeDevuelveUnMensajeDeErrorAlModelState()
         {
             // Arrange
-            var nuevoEnvio = new CrearEnvioDto 
-            { 
-                OrigenDir = "Mitre 1000", 
-                DestinoDir = "Belgrano 500" 
+            var nuevoEnvio = new CrearEnvioDto
+            {
+                OrigenDir = "Mitre 1000",
+                DestinoDir = "Belgrano 500"
             };
 
             SetHttpServerError(new HttpRequestException("Fallo de red"));
@@ -277,7 +310,7 @@ namespace RuteaYa.Tests
         public async Task Eliminar_DeberiaRedireccionarAIndexConMensajeExito_CuandoLaApiRespondeOk()
         {
             // Arrange
-            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NoContent)); 
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NoContent));
 
             // Act
             var resultado = await _controller.Eliminar(1);
@@ -356,6 +389,277 @@ namespace RuteaYa.Tests
                     ItExpr.IsAny<CancellationToken>()
                 )
                 .ThrowsAsync(exception);
+        }
+
+        [Fact]
+        public async Task Editar_Get_DeberiaRetornarVistaConLosDatosDelEnvio_CuandoPuedeEditar()
+        {
+            var envio = CrearEnvioDetalleDto(puedeEditar: true);
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(envio)
+            });
+
+            var resultado = await _controller.Editar(5);
+
+            var viewResult = Assert.IsType<ViewResult>(resultado);
+            var modelo = Assert.IsType<CrearEnvioDto>(viewResult.Model);
+            Assert.Equal(envio.OrigenDir, modelo.OrigenDir);
+            Assert.Equal(envio.DestinoDir, modelo.DestinoDir);
+            Assert.Equal(envio.FechaLimite, modelo.FechaLimite);
+            Assert.Equal(envio.PesoKg, modelo.PesoKg);
+            Assert.Equal(envio.Tamano, modelo.Tamano);
+            Assert.Equal(envio.Descripcion, modelo.Descripcion);
+            Assert.Equal(envio.Monto, modelo.Monto);
+            Assert.Equal(5, viewResult.ViewData["EnvioId"]);
+        }
+
+        [Fact]
+        public async Task Editar_Get_DeberiaConsultarLaApiConElIdDelEnvio()
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(CrearEnvioDetalleDto(puedeEditar: true))
+            });
+
+            await _controller.Editar(5);
+
+            VerificarSolicitud(HttpMethod.Get, "api/ApiEnvio/5", Times.Once());
+        }
+
+        [Fact]
+        public async Task Editar_Get_DeberiaRedireccionarAIndexConError_CuandoElEnvioNoPuedeEditarse()
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = JsonContent.Create(CrearEnvioDetalleDto(puedeEditar: false))
+            });
+
+            var resultado = await _controller.Editar(5);
+
+            var redirect = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirect.ActionName);
+            Assert.Equal("El envío solo puede editarse mientras busca conductor.", _controller.TempData["Error"]);
+        }
+
+        [Fact]
+        public async Task Editar_Get_DeberiaRedireccionarAIndexConError_CuandoLaApiDevuelveUnCuerpoNulo()
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("null", Encoding.UTF8, "application/json")
+            });
+
+            var resultado = await _controller.Editar(5);
+
+            var redirect = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirect.ActionName);
+            Assert.Equal("No se encontró el envío a editar.", _controller.TempData["Error"]);
+        }
+
+        [Theory]
+        [InlineData(HttpStatusCode.NotFound, "No se encontró el envío a editar.")]
+        [InlineData(HttpStatusCode.Unauthorized, "No tienes autorización para editar este envío.")]
+        [InlineData(HttpStatusCode.InternalServerError, "No se pudo cargar el envío.")]
+        public async Task Editar_Get_DeberiaRedireccionarAIndexConError_SegunElCodigoDeLaApi(
+            HttpStatusCode codigo, string mensajeEsperado)
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(codigo));
+
+            var resultado = await _controller.Editar(5);
+
+            var redirect = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirect.ActionName);
+            Assert.Equal(mensajeEsperado, _controller.TempData["Error"]);
+        }
+
+        [Fact]
+        public async Task Editar_Get_DeberiaRedireccionarAIndexConError_CuandoOcurreHttpRequestException()
+        {
+            SetHttpServerError(new HttpRequestException("Error de red"));
+
+            var resultado = await _controller.Editar(5);
+
+            var redirect = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirect.ActionName);
+            Assert.Equal("No se pudo conectar con el servidor de la API.", _controller.TempData["Error"]);
+        }
+
+        // ---------- Editar envío: POST ----------
+
+        [Fact]
+        public async Task Editar_Post_DeberiaRedireccionarAIndexConMensajeExito_CuandoLaApiRespondeNoContent()
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NoContent));
+
+            var resultado = await _controller.Editar(5, CrearSolicitudValida());
+
+            var redirect = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirect.ActionName);
+            Assert.Equal("¡Envío actualizado con éxito!", _controller.TempData["Mensaje"]);
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaEnviarUnPutALaApiConElIdDelEnvio()
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NoContent));
+
+            await _controller.Editar(5, CrearSolicitudValida());
+
+            VerificarSolicitud(HttpMethod.Put, "api/ApiEnvio/5", Times.Once());
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaRetornarLaVistaSinLlamarALaApi_CuandoElModeloEsInvalido()
+        {
+            _controller.ModelState.AddModelError("OrigenDir", "El origen es obligatorio.");
+            var solicitud = CrearSolicitudValida();
+
+            var resultado = await _controller.Editar(5, solicitud);
+
+            var viewResult = Assert.IsType<ViewResult>(resultado);
+            Assert.Same(solicitud, viewResult.Model);
+            Assert.Equal(5, viewResult.ViewData["EnvioId"]);
+            _httpMessageHandlerMock.Protected().Verify(
+                "SendAsync",
+                Times.Never(),
+                ItExpr.IsAny<HttpRequestMessage>(),
+                ItExpr.IsAny<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaRedireccionarAIndexConError_CuandoLaApiRetornaNotFound()
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.NotFound));
+
+            var resultado = await _controller.Editar(999, CrearSolicitudValida());
+
+            var redirect = Assert.IsType<RedirectToActionResult>(resultado);
+            Assert.Equal("Index", redirect.ActionName);
+            Assert.Equal("No se encontró el envío a editar.", _controller.TempData["Error"]);
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaRetornarVistaConError_CuandoLaApiRetornaUnauthorized()
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.Unauthorized));
+
+            var resultado = await _controller.Editar(5, CrearSolicitudValida());
+
+            var viewResult = Assert.IsType<ViewResult>(resultado);
+            Assert.Equal(5, viewResult.ViewData["EnvioId"]);
+            Assert.Equal(
+                "No tienes autorización para realizar esta acción.",
+                ObtenerErrorGeneral());
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaMostrarElDetalleDeLaApi_CuandoRetornaBadRequest()
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = JsonContent.Create(new ProblemDetails
+                {
+                    Detail = "El envío solo puede editarse mientras busca conductor."
+                })
+            });
+
+            var resultado = await _controller.Editar(5, CrearSolicitudValida());
+
+            Assert.IsType<ViewResult>(resultado);
+            Assert.Equal(
+                "El envío solo puede editarse mientras busca conductor.",
+                ObtenerErrorGeneral());
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaMostrarMensajeGenerico_CuandoElBadRequestNoTieneDetalle()
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent("esto no es json", Encoding.UTF8, "application/json")
+            });
+
+            var resultado = await _controller.Editar(5, CrearSolicitudValida());
+
+            Assert.IsType<ViewResult>(resultado);
+            Assert.Equal("Error en los datos enviados a la API.", ObtenerErrorGeneral());
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaRetornarVistaConError_CuandoLaApiFallaConErrorInterno()
+        {
+            ConfigurarRespuestaHttp(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+
+            var resultado = await _controller.Editar(5, CrearSolicitudValida());
+
+            Assert.IsType<ViewResult>(resultado);
+            Assert.Equal(
+                "Ocurrió un error inesperado al comunicarse con el servidor.",
+                ObtenerErrorGeneral());
+        }
+
+        [Fact]
+        public async Task Editar_Post_DeberiaRetornarVistaConError_CuandoOcurreHttpRequestException()
+        {
+            SetHttpServerError(new HttpRequestException("Error de red"));
+            var solicitud = CrearSolicitudValida();
+
+            var resultado = await _controller.Editar(5, solicitud);
+
+            var viewResult = Assert.IsType<ViewResult>(resultado);
+            Assert.Same(solicitud, viewResult.Model);
+            Assert.Equal("No se pudo conectar con el servidor de la API.", ObtenerErrorGeneral());
+        }
+
+        // ---------- Métodos auxiliares ----------
+
+        private string? ObtenerErrorGeneral()
+        {
+            return _controller.ModelState[string.Empty]?.Errors.Single().ErrorMessage;
+        }
+
+        private static EnvioDto CrearEnvioDetalleDto(bool puedeEditar)
+        {
+            return new EnvioDto
+            {
+                Id = 5,
+                OrigenDir = "Mitre 1000",
+                DestinoDir = "Belgrano 500",
+                FechaLimite = new DateTime(2030, 1, 15),
+                PesoKg = 2.5m,
+                Tamano = 2,
+                Descripcion = "Documentación",
+                Monto = 4000m,
+                Estado = 1,
+                EstadoNombre = "Buscando conductor",
+                PuedeEditar = puedeEditar
+            };
+        }
+
+        private static CrearEnvioDto CrearSolicitudValida()
+        {
+            return new CrearEnvioDto
+            {
+                OrigenDir = "Mitre 1000",
+                DestinoDir = "Belgrano 500",
+                FechaLimite = DateTime.Today.AddDays(1),
+                PesoKg = 2,
+                Tamano = 1,
+                Descripcion = "Documentacion",
+                Monto = 4000
+            };
+        }
+
+        private void VerificarSolicitud(HttpMethod metodo, string rutaEsperada, Times veces)
+        {
+            _httpMessageHandlerMock.Protected().Verify(
+                "SendAsync",
+                veces,
+                ItExpr.Is<HttpRequestMessage>(r =>
+                    r.Method == metodo &&
+                    r.RequestUri!.AbsolutePath.TrimStart('/') == rutaEsperada),
+                ItExpr.IsAny<CancellationToken>());
         }
     }
 }

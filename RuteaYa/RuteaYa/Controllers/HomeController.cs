@@ -30,6 +30,27 @@ namespace RuteaYa.Controllers
 
                     if (dashboard is not null)
                     {
+                        // El potencial se calcula con los viajes recurrentes y las oportunidades
+                        // disponibles del mes actual. Si falla, el resto del inicio sigue visible.
+                        try
+                        {
+                            var hoy = DateTime.Today;
+                            var potencialClient = _httpClientFactory.CreateClient("ApiPotencial");
+                            var potencialResponse = await potencialClient.GetAsync(
+                                $"api/ApiPotencial/mensual?anio={hoy.Year}&mes={hoy.Month}&criterio=ganancia",
+                                cancellationToken);
+
+                            if (potencialResponse.IsSuccessStatusCode)
+                            {
+                                dashboard.PotencialMensual = await potencialResponse.Content
+                                    .ReadFromJsonAsync<PotencialMensualDto>(cancellationToken);
+                            }
+                        }
+                        catch (HttpRequestException)
+                        {
+                            // El resumen general no depende de esta estimación adicional.
+                        }
+
                         return View(dashboard);
                     }
                 }

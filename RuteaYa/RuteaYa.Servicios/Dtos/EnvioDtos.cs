@@ -66,6 +66,7 @@ public sealed class EnvioDto
     public byte Estado { get; set; }
     public DateTime CreadoEn { get; set; }
     public ViajeAsociadoDto? Viaje { get; set; }
+    public bool PuedeEditar { get; set; }
     public bool PuedeCancelar { get; set; }
     public bool PuedeEliminar { get; set; }
     public string EstadoNombre { get; set; } = string.Empty;
@@ -92,4 +93,48 @@ public sealed class AsignarEnvioDto
     [Required(ErrorMessage = "La fecha del viaje es obligatoria.")]
     [DataType(DataType.Date)]
     public DateTime FechaViaje { get; set; }
+}
+
+public sealed class OportunidadDto
+{
+    public int Id { get; set; }
+    public string OrigenDir { get; set; } = string.Empty;
+    public string DestinoDir { get; set; } = string.Empty;
+    public string Descripcion { get; set; } = string.Empty;
+    public decimal PesoKg { get; set; }
+    public decimal Monto { get; set; }
+    public decimal DesvioKm { get; set; }
+    public string Compatibilidad { get; set; } = string.Empty;
+}
+
+public sealed class OportunidadesResultadoDto
+{
+    public int ViajeId { get; set; }
+    public DateTime FechaViaje { get; set; }
+    public string OrigenDir { get; set; } = string.Empty;
+    public string DestinoDir { get; set; } = string.Empty;
+    public int CupoDisponible { get; set; }
+    public decimal PesoDisponibleKg { get; set; }
+    public decimal DesvioDisponibleKm { get; set; }
+    public List<OportunidadDto> Oportunidades { get; set; } = new();
+}
+
+public class DetalleOportunidadViajeDto
+{
+    public EnvioDto Envio { get; set; } = new();
+    public int ViajeId { get; set; }
+    public DateTime FechaViaje { get; set; }
+    public string ViajeOrigenDir { get; set; } = string.Empty;
+    public string ViajeDestinoDir { get; set; } = string.Empty;
+    public decimal DistanciaHabitualKm { get; set; }
+    public decimal DesvioKm { get; set; }
+    public decimal DistanciaConEnvioKm { get; set; }
+    public int DuracionHabitualMin { get; set; }
+    public int TiempoAdicionalMin { get; set; }
+    public int CupoRestante { get; set; }
+    public decimal PesoRestanteKg { get; set; }
+    public decimal PagoPorKmAdicional { get; set; }
+    public string Compatibilidad { get; set; } = string.Empty;
+    // false si el envío no entra en el viaje (cupo, peso o desvío insuficientes).
+    public bool PuedeAceptar { get; set; }
 }

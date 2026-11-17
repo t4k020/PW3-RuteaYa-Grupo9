@@ -1,0 +1,135 @@
+@model RuteaYa.Models.OptimizadorViewModel
+
+@{
+    ViewData["Title"] = "Optimizador de combinaciones";
+    var r = Model.Resultado;
+    var hoy = DateTime.Today.ToString("yyyy-MM-dd");
+    var alternativas = r?.Alternativas ?? new List<RuteaYa.Servicios.Dtos.CombinacionDto>();
+    var descartadas = r?.Descartadas ?? new List<RuteaYa.Servicios.Dtos.CombinacionDto>();
+}
+
+<div class="container mt-4">
+    @if (TempData["Mensaje"] != null)
+    {
+        <div class="alert alert-success rounded-4 shadow-sm">@TempData["Mensaje"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger rounded-4 shadow-sm">@TempData["Error"]</div>
+    }
+
+    <div class="mb-4">
+        <h2 class="fw-bold mb-1">Optimizador de combinaciones</h2>
+        <p class="text-muted mb-0">Elegí un viaje y una fecha: te mostramos la combinación de envíos que más ganancia te deja.</p>
+    </div>
+
+    <form method="get" asp-action="Index" class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-6">
+                <label for="viajeId" class="form-label">Viaje</label>
+                <select id="viajeId" name="viajeId" class="form-select" required>
+                    <option value="">Elegí un viaje</option>
+                    @foreach (var v in Model.Viajes)
+                    {
+                        <option value="@v.Id" selected="@(Model.ViajeId == v.Id)">@v.OrigenDir → @v.DestinoDir</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="fecha" class="form-label">Fecha</label>
+                <input id="fecha" name="fecha" type="date" class="form-control" min="@hoy"
+                       value="@Model.Fecha.ToString("yyyy-MM-dd")" required />
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-dark rounded-pill w-100">Calcular</button>
+            </div>
+        </div>
+        @if (!Model.Viajes.Any())
+        {
+            <div class="form-text mt-2">No tenés viajes activos. Activá uno para usar el optimizador.</div>
+        }
+    </form>
+
+    @if (r != null)
+    {
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+                    <div class="text-muted small">Cupo disponible</div>
+                    <div class="fs-4 fw-bold">@r.CupoDisponible paquetes</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+                    <div class="text-muted small">Peso disponible</div>
+                    <div class="fs-4 fw-bold">@r.PesoDisponibleKg.ToString("0.##") kg</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 p-3 h-100">
+                    <div class="text-muted small">Desvío disponible</div>
+                    <div class="fs-4 fw-bold">@r.DesvioDisponibleKm.ToString("0.#") km</div>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-muted small">Se evaluaron @r.CandidatosEvaluados envíos para @r.OrigenDir → @r.DestinoDir el @r.FechaViaje.ToString("dd/MM/yyyy").</p>
+
+        @if (r.Recomendada == null)
+        {
+            <div class="card border-0 shadow-sm rounded-4 p-4 text-center mb-4">
+                <h5 class="mb-1">No hay combinaciones posibles</h5>
+                <p class="text-muted mb-0">No encontramos envíos que entren en tu cupo, peso y desvío para esa fecha.</p>
+            </div>
+        }
+        else
+        {
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+                <div class="bg-dark text-white px-4 py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h5 class="mb-0">Combinación recomendada</h5>
+                    <span class="badge rounded-pill text-bg-light">$@r.Recomendada.GananciaTotal.ToString("N0")</span>
+                </div>
+                <div class="p-4">
+                    @await Html.PartialAsync("_CombinacionPaquetes", r.Recomendada)
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
+                        <span class="text-muted small">@r.Recomendada.Paquetes.Count paquetes · @r.Recomendada.PesoTotalKg.ToString("0.##") kg · @r.Recomendada.DesvioTotalKm.ToString("0.#") km de desvío</span>
+                        <a class="btn btn-dark rounded-pill px-4"
+                           href="@Url.Action("Confirmar", new { viajeId = r.ViajeId, fecha = r.FechaViaje.ToString("yyyy-MM-dd"), ids = r.Recomendada.Paquetes.Select(p => p.Id).ToArray() })">Confirmar combinación</a>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (alternativas.Any() || descartadas.Any())
+        {
+            <h5 class="mb-3">Otras combinaciones</h5>
+            <p class="text-muted small">En empate de ganancia gana la de menor desvío.</p>
+
+            @foreach (var alt in alternativas)
+            {
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong>$@alt.GananciaTotal.ToString("N0")</strong>
+                        <span class="text-muted small">@alt.Paquetes.Count paquetes · @alt.PesoTotalKg.ToString("0.##") kg · @alt.DesvioTotalKm.ToString("0.#") km</span>
+                    </div>
+                    @await Html.PartialAsync("_CombinacionPaquetes", alt)
+                    <div class="text-end mt-2">
+                        <a class="btn btn-outline-dark rounded-pill px-3"
+                           href="@Url.Action("Confirmar", new { viajeId = r!.ViajeId, fecha = r.FechaViaje.ToString("yyyy-MM-dd"), ids = alt.Paquetes.Select(p => p.Id).ToArray() })">Elegir esta</a>
+                    </div>
+                </div>
+            }
+
+            @foreach (var d in descartadas)
+            {
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-3 opacity-75">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <strong>$@d.GananciaTotal.ToString("N0")</strong>
+                        <span class="badge rounded-pill text-bg-danger">@(d.MotivoRechazo ?? "No válida")</span>
+                    </div>
+                    @await Html.PartialAsync("_CombinacionPaquetes", d)
+                </div>
+            }
+        }
+    }
+</div>

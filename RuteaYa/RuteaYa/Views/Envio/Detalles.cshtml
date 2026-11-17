@@ -73,6 +73,13 @@
         }
 
         <div class="d-flex gap-2 mt-4">
+            @if (Model.PuedeEditar)
+            {
+                <a asp-action="Editar" asp-route-id="@Model.Id"
+                   class="btn btn-outline-warning rounded-pill px-3">
+                    Editar envío
+                </a>
+            }
             @if (Model.PuedeCancelar)
             {
                 <form asp-controller="Envio" asp-action="Cancelar" asp-route-id="@Model.Id" method="post"

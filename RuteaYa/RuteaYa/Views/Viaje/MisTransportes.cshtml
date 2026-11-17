@@ -1,9 +1,10 @@
 ﻿@model IEnumerable<RuteaYa.Servicios.Dtos.ViajeDetalleDto>
+@using RuteaYa.Models
 @{
     ViewData["Title"] = "Mis transportes";
 }
 
-<div class="container mt-5">
+<div class="container transports-page mt-5">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
         <div>
             <h2 class="fw-bold text-dark mb-1">Mis transportes</h2>
@@ -27,33 +28,24 @@
     {
         foreach (var viaje in Model)
         {
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card transport-card border-0 shadow-sm rounded-4 mb-4">
                 <!-- Encabezado del Viaje -->
-                <div class="card-header bg-white border-bottom border-light-subtle p-3 rounded-top-4">
-                    <h5 class="mb-0 fw-bold text-dark">
-                        Viaje: @viaje.OrigenDir &rarr; @viaje.DestinoDir
-                    </h5>
-                    <small class="text-muted">Horario: @viaje.HoraSalida - @viaje.HoraLlegada</small>
+                <div class="card-header transport-card-header border-bottom p-3 rounded-top-4 d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                    <div>
+                        <h5 class="mb-0 fw-bold text-dark">Viaje: @viaje.OrigenDir &rarr; @viaje.DestinoDir</h5>
+                        <small class="text-muted">Horario: @viaje.HoraSalida.ToString("HH:mm") – @viaje.HoraLlegada.ToString("HH:mm")</small>
+                    </div>
+                    <a asp-controller="Viaje" asp-action="Detalle" asp-route-id="@viaje.Id" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                        Ver viaje
+                    </a>
                 </div>
-                <a asp-controller="Viaje" asp-action="Detalle" asp-route-id="@viaje.Id" class="btn btn-outline-secondary btn-sm rounded-pill px-3 bg-white">
-                    Ver viaje
-                </a>
                 <div class="card-body p-0">
                     @foreach (var envio in viaje.PaquetesAsignados)
                     {
                         var estadoEnum = (RuteaYa.Entidades.EstadoEnvio)envio.Estado;
+                        var badgeClass = RuteaYa.Helpers.EstadoEnvioBadge.ObtenerClase(estadoEnum);
 
-                        var estadoTexto = System.Text.RegularExpressions.Regex.Replace(estadoEnum.ToString(), "([a-z])([A-Z])", "$1 $2");
-
-                        var badgeClass = estadoEnum switch
-                        {
-                            RuteaYa.Entidades.EstadoEnvio.ConductorAsignado or RuteaYa.Entidades.EstadoEnvio.Retirado => "bg-primary-subtle text-primary-emphasis",
-                            RuteaYa.Entidades.EstadoEnvio.EnCamino => "bg-info-subtle text-info-emphasis",
-                            RuteaYa.Entidades.EstadoEnvio.Entregado => "bg-success-subtle text-success-emphasis",
-                            _ => "bg-secondary-subtle text-secondary-emphasis"
-                        };
-
-                        <div class="d-flex justify-content-between align-items-center p-3 border-bottom border-light-subtle flex-wrap gap-3">
+                        <div class="transport-item d-flex justify-content-between align-items-center p-3 border-bottom flex-wrap gap-3">
 
  
                             <div>
@@ -68,11 +60,16 @@
 
                                 <!-- Badge (Usa la variable badgeClass declarada arriba) -->
                                 <span class="badge @badgeClass px-3 py-2 rounded-pill fw-normal me-2">
-                                    @estadoTexto
+                                    @envio.EstadoNombre
                                 </span>
 
-                                <a asp-controller="Envio" asp-action="DetallesOportunidad" asp-route-id="@envio.Id" class="btn btn-outline-secondary btn-sm rounded-pill px-3 bg-white">
-                                    Ver envío
+                                <a asp-controller="Viaje"
+                                   asp-action="Paquete"
+                                   asp-route-viajeId="@viaje.Id"
+                                   asp-route-envioId="@envio.Id"
+                                   asp-route-origen="@OrigenNavegacionPaquete.MisTransportes"
+                                   class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                                    Ver envio
                                 </a>
 
                                 <!-- BOTONES  -->

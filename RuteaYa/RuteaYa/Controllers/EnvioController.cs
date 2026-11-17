@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
 using RuteaYa.Servicios.Dtos;
+using RuteaYa.Models;
+using RuteaYa.Servicios;
 using System.Text.Json;
 
 namespace RuteaYa.Controllers
@@ -87,9 +89,11 @@ namespace RuteaYa.Controllers
                 {
                     ModelState.AddModelError(string.Empty, "No tienes autorización para realizar esta acción.");
                 }
-                else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest
+                         || respuesta.StatusCode == System.Net.HttpStatusCode.BadGateway)
                 {
-                    // Se intenta mostrar el detalle de validación devuelto por la API.
+                    // La API explica el motivo: datos inválidos (400), dirección
+                    // no ubicada (400) o proveedor de rutas caído (502).
                     ProblemDetails? detalle = null;
                     try
                     {
@@ -267,7 +271,7 @@ namespace RuteaYa.Controllers
                 if (respuesta.IsSuccessStatusCode)
                 {
                     TempData["Mensaje"] = "¡Envío aceptado y asignado a tu viaje con éxito!";
-                    return RedirectToAction(nameof(Oportunidades));
+                    return RedirectToAction("MisTransportes", "Viaje");
                 }
                 else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest)
                 {
@@ -290,22 +294,39 @@ namespace RuteaYa.Controllers
                 TempData["Error"] = "No se pudo conectar con el servidor de la API.";
             }
 
-            return RedirectToAction(nameof(Oportunidades));
+            return RedirectToAction(nameof(DetallesOportunidad), new
+            {
+                id = envioId, viajeId,
+                fecha = fechaViaje.ToString("yyyy-MM-dd") 
+            });
         }
         [HttpGet]
-        public async Task<IActionResult> Oportunidades()
+        public async Task<IActionResult> Oportunidades(int? viajeId, DateTime? fecha, string orden = "ganancia")
         {
             var client = _httpClientFactory.CreateClient("ApiEnvio");
+            var modelo = new OportunidadesViewModel
+            {
+                ViajeId = viajeId,
+                Fecha = (fecha ?? DateTime.Today).Date,
+                Orden = orden
+            };
 
             try
             {
-                HttpResponseMessage respuesta = await client.GetAsync($"{ApiRoute}/oportunidades");
+                var respuestaViajes = await client.GetAsync("api/ApiViaje?soloActivo=true");
+                if (respuestaViajes.IsSuccessStatusCode)
+                    modelo.Viajes = await respuestaViajes.Content.ReadFromJsonAsync<List<ViajeListadoDto>>() ?? new();
+
+                if (!viajeId.HasValue)
+                    return View(modelo);
+
+                var ruta = $"{ApiRoute}/oportunidades?viajeId={viajeId}&fecha={modelo.Fecha:yyyy-MM-dd}&orden={Uri.EscapeDataString(orden)}";
+                HttpResponseMessage respuesta = await client.GetAsync(ruta);
 
                 if (respuesta.IsSuccessStatusCode)
                 {
-                    var oportunidades = await respuesta.Content.ReadFromJsonAsync<List<EnvioDto>>()
-                        ?? new List<EnvioDto>();
-                    return View(oportunidades);
+                    modelo.Resultado = await respuesta.Content.ReadFromJsonAsync<OportunidadesResultadoDto>();
+                    return View(modelo);
                 }
                 else
                 {
@@ -317,47 +338,177 @@ namespace RuteaYa.Controllers
                 TempData["Error"] = "No se pudo conectar con el servidor de la API.";
             }
 
-            return View(new List<EnvioDto>());
+            return View(modelo);
+        }
+
+        // Pantalla 11 para los envíos elegidos en Oportunidades: resumen antes de reservar.
+        [HttpGet]
+        public async Task<IActionResult> ConfirmarSeleccion(
+            int viajeId, DateTime fecha, List<int> ids, string orden = "ganancia")
+        {
+            var volver = new
+            {
+                viajeId,
+                fecha = fecha.Date.ToString("yyyy-MM-dd"),
+                orden
+            };
+
+            if (ids == null || ids.Count == 0)
+            {
+                TempData["Error"] = "Elegí al menos un envío para confirmar.";
+                return RedirectToAction(nameof(Oportunidades), volver);
+            }
+
+            // Se vuelve a consultar a la API: no se confía en lo que vuelve del navegador.
+            var resultado = await ObtenerOportunidadesParaConfirmarAsync(viajeId, fecha.Date, orden);
+            if (resultado == null)
+            {
+                return RedirectToAction(nameof(Oportunidades), volver);
+            }
+
+            var elegidos = ids.Distinct().ToList();
+            var seleccionadas = resultado.Oportunidades.Where(o => elegidos.Contains(o.Id)).ToList();
+
+            if (seleccionadas.Count != elegidos.Count)
+            {
+                TempData["Error"] = "Otro conductor tomó un envío o ya no está disponible. Elegí de nuevo.";
+                return RedirectToAction(nameof(Oportunidades), volver);
+            }
+
+            var pesoTotal = seleccionadas.Sum(o => o.PesoKg);
+            var desvioTotal = seleccionadas.Sum(o => o.DesvioKm);
+
+            if (seleccionadas.Count > resultado.CupoDisponible
+                || pesoTotal > resultado.PesoDisponibleKg
+                || desvioTotal > resultado.DesvioDisponibleKm)
+            {
+                TempData["Error"] = "La selección supera el cupo, el peso o el desvío disponibles del viaje.";
+                return RedirectToAction(nameof(Oportunidades), volver);
+            }
+
+            var combinacion = new CombinacionDto
+            {
+                GananciaTotal = seleccionadas.Sum(o => o.Monto),
+                PesoTotalKg = pesoTotal,
+                DesvioTotalKm = desvioTotal,
+                EsValida = true
+            };
+
+            foreach (var o in seleccionadas)
+            {
+                combinacion.Paquetes.Add(new PaqueteOptimizableDto
+                {
+                    Id = o.Id,
+                    OrigenDir = o.OrigenDir,
+                    DestinoDir = o.DestinoDir,
+                    Descripcion = o.Descripcion,
+                    PesoKg = o.PesoKg,
+                    Monto = o.Monto,
+                    DesvioKm = o.DesvioKm,
+                    TiempoExtraMin = OptimizadorService.EstimarTiempoExtraMin(o.DesvioKm)
+                });
+            }
+
+            // Reutiliza la pantalla de confirmación del optimizador; "Reservar" es el mismo POST.
+            return View("~/Views/Optimizador/Confirmar.cshtml", new ConfirmarCombinacionViewModel
+            {
+                ViajeId = viajeId,
+                OrigenDir = resultado.OrigenDir,
+                DestinoDir = resultado.DestinoDir,
+                Fecha = resultado.FechaViaje,
+                DesdeOportunidades = true,
+                Orden = orden,
+                Combinacion = combinacion
+            });
+        }
+
+        // Devuelve null si la API no pudo buscar, y deja el motivo en TempData["Error"].
+        private async Task<OportunidadesResultadoDto?> ObtenerOportunidadesParaConfirmarAsync(
+            int viajeId, DateTime fecha, string orden)
+        {
+            var client = _httpClientFactory.CreateClient("ApiEnvio");
+            var ruta = $"{ApiRoute}/oportunidades?viajeId={viajeId}&fecha={fecha:yyyy-MM-dd}&orden={Uri.EscapeDataString(orden)}";
+
+            try
+            {
+                HttpResponseMessage respuesta = await client.GetAsync(ruta);
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    return await respuesta.Content.ReadFromJsonAsync<OportunidadesResultadoDto>();
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    ProblemDetails? detalle = null;
+                    try
+                    {
+                        detalle = await respuesta.Content.ReadFromJsonAsync<ProblemDetails>();
+                    }
+                    catch (JsonException) { }
+
+                    TempData["Error"] = string.IsNullOrWhiteSpace(detalle?.Detail)
+                        ? "No se pudo confirmar la selección."
+                        : detalle.Detail;
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    TempData["Error"] = "No se encontró el viaje seleccionado.";
+                }
+                else
+                {
+                    TempData["Error"] = "No se pudo confirmar la selección.";
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "No se pudo conectar con el servidor de la API.";
+            }
+
+            return null;
         }
 
         [HttpGet]
-        public async Task<IActionResult> DetallesOportunidad(int id)
+        public async Task<IActionResult> DetallesOportunidad(int id, int? viajeId = null, DateTime? fecha = null)
         {
             var client = _httpClientFactory.CreateClient("ApiEnvio");
 
             try
             {
-                // 1. Solicita el envío por ID a la API
+                if (viajeId.HasValue && fecha.HasValue)
+                {
+                    var ruta = $"{ApiRoute}/oportunidades/{id}/detalle?viajeId={viajeId}&fecha={fecha.Value:yyyy-MM-dd}";
+                    var respuestaDetalle = await client.GetAsync(ruta);
+
+                    if (respuestaDetalle.IsSuccessStatusCode)
+                    {
+                        var detalle = await respuestaDetalle.Content.ReadFromJsonAsync<DetalleOportunidadViajeDto>();
+                        return View("DetalleOportunidadViaje", detalle);
+                    }
+
+                    TempData["Error"] = respuestaDetalle.StatusCode == System.Net.HttpStatusCode.NotFound
+                        ? "No se encontró la oportunidad solicitada."
+                        : "No se pudieron obtener los detalles de la oportunidad.";
+                    return RedirectToAction(nameof(Oportunidades), new { viajeId, fecha = fecha.Value.ToString("yyyy-MM-dd") });
+                }
+
+                // --- flujo anterior (sin viaje elegido): se mantiene igual ---
                 HttpResponseMessage respuestaEnvio = await client.GetAsync($"{ApiRoute}/oportunidades/{id}");
 
                 if (!respuestaEnvio.IsSuccessStatusCode)
                 {
-                    if (respuestaEnvio.StatusCode == System.Net.HttpStatusCode.NotFound)
-                    {
-                        TempData["Error"] = "No se encontró la oportunidad solicitada.";
-                    }
-                    else
-                    {
-                        TempData["Error"] = "No se pudieron obtener los detalles de la oportunidad.";
-                    }
+                    TempData["Error"] = respuestaEnvio.StatusCode == System.Net.HttpStatusCode.NotFound
+                        ? "No se encontró la oportunidad solicitada."
+                        : "No se pudieron obtener los detalles de la oportunidad.";
                     return RedirectToAction(nameof(Oportunidades));
                 }
 
                 var envio = await respuestaEnvio.Content.ReadFromJsonAsync<EnvioDto>();
 
-                // 2. Obtiene los viajes del propio usuario para el dropdown de la vista
                 HttpResponseMessage respuestaViajes = await client.GetAsync("api/ApiViaje?soloActivo=true");
-                var misViajes = new List<ViajeListadoDto>();
+                ViewBag.MisViajes = respuestaViajes.IsSuccessStatusCode
+                    ? await respuestaViajes.Content.ReadFromJsonAsync<List<ViajeListadoDto>>() ?? new List<ViajeListadoDto>()
+                    : new List<ViajeListadoDto>();
 
-                if (respuestaViajes.IsSuccessStatusCode)
-                {
-                    misViajes = await respuestaViajes.Content.ReadFromJsonAsync<List<ViajeListadoDto>>()
-                        ?? new List<ViajeListadoDto>();
-                }
-
-                ViewBag.MisViajes = misViajes;
-
-                // 3. Retorna la vista DetalleOportunidad (o Detalles) pasándole el modelo
                 return View("DetalleOportunidad", envio);
             }
             catch (HttpRequestException)
@@ -366,5 +517,124 @@ namespace RuteaYa.Controllers
                 return RedirectToAction(nameof(Oportunidades));
             }
         }
+
+        [HttpGet]
+        public async Task<IActionResult> Editar(int id)
+        {
+            var client = _httpClientFactory.CreateClient("ApiEnvio");
+
+            try
+            {
+                HttpResponseMessage respuesta = await client.GetAsync($"{ApiRoute}/{id}");
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    var envio = await respuesta.Content.ReadFromJsonAsync<EnvioDto>();
+
+                    if (envio is null)
+                    {
+                        TempData["Error"] = "No se encontró el envío a editar.";
+                        return RedirectToAction(nameof(Index));
+                    }
+
+                    // La API indica si el estado actual permite editar.
+                    if (!envio.PuedeEditar)
+                    {
+                        TempData["Error"] = "El envío solo puede editarse mientras busca conductor.";
+                        return RedirectToAction(nameof(Index));
+                    }
+
+                    ViewData["EnvioId"] = id;
+                    return View(new CrearEnvioDto
+                    {
+                        OrigenDir = envio.OrigenDir,
+                        DestinoDir = envio.DestinoDir,
+                        FechaLimite = envio.FechaLimite,
+                        PesoKg = envio.PesoKg,
+                        Tamano = envio.Tamano,
+                        Descripcion = envio.Descripcion,
+                        Monto = envio.Monto
+                    });
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    TempData["Error"] = "No se encontró el envío a editar.";
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    TempData["Error"] = "No tienes autorización para editar este envío.";
+                }
+                else
+                {
+                    TempData["Error"] = "No se pudo cargar el envío.";
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "No se pudo conectar con el servidor de la API.";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Editar(int id, CrearEnvioDto modelo)
+        {
+            ViewData["EnvioId"] = id;
+
+            if (!ModelState.IsValid)
+            {
+                return View(modelo);
+            }
+
+            var client = _httpClientFactory.CreateClient("ApiEnvio");
+
+            try
+            {
+                HttpResponseMessage respuesta = await client.PutAsJsonAsync($"{ApiRoute}/{id}", modelo);
+
+                if (respuesta.IsSuccessStatusCode)
+                {
+                    TempData["Mensaje"] = "¡Envío actualizado con éxito!";
+                    return RedirectToAction(nameof(Index));
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    TempData["Error"] = "No se encontró el envío a editar.";
+                    return RedirectToAction(nameof(Index));
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    ModelState.AddModelError(string.Empty, "No tienes autorización para realizar esta acción.");
+                }
+                else if (respuesta.StatusCode == System.Net.HttpStatusCode.BadRequest)
+                {
+                    ProblemDetails? detalle = null;
+                    try
+                    {
+                        detalle = await respuesta.Content.ReadFromJsonAsync<ProblemDetails>();
+                    }
+                    catch (JsonException)
+                    {
+                    }
+
+                    ModelState.AddModelError(
+                        string.Empty,
+                        detalle?.Detail ?? "Error en los datos enviados a la API.");
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, "Ocurrió un error inesperado al comunicarse con el servidor.");
+                }
+            }
+            catch (HttpRequestException)
+            {
+                ModelState.AddModelError(string.Empty, "No se pudo conectar con el servidor de la API.");
+            }
+
+            return View(modelo);
+        }
+
     }
 }

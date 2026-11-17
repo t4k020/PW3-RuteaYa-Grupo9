@@ -70,6 +70,11 @@ public class HomeControllerTest
         };
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(f => f.CreateClient("ApiHome")).Returns(client);
+        factory.Setup(f => f.CreateClient("ApiPotencial")).Returns(new HttpClient(
+            new StubHttpMessageHandler(HttpStatusCode.ServiceUnavailable, null))
+        {
+            BaseAddress = new Uri("https://localhost/")
+        });
         return factory;
     }
 

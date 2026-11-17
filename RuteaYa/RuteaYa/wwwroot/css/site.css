@@ -17,9 +17,6 @@ html {
   min-height: 100%;
 }
 
-body {
-  margin-bottom: 60px;
-}
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
   color: var(--bs-secondary-color);
@@ -82,6 +79,60 @@ html[data-bs-theme="dark"] body {
 /* Tarjeta verde "Potencial del mes" */
 .card-potencial {
     background-color: var(--potencial-bg);
+}
+
+/* Resumen del potencial mensual integrado al inicio. */
+.monthly-potential-eyebrow {
+    color: #14714c;
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+
+.monthly-potential-amount {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+}
+
+.monthly-potential-amount > span,
+.monthly-potential-amount small {
+    color: var(--bs-secondary-color);
+}
+
+.monthly-potential-amount strong {
+    color: #14714c;
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.1;
+}
+
+.monthly-weeks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+    gap: .75rem;
+}
+
+.monthly-weeks > div {
+    background: color-mix(in srgb, var(--bs-body-bg) 72%, transparent);
+    border: 1px solid var(--bs-border-color);
+    border-radius: .85rem;
+    padding: .8rem;
+}
+
+.monthly-weeks span,
+.monthly-weeks strong {
+    display: block;
+}
+
+.monthly-weeks span {
+    color: var(--bs-secondary-color);
+    font-size: .78rem;
+}
+
+.monthly-weeks strong {
+    color: #14714c;
+    margin-top: .25rem;
 }
 
 /* ===== Overrides solo para oscuro (el claro queda idéntico) ===== */
@@ -154,4 +205,312 @@ html[data-bs-theme="dark"] body {
     --bs-btn-active-color: #0b1220;
     --bs-btn-active-bg: #ea868f;
     --bs-btn-active-border-color: #ea868f;
+}
+/* ===== Detalle del viaje: timeline de paradas ===== */
+
+.timeline {
+    position: relative;
+}
+
+.timeline::before {
+    content: "";
+    position: absolute;
+    top: .6rem;
+    bottom: .6rem;
+    left: 1.05rem;
+    width: 2px;
+    background-color: var(--bs-border-color);
+}
+
+.timeline-nodo {
+    position: relative;
+    padding-left: 2.75rem;
+    padding-bottom: 1.5rem;
+}
+
+.timeline-nodo:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-marcador {
+    position: absolute;
+    left: .35rem;
+    top: .1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    border: 2px solid var(--bs-border-color);
+    border-radius: 50%;
+    background-color: var(--bs-body-bg);
+    font-size: .7rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.timeline-marcador.text-bg-success,
+.timeline-marcador.text-bg-dark {
+    border-color: transparent;
+}
+
+.timeline-etiqueta {
+    display: block;
+    margin-bottom: .15rem;
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--bs-secondary-color);
+}
+
+/* ===== Mapas del recorrido ===== */
+
+.mapa-recorrido {
+    height: 380px;
+    min-height: 320px;
+    border-radius: 1rem;
+    overflow: hidden;
+    background-color: var(--bs-tertiary-bg);
+    z-index: 0;
+}
+
+.mapa-recorrido .leaflet-popup-content {
+    margin: .5rem .75rem;
+    font-size: .875rem;
+}
+
+.mapa-marcador {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .35);
+    color: #fff;
+    font-size: .8rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.mapa-marcador--origen {
+    background-color: #198754;
+}
+
+.mapa-marcador--parada {
+    background-color: #0b132b;
+}
+
+.mapa-marcador--destino {
+    background-color: #212529;
+    border-radius: 6px;
+}
+
+.mapa-atribucion {
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+
+/* En modo oscuro se atenúan los tiles para que no encandilen. */
+[data-bs-theme="dark"] .mapa-recorrido .leaflet-tile-pane {
+    filter: brightness(.75) contrast(1.05) saturate(.8);
+}
+
+/* El panel del mapa acompaña el scroll en pantallas grandes. */
+@media (min-width: 992px) {
+    .mapa-panel {
+        position: sticky;
+        top: 1rem;
+    }
+}
+
+/* ===== Oportunidades ===== */
+
+.opportunities-selector,
+.opportunities-trip-summary,
+.empty-opportunities,
+.opportunities-hint,
+.opportunity-card {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 1.25rem;
+}
+
+.opportunities-selector {
+    padding: 1.25rem;
+}
+
+.opportunities-trip-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1rem 1.25rem;
+}
+
+    .opportunities-trip-summary strong,
+    .opportunities-trip-summary .summary-label {
+        display: block;
+    }
+
+.summary-label {
+    color: var(--bs-secondary-color);
+    font-size: .78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.summary-limits {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    color: var(--bs-secondary-color);
+    font-size: .85rem;
+}
+
+    .summary-limits b {
+        color: var(--bs-body-color);
+    }
+
+.sort-pill {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 999px;
+    background-color: var(--bs-tertiary-bg);
+    color: var(--bs-body-color);
+    padding: .42rem .9rem;
+    font-size: .85rem;
+    font-weight: 600;
+    transition: background-color .2s, border-color .2s, color .2s;
+}
+
+    .sort-pill:hover,
+    .sort-pill.is-active {
+        background-color: var(--bs-primary);
+        border-color: var(--bs-primary);
+        color: #fff;
+    }
+
+.opportunity-card {
+    display: grid;
+    grid-template-columns: minmax(14rem, 1fr) auto auto auto;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.15rem 1.35rem;
+}
+
+
+.opportunity-route h2 {
+    margin: 0 0 .2rem;
+    color: var(--bs-body-color);
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.opportunity-route p {
+    margin: 0;
+    color: var(--bs-secondary-color);
+    font-size: .84rem;
+}
+
+.compatibility-badge {
+    border-radius: 999px;
+    padding: .3rem .7rem;
+    font-size: .76rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.compat-good {
+    background-color: var(--bs-success-bg-subtle);
+    color: var(--bs-success-text-emphasis);
+}
+
+.compat-warning {
+    background-color: var(--bs-warning-bg-subtle);
+    color: var(--bs-warning-text-emphasis);
+}
+
+.opportunity-amount {
+    color: var(--bs-success-text-emphasis);
+    font-size: 1.25rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.empty-opportunities,
+.opportunities-hint {
+    padding: 3rem 1.5rem;
+    color: var(--bs-secondary-color);
+}
+
+/* ===== Ajustes de Oportunidades en modo oscuro ===== */
+
+[data-bs-theme="dark"] .sort-pill:hover,
+[data-bs-theme="dark"] .sort-pill.is-active {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: #fff;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 767.98px) {
+    .opportunity-card {
+        grid-template-columns: 1fr auto;
+        gap: .8rem;
+    }
+
+    .opportunity-route {
+        grid-column: 1 / -1;
+    }
+
+    .opportunity-card .btn {
+        grid-column: 1 / -1;
+        justify-self: start;
+    }
+}
+
+
+/* ===== Mis transportes ===== */
+
+.transport-card-header {
+    background: var(--bs-body-bg);
+    border-color: var(--bs-border-color) !important;
+}
+
+.transport-item {
+    border-color: var(--bs-border-color) !important;
+}
+
+[data-bs-theme="dark"] .transport-card-header,
+[data-bs-theme="dark"] .transport-item {
+    background: var(--bs-body-bg);
+}
+
+[data-bs-theme="dark"] .compat-good {
+    background: #12372b;
+    color: #7be0ae;
+}
+
+[data-bs-theme="dark"] .compat-warning {
+    background: #3a2a1c;
+    color: #ffb37a;
+}
+
+[data-bs-theme="dark"] .sort-pill:hover,
+[data-bs-theme="dark"] .sort-pill.is-active {
+    background: #ff9142;
+    border-color: #ff9142;
+    color: #0b1220;
+}
+
+@media (max-width: 767.98px) {
+    .opportunity-card { grid-template-columns: 1fr auto; gap: .8rem; }
+    .opportunity-route { grid-column: 1 / -1; }
+    .opportunity-card .btn { grid-column: 1 / -1; justify-self: start; }
 }

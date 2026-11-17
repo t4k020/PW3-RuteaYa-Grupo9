@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RuteaYa.Entidades;
 using RuteaYa.Servicios.Dtos;
+using RuteaYa.Servicios.Servicios.Rutas;
 
 namespace RuteaYa.Servicios.Controllers;
 
@@ -55,6 +56,7 @@ public class ApiEnvioController : ControllerBase
     [ProducesResponseType(typeof(EnvioDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
     public async Task<IActionResult> CrearEnvio(
         [FromBody] CrearEnvioDto solicitud)
     {
@@ -71,25 +73,27 @@ public class ApiEnvioController : ControllerBase
 
         try
         {
-            // CLAVE: Construir entidad en el servidor (no confiar en datos del cliente).
-            // UsuarioId y Estado se asignan acá, nunca desde el cliente (over-posting).
-            var envio = new Envio
-            {
-                OrigenDir = solicitud.OrigenDir.Trim(),
-                DestinoDir = solicitud.DestinoDir.Trim(),
-                FechaLimite = solicitud.FechaLimite.Date,
-                PesoKg = solicitud.PesoKg,
-                Tamano = solicitud.Tamano,
-                Descripcion = solicitud.Descripcion.Trim(),
-                Monto = solicitud.Monto
-            };
-            var nuevoEnvio = await _envioService.CrearEnvioAsync(envio, usuarioId);
+            // El servicio geocodifica las direcciones y asigna usuario,
+            // estado y coordenadas: nunca se confía en datos del cliente.
+            var nuevoEnvio = await _envioService.CrearEnvioAsync(
+                solicitud,
+                usuarioId,
+                HttpContext.RequestAborted);
 
             // Retornar 201 Created con la URL del nuevo recurso
             return CreatedAtAction(
                 nameof(ObtenerPorIdApi),
                 new { id = nuevoEnvio.Id },
                 Mapear(nuevoEnvio));
+        }
+        catch (ProveedorRutasException ex)
+        {
+            return StatusCode(StatusCodes.Status502BadGateway, new ProblemDetails
+            {
+                Title = "Servicio de rutas no disponible.",
+                Detail = ex.Message,
+                Status = StatusCodes.Status502BadGateway
+            });
         }
         catch (InvalidOperationException ex)
         {
@@ -128,6 +132,55 @@ public class ApiEnvioController : ControllerBase
         catch (Exception)
         {
             return StatusCode(500, "Ocurrió un error interno al obtener el envío.");
+        }
+    }
+
+    /// PUT: Edita un envío (solo si pertenece al usuario y todavía busca conductor).
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ActualizarEnvioApi(int id, [FromBody] CrearEnvioDto solicitud)
+    {
+        if (!TryObtenerUsuarioId(out var usuarioId))
+        {
+            return Unauthorized();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        try
+        {
+            var datos = new Envio
+            {
+                OrigenDir = solicitud.OrigenDir,
+                DestinoDir = solicitud.DestinoDir,
+                FechaLimite = solicitud.FechaLimite,
+                PesoKg = solicitud.PesoKg,
+                Tamano = solicitud.Tamano,
+                Descripcion = solicitud.Descripcion,
+                Monto = solicitud.Monto
+            };
+
+            var actualizado = await _envioService.ActualizarEnvioAsync(id, datos, usuarioId);
+            return actualizado ? NoContent() : NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new ProblemDetails
+            {
+                Title = "No se puede editar el envío.",
+                Detail = ex.Message,
+                Status = StatusCodes.Status400BadRequest
+            });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Ocurrió un error interno al editar el envío.");
         }
     }
 
@@ -241,7 +294,7 @@ public class ApiEnvioController : ControllerBase
     [HttpGet("oportunidades")]
     [ProducesResponseType(typeof(IEnumerable<EnvioDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> ObtenerOportunidadesApi(CancellationToken cancellationToken)
+    public async Task<IActionResult> ObtenerOportunidadesApi([FromQuery] int viajeId, [FromQuery] DateTime fecha, [FromQuery] string orden = "ganancia", CancellationToken cancellationToken = default)
     {
         if (!TryObtenerUsuarioId(out var usuarioId))
         {
@@ -251,13 +304,10 @@ public class ApiEnvioController : ControllerBase
         try
         {
 
-            var envios = await _envioService.ObtenerOportunidadesDisponiblesAsync(usuarioId);
-
- 
-            var dtos = envios.Select(e => Mapear(e)).ToList();
-
-            return Ok(dtos);
+            var oportunidades = await _envioService.ObtenerOportunidadesParaViajeAsync(viajeId, fecha, usuarioId, orden, cancellationToken);
+            return oportunidades is null ? NotFound() : Ok(oportunidades);
         }
+        catch (InvalidOperationException ex) { return BadRequest(new ProblemDetails { Detail = ex.Message, Status = StatusCodes.Status400BadRequest }); }
         catch (Exception)
         {
             return StatusCode(500, "Ocurrió un error interno al obtener las oportunidades.");
@@ -277,7 +327,29 @@ public class ApiEnvioController : ControllerBase
         return envio == null ? NotFound() : Ok(envio);
     }
 
+    [HttpGet("oportunidades/{id:int}/detalle")]
+    [ProducesResponseType(typeof(DetalleOportunidadViajeDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ObtenerDetalleOportunidadParaViajeApi(
+        int id, [FromQuery] int viajeId, [FromQuery] DateTime fecha, CancellationToken cancellationToken = default)
+    {
+        if (!TryObtenerUsuarioId(out var usuarioId))
+        {
+            return Unauthorized();
+        }
 
+        try
+        {
+            var detalle = await _envioService.ObtenerDetalleOportunidadParaViajeAsync(id, viajeId, fecha, usuarioId, cancellationToken);
+            return detalle is null ? NotFound() : Ok(detalle);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new ProblemDetails { Detail = ex.Message, Status = StatusCodes.Status400BadRequest });
+        }
+    }
 
     /// <summary>
     /// Método privado: Extrae el ID del usuario desde el JWT (Claims).
@@ -310,26 +382,13 @@ public class ApiEnvioController : ControllerBase
             Monto = envio.Monto,
             Estado = envio.Estado,
             CreadoEn = envio.CreadoEn,
-            EstadoNombre = ObtenerNombreEstado((EstadoEnvio)envio.Estado),
+            EstadoNombre = ((EstadoEnvio)envio.Estado).ObtenerNombre(),
             // CLAVE: Calcular permisos en la API (no confiar en cliente)
+            PuedeEditar = (EstadoEnvio)envio.Estado is EstadoEnvio.BuscandoConductor,
             PuedeCancelar = (EstadoEnvio)envio.Estado is
                 EstadoEnvio.BuscandoConductor or EstadoEnvio.ConductorAsignado,
             PuedeEliminar = (EstadoEnvio)envio.Estado is EstadoEnvio.Cancelado
         };
     }
-
-    /// <summary>
-    /// Convierte un enum EstadoEnvio a su nombre legible
-    /// </summary>
-    private static string ObtenerNombreEstado(EstadoEnvio estado) => estado switch
-    {
-        EstadoEnvio.BuscandoConductor => "Buscando conductor",
-        EstadoEnvio.ConductorAsignado => "Conductor asignado",
-        EstadoEnvio.Retirado => "Retirado",
-        EstadoEnvio.EnCamino => "En camino",
-        EstadoEnvio.Entregado => "Entregado",
-        EstadoEnvio.Cancelado => "Cancelado",
-        _ => "Estado desconocido"
-    };
 
 }

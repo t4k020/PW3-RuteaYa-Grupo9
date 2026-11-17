@@ -22,6 +22,11 @@ namespace RuteaYa.Repositorios
             return await _context.Usuarios.AnyAsync(u => u.Email == email);
         }
 
+        public async Task<Usuario?> ObtenerUsuarioPorIdAsync(int id)
+        {
+            return await _context.Usuarios.FindAsync(id);
+        }
+
         public async Task<List<Usuario>> ListarUsuariosAsync()
         {
             return await _context.Usuarios
@@ -37,5 +42,17 @@ namespace RuteaYa.Repositorios
             await _context.SaveChangesAsync();
 
         }
+
+        public async Task GuardarCambiosAsync() => await _context.SaveChangesAsync();
+
+        public async Task EliminarUsuarioAsync(Usuario usuario)
+        {
+            _context.Usuarios.Remove(usuario);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> TieneOperacionesAsync(int usuarioId) =>
+            await _context.Viajes.AnyAsync(v => v.UsuarioId == usuarioId) ||
+            await _context.Envios.AnyAsync(e => e.UsuarioId == usuarioId);
     }
 }

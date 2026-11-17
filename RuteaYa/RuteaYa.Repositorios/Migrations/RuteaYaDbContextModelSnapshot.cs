@@ -17,7 +17,7 @@ namespace RuteaYa.Repositorios.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.13")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -218,6 +218,9 @@ namespace RuteaYa.Repositorios.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Email")
+                        .IsUnique();
+
                     b.ToTable("Usuarios");
                 });
 
@@ -251,6 +254,9 @@ namespace RuteaYa.Repositorios.Migrations
 
                     b.Property<int>("DuracionMin")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("EliminadoEn")
+                        .HasColumnType("datetime2");
 
                     b.Property<TimeOnly>("HoraLlegada")
                         .HasColumnType("time");

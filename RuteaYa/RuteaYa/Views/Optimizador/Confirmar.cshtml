@@ -1,0 +1,59 @@
+@model RuteaYa.Models.ConfirmarCombinacionViewModel
+
+@{
+    ViewData["Title"] = "Confirmar combinación";
+    var c = Model.Combinacion;
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h2 class="fw-bold mb-1">Confirmar combinación</h2>
+            <p class="text-muted mb-0">@Model.OrigenDir → @Model.DestinoDir · @Model.Fecha.ToString("dd/MM/yyyy")</p>
+        </div>
+        @if (Model.DesdeOportunidades)
+        {
+            <a asp-controller="Envio" asp-action="Oportunidades" asp-route-viajeId="@Model.ViajeId"
+               asp-route-fecha="@Model.Fecha.ToString("yyyy-MM-dd")" asp-route-orden="@Model.Orden"
+               class="btn btn-outline-secondary rounded-pill px-3">Volver</a>
+        }
+        else
+        {
+            <a asp-controller="Optimizador" asp-action="Index" asp-route-viajeId="@Model.ViajeId" asp-route-fecha="@Model.Fecha.ToString("yyyy-MM-dd")"
+               class="btn btn-outline-secondary rounded-pill px-3">Volver</a>
+        }
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3"><div class="card border-0 shadow-sm rounded-4 p-3"><div class="text-muted small">Ganancia total</div><div class="fs-4 fw-bold">$@c.GananciaTotal.ToString("N0")</div></div></div>
+        <div class="col-6 col-md-3"><div class="card border-0 shadow-sm rounded-4 p-3"><div class="text-muted small">Peso total</div><div class="fs-4 fw-bold">@c.PesoTotalKg.ToString("0.##") kg</div></div></div>
+        <div class="col-6 col-md-3"><div class="card border-0 shadow-sm rounded-4 p-3"><div class="text-muted small">Desvío total</div><div class="fs-4 fw-bold">@c.DesvioTotalKm.ToString("0.#") km</div></div></div>
+        <div class="col-6 col-md-3"><div class="card border-0 shadow-sm rounded-4 p-3"><div class="text-muted small">Paquetes</div><div class="fs-4 fw-bold">@c.Paquetes.Count</div></div></div>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+        @await Html.PartialAsync("~/Views/Optimizador/_CombinacionPaquetes.cshtml", c)
+    </div>
+
+    <form asp-controller="Optimizador" asp-action="Reservar" method="post" class="d-flex justify-content-end gap-2 mb-5">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="viajeId" value="@Model.ViajeId" />
+        <input type="hidden" name="fecha" value="@Model.Fecha.ToString("yyyy-MM-dd")" />
+        @foreach (var p in c.Paquetes)
+        {
+            <input type="hidden" name="ids" value="@p.Id" />
+        }
+        @if (Model.DesdeOportunidades)
+        {
+            <a asp-controller="Envio" asp-action="Oportunidades" asp-route-viajeId="@Model.ViajeId"
+               asp-route-fecha="@Model.Fecha.ToString("yyyy-MM-dd")" asp-route-orden="@Model.Orden"
+               class="btn btn-outline-secondary rounded-pill px-4">Cancelar</a>
+        }
+        else
+        {
+            <a asp-controller="Optimizador" asp-action="Index" asp-route-viajeId="@Model.ViajeId" asp-route-fecha="@Model.Fecha.ToString("yyyy-MM-dd")"
+               class="btn btn-outline-secondary rounded-pill px-4">Cancelar</a>
+        }
+        <button type="submit" class="btn btn-dark rounded-pill px-4">Confirmar y reservar</button>
+    </form>
+</div>

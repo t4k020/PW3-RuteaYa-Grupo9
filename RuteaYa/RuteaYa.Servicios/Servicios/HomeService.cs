@@ -142,7 +142,7 @@ public class HomeService : IHomeService
                 FechaLimite = e.FechaLimite,
                 Monto = e.Monto,
                 Estado = e.Estado,
-                EstadoNombre = ObtenerNombreEstado(e.Estado)
+                EstadoNombre = ((EstadoEnvio)e.Estado).ObtenerNombre()
             }).ToList(),
             Oportunidades = oportunidades.Select(e => new HomeOportunidadDto
             {
@@ -213,18 +213,13 @@ public class HomeService : IHomeService
             GananciaEfectivaMes = gananciaTotal,
 
 
-            Viajes = ultimosViajes.Select(v => new HomeViajeDto
+            HistorialViajes = ultimosViajes.Select(v => new HistorialViajeDto
             {
                 Id = v.Id,
                 Origen = v.OrigenDir,
                 Destino = v.DestinoDir,
-                HoraSalida = v.HoraSalida,
-                HoraLlegada = v.HoraLlegada,
-                Activo = v.Activo,
-                DiasSemana = new List<string> {
-                $"{v.Asignaciones.Count(a => a.Envio != null && a.Envio.Estado == (byte)EstadoEnvio.Entregado)} paquetes entregados",
-                $"${v.Asignaciones.Where(a => a.Envio != null && a.Envio.Estado == (byte)EstadoEnvio.Entregado).Sum(a => a.Ganancia):N0}"
-            }
+                PaquetesEntregados = v.Asignaciones.Count(a => a.Envio != null && a.Envio.Estado == (byte)EstadoEnvio.Entregado),
+                Ganancia = v.Asignaciones.Where(a => a.Envio != null && a.Envio.Estado == (byte)EstadoEnvio.Entregado).Sum(a => a.Ganancia)
             }).ToList(),
 
 
@@ -252,16 +247,5 @@ public class HomeService : IHomeService
         6 => "Sáb",
         7 => "Dom",
         _ => "Día"
-    };
-
-    private static string ObtenerNombreEstado(byte estado) => (EstadoEnvio)estado switch
-    {
-        EstadoEnvio.BuscandoConductor => "Buscando conductor",
-        EstadoEnvio.ConductorAsignado => "Conductor asignado",
-        EstadoEnvio.Retirado => "Retirado",
-        EstadoEnvio.EnCamino => "En camino",
-        EstadoEnvio.Entregado => "Entregado",
-        EstadoEnvio.Cancelado => "Cancelado",
-        _ => "Estado desconocido"
     };
 }

@@ -58,36 +58,23 @@ builder.Services.AddHttpClient("ApiViaje", client =>
     client.BaseAddress = new Uri("https://localhost:7224/");
 }).AddHttpMessageHandler<JwtAuthorizationHandler>();
 
+builder.Services.AddHttpClient("ApiOptimizador", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7224/");
+}).AddHttpMessageHandler<JwtAuthorizationHandler>();
+
 builder.Services.AddHttpClient("ApiHome", client =>
 {
     client.BaseAddress = new Uri(
         builder.Configuration["ApiSettings:BaseUrl"]!);
 }).AddHttpMessageHandler<JwtAuthorizationHandler>();
 
-var app = builder.Build();
-
-// Carga inicial de la base de datos
-//Aviso: suele dar error en consola esta parte.
-
-using (var scope = app.Services.CreateScope())
+builder.Services.AddHttpClient("ApiPotencial", client =>
 {
-    var services = scope.ServiceProvider;
+    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"]!);
+}).AddHttpMessageHandler<JwtAuthorizationHandler>();
 
-    try
-    {
-        var context = services.GetRequiredService<RuteaYaDbContext>();
-        DbInitializer.Initialize(context);
-    }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-
-        logger.LogError(
-            ex,
-            "Ocurrió un error al poblar la base de datos."
-        );
-    }
-}
+var app = builder.Build();
 
 // Pipeline HTTP
 if (!app.Environment.IsDevelopment())

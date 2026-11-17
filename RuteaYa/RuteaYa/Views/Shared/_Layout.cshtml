@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/RuteaYa.styles.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
     <div class="d-flex min-vh-100">
@@ -35,13 +36,15 @@
                     <a class="nav-link text-white opacity-75" asp-controller="Envio" asp-action="Oportunidades">Oportunidades</a>
                 </li>
                 <li class="nav-item mb-1">
-                    <a class="nav-link text-white opacity-75" href="#">Optimizador</a>
+                    <a class="nav-link text-white opacity-75" asp-controller="Optimizador" asp-action="Index">Optimizador</a>
                 </li>
                 <li class="nav-item mb-1">
                     <a class="nav-link text-white opacity-75" asp-controller="Viaje" asp-action="MisTransportes">Mis transportes</a>
                 </li>
                 <li class="nav-item mb-1">
                     <a class="nav-link text-white opacity-75" asp-controller="Home" asp-action="Historial">Historial</a>
+                </li>
+                <li class="nav-item mb-1">
                 </li>
             </ul>
 

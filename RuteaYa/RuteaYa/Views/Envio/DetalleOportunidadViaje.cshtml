@@ -1,0 +1,88 @@
+@model RuteaYa.Servicios.Dtos.DetalleOportunidadViajeDto
+@{
+    ViewData["Title"] = "Detalle de oportunidad";
+    var envio = Model.Envio;
+    var fecha = Model.FechaViaje.ToString("yyyy-MM-dd");
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Detalle de oportunidad</h2>
+            <p class="text-muted mb-0 fs-5">@envio.OrigenDir &rarr; @envio.DestinoDir</p>
+            <p class="text-muted small mb-0">Para tu viaje @Model.ViajeOrigenDir &rarr; @Model.ViajeDestinoDir · @Model.FechaViaje.ToString("dd/MM/yyyy")</p>
+        </div>
+        <a asp-action="Oportunidades" asp-route-viajeId="@Model.ViajeId" asp-route-fecha="@fecha"
+           class="btn btn-outline-secondary rounded-pill px-4">Volver</a>
+    </div>
+
+    @if (TempData["Error"] is string error)
+    {
+        <div class="alert alert-danger rounded-4 mb-4">@error</div>
+    }
+
+    <div class="row g-4 align-items-stretch">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold text-dark mb-0">Ruta habitual vs. con el envío</h5>
+                    <span class="badge rounded-pill text-bg-dark">@Model.Compatibilidad</span>
+                </div>
+                <div class="d-flex flex-column gap-3">
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-secondary">Distancia habitual</span>
+                        <span class="fw-bold">@Model.DistanciaHabitualKm.ToString("N1") km</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-secondary">Distancia con el envío</span>
+                        <span class="fw-bold">@Model.DistanciaConEnvioKm.ToString("N1") km</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-secondary">Desvío (estimado)</span>
+                        <span class="fw-bold">@Model.DesvioKm.ToString("0.0") km</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-secondary">Tiempo habitual</span>
+                        <span class="fw-bold">@Model.DuracionHabitualMin min</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-secondary">Tiempo adicional</span>
+                        <span class="fw-bold">+@Model.TiempoAdicionalMin min</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2 border-bottom">
+                        <span class="text-secondary">Peso del envío</span>
+                        <span class="fw-bold">@envio.PesoKg.ToString("0.##") kg</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2">
+                        <span class="text-secondary">Capacidad restante</span>
+                        <span class="fw-bold">@Model.PesoRestanteKg.ToString("0.##") kg &middot; @Model.CupoRestante paquetes</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100 justify-content-between" style="background-color: #e8f5e9;">
+                <div>
+                    <span class="text-success fw-semibold d-block mb-2">Pago</span>
+                    <h1 class="display-4 fw-bold text-success mb-1">$@envio.Monto.ToString("N0")</h1>
+                    <p class="text-success small mb-4">$@Model.PagoPorKmAdicional.ToString("N0") por km adicional</p>
+                </div>
+                <div>
+                    @if (Model.PuedeAceptar)
+                    {
+                        <a asp-action="ConfirmarSeleccion" asp-route-viajeId="@Model.ViajeId"
+                           asp-route-fecha="@fecha" asp-route-ids="@envio.Id"
+                           class="btn btn-dark rounded-3 w-100 py-3 fw-bold fs-5 shadow-sm">Aceptar envío</a>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning border-0 rounded-4 mb-0">
+                            Este envío ya no entra en tu viaje (cupo, peso o desvío insuficientes) o ya fue tomado.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
