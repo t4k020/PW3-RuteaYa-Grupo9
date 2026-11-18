@@ -49,8 +49,8 @@ public sealed class RutaServiceMock : IRutaService
             ("Plaza de Mayo, CABA", -34.608300m, -58.371200m),
             ("Cabildo 2000, CABA", -34.562700m, -58.459000m),
             ("Corrientes 1000, CABA", -34.602500m, -58.385000m),
-            ("Gaona 2500, CABA", -34.625000m, -58.470000m),
-            ("Calle Falsa 123, Morón", -34.653400m, -58.619200m),
+            ("Av. Rivadavia 18500, Morón", -34.652700m, -58.619800m),
+            ("Machado 854, Morón", -34.655700m, -58.621000m),
             ("Mitre 450, San Justo", -34.685100m, -58.558700m),
             ("Ruta 3 Km 28, La Matanza", -34.750000m, -58.590000m)
         }
