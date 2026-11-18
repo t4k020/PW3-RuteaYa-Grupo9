@@ -8,6 +8,20 @@ namespace RuteaYa.Repositorios
 {
     public class DbInitializer
     {
+        // Direcciones y descripción reales de los datos demo. Se usan tanto en
+        // la normalización de bases existentes como en el seed de bases nuevas.
+        private const string OrigenViajeDemoAnterior = "Calle Falsa 123, Morón";
+        private const string OrigenViajeDemoNuevo = "Av. Rivadavia 18500, Morón";
+        private const decimal OrigenViajeDemoLat = -34.6527m;
+        private const decimal OrigenViajeDemoLng = -58.6198m;
+        private const string DestinoViajeDemo = "Plaza de Mayo, CABA";
+        private const string ParadaViajeDemoAnterior = "Gaona 2500, Morón";
+        private const string ParadaViajeDemoNueva = "Machado 854, Morón";
+        private const decimal ParadaViajeDemoLat = -34.6557m;
+        private const decimal ParadaViajeDemoLng = -58.6210m;
+        private const string DescripcionEnvioDemoAnterior = "Envío cancelado de prueba";
+        private const string DescripcionEnvioDemoNueva = "Caja de vajilla";
+
         public static void Initialize(RuteaYaDbContext context)
         {
             // Asegura que la base de datos esté creada
@@ -15,6 +29,9 @@ namespace RuteaYa.Repositorios
 
             // Normaliza envíos creados con el estado Pendiente, que ya no existe.
             NormalizarEnviosPendientes(context);
+
+            // Corrige direcciones y descripciones demo de bases ya creadas.
+            NormalizarDatosDemo(context);
 
             //  evita duplicados: crea cada usuario demo solo si falta
             var semillas = new[]
@@ -161,14 +178,14 @@ namespace RuteaYa.Repositorios
 
             viajesDemo.Add(GuardarViaje(
                 UsuarioId(1),
-                "Calle Falsa 123, Morón",
-                -34.6534m, -58.6192m,
-                "Plaza de Mayo, CABA",
+                OrigenViajeDemoNuevo,
+                OrigenViajeDemoLat, OrigenViajeDemoLng,
+                DestinoViajeDemo,
                 -34.6083m, -58.3712m,
                 new TimeOnly(9, 30), new TimeOnly(11, 0),
                 3, 30m, 3.5m, 22m, 60,
                 new byte[] { 2, 4, 6 },
-                ("Gaona 2500, Morón", -34.625m, -58.47m)));
+                (ParadaViajeDemoNueva, ParadaViajeDemoLat, ParadaViajeDemoLng)));
 
             viajesDemo.Add(GuardarViaje(
                 UsuarioId(2),
@@ -463,7 +480,7 @@ namespace RuteaYa.Repositorios
                 "Av. Las Heras 1200, CABA", -34.59m, -58.402m,
                 "Av. Santa Fe 2000, CABA", -34.595m, -58.405m,
                 DateTime.Today.AddDays(2), 4m, 2,
-                "Envío cancelado de prueba", 2800m,
+                DescripcionEnvioDemoNueva, 2800m,
                 EstadoEnvio.Cancelado);
         }
 
@@ -500,6 +517,55 @@ namespace RuteaYa.Repositorios
 
             if (envios.Count > 0 || historiales.Count > 0)
                 context.SaveChanges();
+        }
+
+        // Corrige los datos demo con direcciones inexistentes (Calle Falsa 123 y
+        // Gaona 2500, Morón) y la descripción "Envío cancelado de prueba" en las
+        // bases que ya fueron creadas. Es idempotente: si los datos ya están
+        // normalizados o el usuario los modificó, no hace nada.
+        private static void NormalizarDatosDemo(RuteaYaDbContext context)
+        {
+            var viajeDemo = context.Viajes.FirstOrDefault(v =>
+                v.OrigenDir == OrigenViajeDemoAnterior &&
+                v.DestinoDir == DestinoViajeDemo);
+
+            if (viajeDemo != null &&
+                !context.Viajes.Any(v =>
+                    v.Id != viajeDemo.Id &&
+                    v.UsuarioId == viajeDemo.UsuarioId &&
+                    v.OrigenDir == OrigenViajeDemoNuevo &&
+                    v.DestinoDir == DestinoViajeDemo))
+            {
+                viajeDemo.OrigenDir = OrigenViajeDemoNuevo;
+                viajeDemo.OrigenLat = OrigenViajeDemoLat;
+                viajeDemo.OrigenLng = OrigenViajeDemoLng;
+
+                var paradas = context.Paradas
+                    .Where(p =>
+                        p.ViajeId == viajeDemo.Id &&
+                        p.Direccion == ParadaViajeDemoAnterior)
+                    .ToList();
+
+                foreach (var parada in paradas)
+                {
+                    parada.Direccion = ParadaViajeDemoNueva;
+                    parada.Lat = ParadaViajeDemoLat;
+                    parada.Lng = ParadaViajeDemoLng;
+                }
+            }
+
+            var envioDemo = context.Envios.FirstOrDefault(e =>
+                e.Descripcion == DescripcionEnvioDemoAnterior);
+
+            if (envioDemo != null &&
+                !context.Envios.Any(e =>
+                    e.Id != envioDemo.Id &&
+                    e.Descripcion == DescripcionEnvioDemoNueva))
+            {
+                envioDemo.Descripcion = DescripcionEnvioDemoNueva;
+            }
+
+            context.SaveChanges();
         }
     }
 }
