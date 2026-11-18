@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using RuteaYa.Controllers;
+using RuteaYa.Entidades;
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
@@ -155,10 +156,7 @@ public class AuthControllerTest
         }));
 
         var resultado = await controller.Register(
-            "Ana",
-            "Pérez",
-            "ana@test.com",
-            "contrasena123",
+            Modelo("Ana", "Pérez", "ana@test.com", "contrasena123"),
             TestContext.Current.CancellationToken);
 
         var redirect = Assert.IsType<RedirectToActionResult>(resultado);
@@ -176,10 +174,7 @@ public class AuthControllerTest
         }));
 
         var resultado = await controller.Register(
-            "Ana",
-            "Pérez",
-            "ana@test.com",
-            "contrasena123",
+            Modelo("Ana", "Pérez", "ana@test.com", "contrasena123"),
             TestContext.Current.CancellationToken);
 
         Assert.IsType<ViewResult>(resultado);
@@ -195,10 +190,7 @@ public class AuthControllerTest
             new HttpResponseMessage(HttpStatusCode.BadRequest));
 
         var resultado = await controller.Register(
-            "Ana",
-            "Pérez",
-            "ana@test.com",
-            "contrasena123",
+            Modelo("Ana", "Pérez", "ana@test.com", "contrasena123"),
             TestContext.Current.CancellationToken);
 
         Assert.IsType<ViewResult>(resultado);
@@ -212,10 +204,7 @@ public class AuthControllerTest
             new HttpResponseMessage(HttpStatusCode.InternalServerError));
 
         var resultado = await controller.Register(
-            "Ana",
-            "Pérez",
-            "ana@test.com",
-            "contrasena123",
+            Modelo("Ana", "Pérez", "ana@test.com", "contrasena123"),
             TestContext.Current.CancellationToken);
 
         Assert.IsType<ViewResult>(resultado);
@@ -231,10 +220,7 @@ public class AuthControllerTest
             throw new HttpRequestException("Error de red"));
 
         var resultado = await controller.Register(
-            "Ana",
-            "Pérez",
-            "ana@test.com",
-            "contrasena123",
+            Modelo("Ana", "Pérez", "ana@test.com", "contrasena123"),
             TestContext.Current.CancellationToken);
 
         Assert.IsType<ViewResult>(resultado);
@@ -252,14 +238,35 @@ public class AuthControllerTest
         });
 
         var resultado = await controller.Register(
-            "Ana",
-            "Pérez",
-            "ana@test.com",
-            "corta",
+            Modelo("Ana", "Pérez", "ana@test.com", "corta"),
             TestContext.Current.CancellationToken);
 
         Assert.IsType<ViewResult>(resultado);
         AssertTieneError(controller, "La contraseña debe tener al menos 8 caracteres.");
+        Assert.Equal(0, llamadas);
+    }
+
+    [Fact]
+    public async Task Register_DeberiaMostrarErrorSinLlamarALaApi_CuandoLasContrasenasNoCoinciden()
+    {
+        var llamadas = 0;
+        var controller = CrearController(_ =>
+        {
+            llamadas++;
+            return RespuestaJson(HttpStatusCode.OK, new { });
+        });
+
+        var resultado = await controller.Register(
+            Modelo(
+                "Ana",
+                "Pérez",
+                "ana@test.com",
+                "contrasena123",
+                "otra12345"),
+            TestContext.Current.CancellationToken);
+
+        Assert.IsType<ViewResult>(resultado);
+        AssertTieneError(controller, "Las contraseñas no coinciden.");
         Assert.Equal(0, llamadas);
     }
 
@@ -274,10 +281,7 @@ public class AuthControllerTest
         });
 
         var resultado = await controller.Register(
-            "",
-            "Pérez",
-            "ana@test.com",
-            "contrasena123",
+            Modelo("", "Pérez", "ana@test.com", "contrasena123"),
             TestContext.Current.CancellationToken);
 
         Assert.IsType<ViewResult>(resultado);
@@ -378,6 +382,23 @@ public class AuthControllerTest
                 HttpContext = httpContext
             },
             TempData = new TempDataDictionary(httpContext, Mock.Of<ITempDataProvider>())
+        };
+    }
+
+    private static RegisterViewModel Modelo(
+        string nombre,
+        string apellido,
+        string email,
+        string password,
+        string? repetirPassword = null)
+    {
+        return new RegisterViewModel
+        {
+            Nombre = nombre,
+            Apellido = apellido,
+            Email = email,
+            Password = password,
+            RepetirPassword = repetirPassword ?? password
         };
     }
 
